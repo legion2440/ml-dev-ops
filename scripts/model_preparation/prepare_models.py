@@ -12,7 +12,7 @@ import sys
 import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -202,14 +202,16 @@ def render_config(spec: dict[str, Any], serving_name: str) -> str:
         model = resnet
         serving = model["serving"]["onnx"]
         platform = "onnxruntime_onnx"
-        filename = "model.onnx"
+        filename = PurePosixPath(serving["artifact_path"]).name
+        default_filename = f'default_model_filename: "{filename}"\n'
         extra = ""
         label = model["labels"]["filename"]
     elif serving_name == "resnet50_tensorrt":
         model = resnet
         serving = model["serving"]["tensorrt"]
         platform = "tensorrt_plan"
-        filename = "model_cc89.plan"
+        filename = PurePosixPath(serving["artifact_path"]).name
+        default_filename = ""
         capability = spec["build"]["target"]["compute_capability"]
         extra = (
             "cc_model_filenames {\n"
@@ -222,7 +224,8 @@ def render_config(spec: dict[str, Any], serving_name: str) -> str:
         model = yolo
         serving = model["serving"]["onnx"]
         platform = "onnxruntime_onnx"
-        filename = "model.onnx"
+        filename = PurePosixPath(serving["artifact_path"]).name
+        default_filename = f'default_model_filename: "{filename}"\n'
         extra = ""
         label = None
     else:
@@ -232,14 +235,16 @@ def render_config(spec: dict[str, Any], serving_name: str) -> str:
         f'name: "{serving_name}"\n'
         f'platform: "{platform}"\n'
         f"max_batch_size: {serving['max_batch_size']}\n"
-        f'default_model_filename: "{filename}"\n'
+        f"{default_filename}"
         f"{extra}"
         f"{_tensor_block('input', model['input'], None)}"
         f"{_tensor_block('output', model['output'], label)}"
     )
 
 
-def _generated_label_content(model_key: str, source_path: Path) -> str:
+def _generated_label_content(
+    model_key: str, source_path: Path, expected_count: int
+) -> str:
     if model_key == "resnet50":
         lines = source_path.read_text(encoding="utf-8").splitlines()
     else:
@@ -252,7 +257,7 @@ def _generated_label_content(model_key: str, source_path: Path) -> str:
         names = source.get("names") if isinstance(source, dict) else None
         if not isinstance(names, dict):
             raise PreparationError("COCO label source does not contain a names mapping")
-        lines = [str(names[index]) for index in range(80)]
+        lines = [str(names[index]) for index in range(expected_count)]
     return "".join(f"{line}\n" for line in lines)
 
 
@@ -267,7 +272,9 @@ def generate_repository_text(spec: dict[str, Any]) -> None:
     }
     for model_key, serving_names in label_targets.items():
         labels = spec["models"][model_key]["labels"]
-        content = _generated_label_content(model_key, _label_source_path(labels))
+        content = _generated_label_content(
+            model_key, _label_source_path(labels), int(labels["count"])
+        )
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
         if content_hash != labels["generated_sha256"]:
             raise PreparationError(f"Generated {model_key} labels have an unexpected SHA-256")
@@ -295,7 +302,7 @@ def _internal_export(spec: dict[str, Any]) -> None:
     model.load_state_dict(state_dict)
     onnx_path = REPOSITORY_ROOT / resnet["serving"]["onnx"]["artifact_path"]
     onnx_path.parent.mkdir(parents=True, exist_ok=True)
-    example = torch.zeros((1, 3, 224, 224), dtype=torch.float32)
+    example = torch.zeros((1, *resnet["input"]["shape"][1:]), dtype=torch.float32)
     with torch.inference_mode():
         torch.onnx.export(
             model,
@@ -319,6 +326,8 @@ def _internal_export(spec: dict[str, Any]) -> None:
         opset=int(spec["build"]["onnx_opset"]),
         input_name=str(yolo["input"]["name"]),
         output_name=str(yolo["output"]["name"]),
+        input_shape=list(yolo["input"]["shape"]),
+        output_shape=list(yolo["output"]["shape"]),
     )
     print(f"[OK] Exported with torch={torch.__version__}, torchvision={torchvision.__version__}.")
 
@@ -361,7 +370,10 @@ def _internal_inspect_onnx(spec: dict[str, Any]) -> None:
         session = ort.InferenceSession(
             str(artifact_path), providers=["CPUExecutionProvider"]
         )
-        batch = 4 if serving_name == "resnet50_onnx" else 1
+        if serving_name == "resnet50_onnx":
+            batch = int(model_spec["serving"]["tensorrt"]["profile"]["opt"][0])
+        else:
+            batch = int(model_spec["smoke_batches"][0])
         input_array = np.linspace(
             0.0,
             1.0,
@@ -725,7 +737,8 @@ def build_tensorrt(spec: dict[str, Any]) -> None:
         ]
     )
     if not engine_path.is_file():
-        raise PreparationError("TensorRT build did not create model_cc89.plan")
+        relative_path = engine_path.relative_to(REPOSITORY_ROOT).as_posix()
+        raise PreparationError(f"TensorRT build did not create {relative_path}")
     print(f"[OK] Built FP16 TensorRT plan for compute capability {expected_cc}.")
 
 
@@ -784,6 +797,7 @@ def _manifest_model_entry(
         "source": {
             **model["source"],
         },
+        "preprocessing": model["preprocessing"],
         "labels": model["labels"],
         "artifact": {
             "path": serving["artifact_path"],
@@ -913,6 +927,7 @@ def manifest_staleness(spec: dict[str, Any], manifest: dict[str, Any]) -> list[s
         entry = entries[serving_name]
         comparisons = {
             "logical_model_id": logical_key,
+            "preprocessing": model_spec["preprocessing"],
             "input": model_spec["input"],
             "output": model_spec["output"],
             "precision": serving["precision"],

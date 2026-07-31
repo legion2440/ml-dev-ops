@@ -212,7 +212,7 @@ flowchart LR
     Weights --> Export["Export ONNX"]
     Export --> Validate["ONNX Checker and Runtime"]
     Validate --> Cast["Strongly typed FP16 intermediate"]
-    Cast --> Optimize["Build CC 8.9 TensorRT plan"]
+    Cast --> Optimize["Build capability-qualified TensorRT plan"]
     Validate --> Repository["Populate versioned repository"]
     Optimize --> Repository
     Repository --> Verify["Explicit load, inference, parity, unload"]
@@ -223,6 +223,6 @@ portable across arbitrary GPU and runtime combinations.
 
 ## Deferred decisions
 
-The YOLO release, source hashes, local binary policy, and CC 8.9 TensorRT profile are
-fixed for step 3. CI provider, cross-host artifact distribution, additional model
+The YOLO release, source hashes, local binary policy, and TensorRT target/profile are
+fixed by the step 3 model spec. CI provider, cross-host artifact distribution, additional model
 versions, and benchmark strategy remain later-scope decisions.

@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 from collections.abc import Iterable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -65,18 +65,17 @@ def validate_spec_semantics(spec: dict[str, Any]) -> list[str]:
             errors.append(f"{key} must not use latest")
     if build.get("simplify") is not False:
         errors.append("ONNX simplify must remain false in step 3")
-    if build.get("target", {}).get("compute_capability") != "8.9":
-        errors.append("TensorRT target compute capability must be 8.9")
 
     models = spec.get("models", {})
     if set(models) != {"resnet50", "yolo11n"}:
         errors.append("model spec must contain exactly resnet50 and yolo11n")
         return errors
-    expected_contracts = {
-        "resnet50": (["batch", 3, 224, 224], ["batch", 1000]),
-        "yolo11n": (["batch", 3, 640, 640], ["batch", 84, 8400]),
+
+    expected_serving = {
+        "resnet50": {"onnx", "tensorrt"},
+        "yolo11n": {"onnx"},
     }
-    for model_key, (expected_input, expected_output) in expected_contracts.items():
+    for model_key, serving_kinds in expected_serving.items():
         model = models[model_key]
         source = model.get("source", {})
         if source.get("hash_status") != "resolved":
@@ -93,48 +92,148 @@ def validate_spec_semantics(spec: dict[str, Any]) -> list[str]:
         invalid_axes = any(value != ["batch"] for value in dynamic_axes.values())
         if set(dynamic_axes) != tensor_names or invalid_axes:
             errors.append(f"{model_key} must expose only a dynamic batch axis")
-        input_shape = model.get("input", {}).get("shape", [])
-        output_shape = model.get("output", {}).get("shape", [])
-        rendered_input = ["batch" if value == -1 else value for value in input_shape]
-        rendered_output = ["batch" if value == -1 else value for value in output_shape]
-        if rendered_input != expected_input or rendered_output != expected_output:
-            errors.append(f"{model_key} tensor contract is not the accepted step 3 contract")
+        for tensor_kind in ("input", "output"):
+            shape = model.get(tensor_kind, {}).get("shape", [])
+            valid_shape = (
+                isinstance(shape, list)
+                and len(shape) >= 2
+                and shape[0] == -1
+                and all(isinstance(value, int) and value > 0 for value in shape[1:])
+            )
+            if not valid_shape:
+                errors.append(
+                    f"{model_key} {tensor_kind} must have one dynamic batch "
+                    "dimension followed by positive fixed dimensions"
+                )
         labels = model.get("labels", {})
         for field in ("source_sha256", "generated_sha256"):
             if not preparation.FULL_SHA256.fullmatch(str(labels.get(field, ""))):
                 errors.append(f"{model_key} labels {field} must be complete")
 
+        servings = model.get("serving", {})
+        if set(servings) != serving_kinds:
+            errors.append(f"{model_key} serving variants are inconsistent")
+            continue
+        smoke_batches = model.get("smoke_batches", [])
+        for serving_kind, serving in servings.items():
+            serving_name = str(serving.get("name", ""))
+            artifact_path = PurePosixPath(str(serving.get("artifact_path", "")))
+            config_path = str(serving.get("config_path", ""))
+            expected_parent = PurePosixPath("models") / serving_name
+            if artifact_path.parent != expected_parent / "1":
+                errors.append(f"{model_key} {serving_kind} artifact path is inconsistent")
+            if config_path != (expected_parent / "config.pbtxt").as_posix():
+                errors.append(f"{model_key} {serving_kind} config path is inconsistent")
+            max_batch_size = serving.get("max_batch_size")
+            if (
+                not isinstance(smoke_batches, list)
+                or not smoke_batches
+                or not isinstance(max_batch_size, int)
+                or any(
+                    not isinstance(batch, int) or batch < 1 or batch > max_batch_size
+                    for batch in smoke_batches
+                )
+            ):
+                errors.append(f"{model_key} smoke batches exceed serving capacity")
+            if serving_kind == "onnx" and artifact_path.name != "model.onnx":
+                errors.append(f"{model_key} ONNX artifact must use Triton's standard filename")
+
     resnet = models["resnet50"]
-    expected_preprocessing = {
-        "resize": 232,
-        "center_crop": 224,
-        "scale": [0.0, 1.0],
-        "mean": [0.485, 0.456, 0.406],
-        "std": [0.229, 0.224, 0.225],
-    }
-    if resnet.get("preprocessing") != expected_preprocessing:
-        errors.append("ResNet preprocessing does not match IMAGENET1K_V2")
-    if resnet.get("source", {}).get("weights_license") is not None:
-        errors.append("ResNet pretrained weights must not be labeled BSD-3-Clause")
-    if "ImageNet-derived" not in str(resnet.get("source", {}).get("weights_terms", "")):
-        errors.append("ResNet weights terms must retain the ImageNet review notice")
-    profile = resnet.get("serving", {}).get("tensorrt", {}).get("profile", {})
-    if profile != {
-        "min": [1, 3, 224, 224],
-        "opt": [4, 3, 224, 224],
-        "max": [8, 3, 224, 224],
-    }:
-        errors.append("TensorRT profile must remain min=1, opt=4, max=8")
-    if not str(resnet.get("serving", {}).get("tensorrt", {}).get("artifact_path", "")).endswith(
-        "/model_cc89.plan"
-    ):
-        errors.append("TensorRT artifact must use the strict model_cc89.plan filename")
-    yolo_source = models["yolo11n"].get("source", {})
+    resnet_input = resnet.get("input", {}).get("shape", [])
+    resnet_output = resnet.get("output", {}).get("shape", [])
+    resnet_preprocessing = resnet.get("preprocessing", {})
+    resnet_scale = resnet_preprocessing.get("scale", [])
     if (
-        yolo_source.get("code_license") != "AGPL-3.0"
-        or yolo_source.get("weights_license") != "AGPL-3.0"
+        not isinstance(resnet_scale, list)
+        or len(resnet_scale) != 2
+        or not all(isinstance(value, (int, float)) for value in resnet_scale)
+        or resnet_scale[0] >= resnet_scale[1]
     ):
-        errors.append("YOLO11 code and weights must record AGPL-3.0")
+        errors.append("ResNet preprocessing scale must be an increasing range")
+    if len(resnet_input) == 4:
+        crop = resnet_preprocessing.get("center_crop")
+        resize = resnet_preprocessing.get("resize")
+        if (
+            not isinstance(crop, int)
+            or not isinstance(resize, int)
+            or resnet_input[-2:] != [crop, crop]
+            or resize < crop
+        ):
+            errors.append("ResNet preprocessing spatial dimensions are inconsistent")
+        channels = resnet_input[1]
+        if any(
+            not isinstance(resnet_preprocessing.get(field), list)
+            or len(resnet_preprocessing[field]) != channels
+            for field in ("mean", "std")
+        ):
+            errors.append("ResNet normalization channels are inconsistent with its input")
+    if (
+        len(resnet_output) != 2
+        or resnet_output[-1] != resnet.get("labels", {}).get("count")
+    ):
+        errors.append("ResNet output width is inconsistent with its label count")
+    if resnet.get("source", {}).get("weights_license") is not None:
+        errors.append("ResNet pretrained weights must not claim an unverified license")
+    if not str(resnet.get("source", {}).get("weights_terms", "")).strip():
+        errors.append("ResNet weights terms must retain an upstream review notice")
+
+    onnx_serving = resnet.get("serving", {}).get("onnx", {})
+    tensorrt_serving = resnet.get("serving", {}).get("tensorrt", {})
+    if onnx_serving.get("max_batch_size") != tensorrt_serving.get("max_batch_size"):
+        errors.append("ResNet serving variants must share max_batch_size")
+    profile = tensorrt_serving.get("profile", {})
+    profile_shapes = [profile.get(name, []) for name in ("min", "opt", "max")]
+    if any(
+        not isinstance(shape, list)
+        or not shape
+        or len(shape) != len(resnet_input)
+        or shape[1:] != resnet_input[1:]
+        or not isinstance(shape[0], int)
+        or shape[0] < 1
+        for shape in profile_shapes
+    ):
+        errors.append("TensorRT profile dimensions are inconsistent with the input contract")
+    else:
+        profile_batches = [shape[0] for shape in profile_shapes]
+        if profile_batches != sorted(profile_batches):
+            errors.append("TensorRT profile batches must be ordered min <= opt <= max")
+        if profile_batches[-1] != tensorrt_serving.get("max_batch_size"):
+            errors.append("TensorRT profile max batch is inconsistent with max_batch_size")
+        if any(
+            batch < profile_batches[0] or batch > profile_batches[-1]
+            for batch in resnet.get("smoke_batches", [])
+        ):
+            errors.append("ResNet smoke batches fall outside the TensorRT profile")
+
+    capability = str(build.get("target", {}).get("compute_capability", ""))
+    if re.fullmatch(r"[0-9]+\.[0-9]+", capability):
+        expected_plan = f"model_cc{capability.replace('.', '')}.plan"
+        actual_plan = PurePosixPath(str(tensorrt_serving.get("artifact_path", ""))).name
+        if actual_plan != expected_plan:
+            errors.append("TensorRT artifact filename is inconsistent with target capability")
+
+    yolo = models["yolo11n"]
+    yolo_input = yolo.get("input", {}).get("shape", [])
+    yolo_preprocessing = yolo.get("preprocessing", {})
+    yolo_scale = yolo_preprocessing.get("scale", [])
+    if (
+        not isinstance(yolo_scale, list)
+        or len(yolo_scale) != 2
+        or not all(isinstance(value, (int, float)) for value in yolo_scale)
+        or yolo_scale[0] >= yolo_scale[1]
+    ):
+        errors.append("YOLO preprocessing scale must be an increasing range")
+    if len(yolo_input) == 4:
+        if yolo_preprocessing.get("resize") != yolo_input[-2:]:
+            errors.append("YOLO preprocessing resize is inconsistent with its input")
+        if len(str(yolo_preprocessing.get("channel_order", ""))) != yolo_input[1]:
+            errors.append("YOLO channel order is inconsistent with its input")
+    yolo_source = models["yolo11n"].get("source", {})
+    repository_license = str(spec.get("repository_license", "")).removesuffix("-only")
+    if yolo_source.get("code_license") != yolo_source.get("weights_license"):
+        errors.append("YOLO code and weights must record the same license")
+    if yolo_source.get("code_license") != repository_license:
+        errors.append("YOLO license must be consistent with the repository license")
     return errors
 
 
@@ -225,12 +324,15 @@ def _validate_layout(spec: dict[str, Any], errors: list[str]) -> None:
         for forbidden in ("dynamic_batching", "version_policy", "instance_group"):
             if forbidden in content:
                 errors.append(f"models/{model_name}/config.pbtxt contains out-of-scope {forbidden}")
-    tensorrt_directory = models_root / "resnet50_tensorrt" / "1"
-    if (tensorrt_directory / "model.plan").exists():
+    tensorrt_artifact = PurePosixPath(
+        spec["models"]["resnet50"]["serving"]["tensorrt"]["artifact_path"]
+    )
+    fallback_path = REPOSITORY_ROOT / tensorrt_artifact.parent.as_posix() / "model.plan"
+    if fallback_path.exists():
         errors.append("TensorRT fallback model.plan must not exist")
 
 
-def _validate_git_tracking(errors: list[str]) -> None:
+def _validate_git_tracking(spec: dict[str, Any], errors: list[str]) -> None:
     process = subprocess.run(
         ["git", "ls-files", "-z"],
         cwd=REPOSITORY_ROOT,
@@ -241,10 +343,16 @@ def _validate_git_tracking(errors: list[str]) -> None:
         errors.append("cannot inspect Git tracking state")
         return
     tracked = process.stdout.decode("utf-8").split("\0")
+    artifact_paths = {
+        serving["artifact_path"]
+        for model in spec["models"].values()
+        for serving in model["serving"].values()
+    }
     forbidden = [
         path
         for path in tracked
-        if path.endswith(("model.onnx", "model_cc89.plan", ".pt"))
+        if path in artifact_paths
+        or path.endswith(".pt")
         or path.startswith(".cache/model-preparation/")
     ]
     if forbidden:
@@ -304,7 +412,7 @@ def validate_repository(structure_only: bool) -> list[str]:
         errors.extend(validate_lock_file())
         _validate_layout(spec, errors)
         errors.extend(preparation.check_generated(spec))
-        _validate_git_tracking(errors)
+        _validate_git_tracking(spec, errors)
         manifest = _validate_manifest(spec, errors)
         metadata_paths = [
             preparation.SPEC_PATH,

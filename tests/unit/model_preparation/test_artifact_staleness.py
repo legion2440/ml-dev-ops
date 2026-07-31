@@ -4,7 +4,7 @@ import copy
 import json
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from scripts.model_preparation import prepare_models
 from scripts.validate_model_repository import (
@@ -24,20 +24,58 @@ class ArtifactStalenessTests(unittest.TestCase):
             validate_artifact_inventory(self.manifest, errors, Path(directory))
         self.assertEqual(sum("missing" in error for error in errors), 3)
 
-    def test_different_compute_capability_is_rejected(self) -> None:
+    def test_consistent_compute_capability_change_stales_generated_data(self) -> None:
         changed = copy.deepcopy(self.spec)
-        changed["build"]["target"]["compute_capability"] = "8.6"
-        errors = validate_spec_semantics(changed)
-        self.assertTrue(any("compute capability" in error for error in errors))
+        current = changed["build"]["target"]["compute_capability"]
+        major, minor = current.split(".", 1)
+        capability = f"{major}.{int(minor) + 1}"
+        changed["build"]["target"]["compute_capability"] = capability
+        serving = changed["models"]["resnet50"]["serving"]["tensorrt"]
+        artifact = PurePosixPath(serving["artifact_path"])
+        serving["artifact_path"] = (
+            artifact.parent / f"model_cc{capability.replace('.', '')}.plan"
+        ).as_posix()
+
+        self.assertEqual(validate_spec_semantics(changed), [])
+        generated = prepare_models.render_config(changed, serving["name"])
+        tracked = (prepare_models.REPOSITORY_ROOT / serving["config_path"]).read_text(
+            encoding="utf-8"
+        )
+        self.assertNotEqual(generated, tracked)
+        manifest_errors = prepare_models.manifest_staleness(changed, self.manifest)
+        self.assertTrue(any("compute capability" in error for error in manifest_errors))
+        self.assertTrue(any("artifact path" in error for error in manifest_errors))
 
     def test_contract_change_makes_generated_config_stale(self) -> None:
         changed = copy.deepcopy(self.spec)
-        changed["models"]["resnet50"]["output"]["shape"] = [-1, 999]
+        changed["models"]["resnet50"]["output"]["shape"][-1] += 1
+        changed["models"]["resnet50"]["labels"]["count"] += 1
+        self.assertEqual(validate_spec_semantics(changed), [])
         generated = prepare_models.render_config(changed, "resnet50_onnx")
         tracked = (prepare_models.REPOSITORY_ROOT / "models/resnet50_onnx/config.pbtxt").read_text(
             encoding="utf-8"
         )
         self.assertNotEqual(generated, tracked)
+        manifest_errors = prepare_models.manifest_staleness(changed, self.manifest)
+        self.assertTrue(any(".output" in error for error in manifest_errors))
+
+    def test_profile_change_makes_generated_data_stale(self) -> None:
+        changed = copy.deepcopy(self.spec)
+        resnet = changed["models"]["resnet50"]
+        serving = resnet["serving"]
+        new_max_batch = serving["tensorrt"]["profile"]["max"][0] + 1
+        serving["tensorrt"]["profile"]["max"][0] = new_max_batch
+        serving["tensorrt"]["max_batch_size"] = new_max_batch
+        serving["onnx"]["max_batch_size"] = new_max_batch
+
+        self.assertEqual(validate_spec_semantics(changed), [])
+        generated = prepare_models.render_config(changed, serving["tensorrt"]["name"])
+        tracked = (
+            prepare_models.REPOSITORY_ROOT / serving["tensorrt"]["config_path"]
+        ).read_text(encoding="utf-8")
+        self.assertNotEqual(generated, tracked)
+        manifest_errors = prepare_models.manifest_staleness(changed, self.manifest)
+        self.assertTrue(any("profile" in error for error in manifest_errors))
 
 
 if __name__ == "__main__":

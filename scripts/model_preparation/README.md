@@ -1,6 +1,6 @@
 # Model preparation
 
-`prepare_models.py` is the public artifact-preparation entrypoint. It downloads hash-accepted sources, generates configs and labels from `models/model-spec.yaml`, exports two ONNX graphs in a pinned container, builds the CC 8.9 TensorRT plan, creates the generated manifest, and runs Triton-free artifact validation.
+`prepare_models.py` is the public artifact-preparation entrypoint. It downloads hash-accepted sources, generates configs and labels from `models/model-spec.yaml`, exports two ONNX graphs in a pinned container, builds the capability-qualified TensorRT plan, creates the generated manifest, and runs Triton-free artifact validation.
 
 ```text
 python scripts/model_preparation/prepare_models.py prepare

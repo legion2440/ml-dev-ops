@@ -127,7 +127,7 @@ Structure-only validation works on a clean checkout without Docker or model bina
 make validate-model-structure
 ```
 
-Full artifact validation requires Docker and the CC 8.9 target GPU:
+Full artifact validation requires Docker and the target GPU declared in the model spec:
 
 ```text
 make validate-models

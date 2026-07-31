@@ -29,7 +29,7 @@
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "model": {
       "type": "object",
-      "required": ["logical_model_id", "source", "labels", "artifact", "input", "output", "precision", "max_batch_size", "smoke_batches"],
+      "required": ["logical_model_id", "source", "preprocessing", "labels", "artifact", "input", "output", "precision", "max_batch_size", "smoke_batches"],
       "properties": {
         "logical_model_id": {"enum": ["resnet50", "yolo11n"]},
         "source": {
@@ -48,6 +48,7 @@
           },
           "additionalProperties": false
         },
+        "preprocessing": {"type": "object", "minProperties": 1},
         "labels": {"type": "object"},
         "artifact": {
           "type": "object",
@@ -68,8 +69,17 @@
         "onnx": {"type": "object"},
         "compute_precision": {"const": "FP16"},
         "io_precision": {"const": "FP32"},
-        "profile": {"type": "object"},
-        "compute_capability": {"const": "8.9"}
+        "profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "opt", "max"],
+          "properties": {
+            "min": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
+            "opt": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
+            "max": {"type": "array", "minItems": 2, "items": {"type": "integer"}}
+          }
+        },
+        "compute_capability": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"}
       },
       "additionalProperties": false
     }

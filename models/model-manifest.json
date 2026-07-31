@@ -118,7 +118,7 @@
       "source_sha256": "7a91a4d645e5eca6608573c7a0bb0d82e0f8c65db48e891380efc2c470f8f016"
     }
   },
-  "generated_at_utc": "2026-07-31T18:26:04.634493Z",
+  "generated_at_utc": "2026-07-31T19:26:15.313313Z",
   "models": {
     "resnet50_onnx": {
       "artifact": {
@@ -182,6 +182,24 @@
         "minimum_top1_agreement": 1.0
       },
       "precision": "FP32",
+      "preprocessing": {
+        "center_crop": 224,
+        "mean": [
+          0.485,
+          0.456,
+          0.406
+        ],
+        "resize": 232,
+        "scale": [
+          0.0,
+          1.0
+        ],
+        "std": [
+          0.229,
+          0.224,
+          0.225
+        ]
+      },
       "smoke_batches": [
         1,
         4,
@@ -241,6 +259,24 @@
         "minimum_top1_agreement": 1.0
       },
       "precision": "FP16",
+      "preprocessing": {
+        "center_crop": 224,
+        "mean": [
+          0.485,
+          0.456,
+          0.406
+        ],
+        "resize": 232,
+        "scale": [
+          0.0,
+          1.0
+        ],
+        "std": [
+          0.229,
+          0.224,
+          0.225
+        ]
+      },
       "profile": {
         "max": [
           8,
@@ -336,6 +372,17 @@
         ]
       },
       "precision": "FP32",
+      "preprocessing": {
+        "channel_order": "RGB",
+        "resize": [
+          640,
+          640
+        ],
+        "scale": [
+          0.0,
+          1.0
+        ]
+      },
       "smoke_batches": [
         1,
         2

@@ -86,11 +86,6 @@ def _validate_smoke(
     expected_batches = {
         name: manifest["models"][name]["smoke_batches"] for name in MODEL_NAMES
     }
-    expected_shapes = {
-        "resnet50_onnx": [1000],
-        "resnet50_tensorrt": [1000],
-        "yolo11n_onnx": [84, 8400],
-    }
     for name, expected in expected_batches.items():
         entry = models[name]
         for field in ("explicit_load", "readiness", "metadata", "config"):
@@ -99,8 +94,9 @@ def _validate_smoke(
         batches = entry.get("batches", [])
         if [item.get("batch") for item in batches] != expected:
             errors.append(f"model smoke batches are stale for {name}")
+        expected_output = manifest["models"][name]["output"]["shape"][1:]
         for item in batches:
-            if item.get("output_shape") != [item.get("batch"), *expected_shapes[name]]:
+            if item.get("output_shape") != [item.get("batch"), *expected_output]:
                 errors.append(f"model smoke output shape is stale for {name}")
             if item.get("finite") is not True:
                 errors.append(f"model smoke output is not finite for {name}")

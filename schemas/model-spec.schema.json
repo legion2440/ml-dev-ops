@@ -25,7 +25,7 @@
           "required": ["gpu_name", "compute_capability"],
           "properties": {
             "gpu_name": {"type": "string", "minLength": 1},
-            "compute_capability": {"const": "8.9"}
+            "compute_capability": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"}
           }
         }
       }
@@ -106,6 +106,44 @@
         "nms": {"const": false}
       }
     },
+    "numeric_range": {
+      "type": "array",
+      "prefixItems": [{"type": "number"}, {"type": "number"}],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "resnet_preprocessing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resize", "center_crop", "scale", "mean", "std"],
+      "properties": {
+        "resize": {"type": "integer", "minimum": 1},
+        "center_crop": {"type": "integer", "minimum": 1},
+        "scale": {"$ref": "#/$defs/numeric_range"},
+        "mean": {"type": "array", "minItems": 1, "items": {"type": "number"}},
+        "std": {"type": "array", "minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}}
+      }
+    },
+    "yolo_preprocessing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resize", "scale", "channel_order"],
+      "properties": {
+        "resize": {
+          "type": "array",
+          "prefixItems": [
+            {"type": "integer", "minimum": 1},
+            {"type": "integer", "minimum": 1}
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "scale": {"$ref": "#/$defs/numeric_range"},
+        "channel_order": {"type": "string", "minLength": 1}
+      }
+    },
     "onnx_serving": {
       "type": "object",
       "additionalProperties": false,
@@ -135,9 +173,9 @@
           "additionalProperties": false,
           "required": ["min", "opt", "max"],
           "properties": {
-            "min": {"type": "array", "items": {"type": "integer"}},
-            "opt": {"type": "array", "items": {"type": "integer"}},
-            "max": {"type": "array", "items": {"type": "integer"}}
+            "min": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
+            "opt": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
+            "max": {"type": "array", "minItems": 2, "items": {"type": "integer"}}
           }
         }
       }
@@ -147,8 +185,13 @@
       "additionalProperties": false,
       "required": ["source", "preprocessing", "input", "output", "export", "labels", "serving", "smoke_batches", "parity"],
       "properties": {
-        "source": {"$ref": "#/$defs/source"},
-        "preprocessing": {"type": "object"},
+        "source": {
+          "allOf": [
+            {"$ref": "#/$defs/source"},
+            {"required": ["weights_terms"]}
+          ]
+        },
+        "preprocessing": {"$ref": "#/$defs/resnet_preprocessing"},
         "input": {"$ref": "#/$defs/tensor"},
         "output": {"$ref": "#/$defs/tensor"},
         "export": {"$ref": "#/$defs/export"},
@@ -162,7 +205,7 @@
             "tensorrt": {"$ref": "#/$defs/tensorrt_serving"}
           }
         },
-        "smoke_batches": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "smoke_batches": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
         "parity": {
           "type": "object",
           "additionalProperties": false,
@@ -181,8 +224,13 @@
       "additionalProperties": false,
       "required": ["source", "preprocessing", "input", "output", "export", "labels", "serving", "smoke_batches"],
       "properties": {
-        "source": {"$ref": "#/$defs/source"},
-        "preprocessing": {"type": "object"},
+        "source": {
+          "allOf": [
+            {"$ref": "#/$defs/source"},
+            {"required": ["weights_license"]}
+          ]
+        },
+        "preprocessing": {"$ref": "#/$defs/yolo_preprocessing"},
         "input": {"$ref": "#/$defs/tensor"},
         "output": {"$ref": "#/$defs/tensor"},
         "export": {"$ref": "#/$defs/export"},
@@ -193,7 +241,7 @@
           "required": ["onnx"],
           "properties": {"onnx": {"$ref": "#/$defs/onnx_serving"}}
         },
-        "smoke_batches": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+        "smoke_batches": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}}
       }
     }
   }

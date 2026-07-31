@@ -186,6 +186,7 @@ def _parity(
     reference: list[float],
     candidate: list[float],
     batch: int,
+    output_width: int,
     tolerances: dict[str, float],
 ) -> dict[str, Any]:
     if len(reference) != len(candidate):
@@ -197,11 +198,10 @@ def _parity(
     norm_left = math.sqrt(sum(value * value for value in reference))
     norm_right = math.sqrt(sum(value * value for value in candidate))
     cosine = dot / (norm_left * norm_right)
-    width = 1000
     matches = 0
     for index in range(batch):
-        start = index * width
-        end = start + width
+        start = index * output_width
+        end = start + output_width
         left_top = max(range(start, end), key=reference.__getitem__) - start
         right_top = max(range(start, end), key=candidate.__getitem__) - start
         matches += left_top == right_top
@@ -289,14 +289,22 @@ def run_smoke(base_url: str, env_file: Path) -> None:
                 values = _infer(base_url, name, model, int(batch))
                 resnet_outputs[name][int(batch)] = values
                 runtime_models[name]["batches"].append(
-                    {"batch": int(batch), "output_shape": [int(batch), 1000], "finite": True}
+                    {
+                        "batch": int(batch),
+                        "output_shape": [int(batch), *model["output"]["shape"][1:]],
+                        "finite": True,
+                    }
                 )
 
         yolo = contracts["yolo11n_onnx"]
         for batch in yolo["smoke_batches"]:
             _infer(base_url, "yolo11n_onnx", yolo, int(batch))
             runtime_models["yolo11n_onnx"]["batches"].append(
-                {"batch": int(batch), "output_shape": [int(batch), 84, 8400], "finite": True}
+                {
+                    "batch": int(batch),
+                    "output_shape": [int(batch), *yolo["output"]["shape"][1:]],
+                    "finite": True,
+                }
             )
 
         parity = [
@@ -304,6 +312,7 @@ def run_smoke(base_url: str, env_file: Path) -> None:
                 resnet_outputs["resnet50_onnx"][int(batch)],
                 resnet_outputs["resnet50_tensorrt"][int(batch)],
                 int(batch),
+                math.prod(contracts["resnet50_onnx"]["output"]["shape"][1:]),
                 contracts["resnet50_onnx"]["parity_tolerances"],
             )
             for batch in contracts["resnet50_onnx"]["smoke_batches"]

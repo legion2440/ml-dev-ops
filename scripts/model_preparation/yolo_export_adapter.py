@@ -13,6 +13,8 @@ def export_yolo11n(
     opset: int,
     input_name: str,
     output_name: str,
+    input_shape: list[int],
+    output_shape: list[int],
 ) -> None:
     import torch
     from ultralytics import YOLO
@@ -29,7 +31,7 @@ def export_yolo11n(
             return result[0] if isinstance(result, (tuple, list)) else result
 
     wrapper = DetectionTensor(model).eval()
-    example = torch.zeros((1, 3, 640, 640), dtype=torch.float32)
+    example = torch.zeros((1, *input_shape[1:]), dtype=torch.float32)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with torch.inference_mode():
         torch.onnx.export(
@@ -44,14 +46,14 @@ def export_yolo11n(
             dynamic_axes={input_name: {0: "batch"}, output_name: {0: "batch"}},
         )
 
-    # Ultralytics shape arithmetic leaves the two non-batch output dimensions
-    # symbolic even with fixed spatial input. They are contractually fixed for
-    # 640x640 detection without NMS, so make that fact explicit in ValueInfo.
+    # Ultralytics shape arithmetic leaves non-batch output dimensions symbolic
+    # even with fixed spatial input, so copy the canonical spec dimensions into
+    # ValueInfo while retaining only the batch dimension as dynamic.
     import onnx
 
     graph = onnx.load(str(output_path))
     output_dimensions = graph.graph.output[0].type.tensor_type.shape.dim
-    for dimension, value in zip(output_dimensions[1:], (84, 8400), strict=True):
+    for dimension, value in zip(output_dimensions[1:], output_shape[1:], strict=True):
         dimension.ClearField("dim_param")
         dimension.dim_value = value
     onnx.checker.check_model(graph)

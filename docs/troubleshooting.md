@@ -119,9 +119,10 @@ python scripts/model_preparation/prepare_models.py build-tensorrt
 
 ## TensorRT plan is rejected on another GPU
 
-`model_cc89.plan` is intentionally bound to compute capability 8.9 and TensorRT
-11.1. Rebuild it on the target host. Do not rename it to `model.plan` or represent
-it as a portable engine.
+The capability-qualified plan is intentionally bound to the compute capability
+and TensorRT version recorded in the spec and generated manifest. Rebuild it on
+the target host. Do not rename it to `model.plan` or represent it as a portable
+engine.
 
 ## Triton model load fails
 

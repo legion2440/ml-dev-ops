@@ -4,19 +4,19 @@ This educational repository is licensed under AGPL-3.0-only. That repository lic
 
 ## Models and model tooling
 
-| Component | Selected version or artifact | License or terms |
+| Component | Reproducibility record | License or terms |
 |---|---|---|
-| Ultralytics | `ultralytics==8.3.0`, `yolo11n.pt` | AGPL-3.0 under the open-source option. A separate Ultralytics Enterprise license is required for uses that cannot comply with AGPL. |
-| PyTorch | `torch==2.4.1+cpu` | BSD-3-Clause for the software. |
-| TorchVision | `torchvision==0.19.1+cpu` | BSD-3-Clause for the software. |
-| ResNet50 IMAGENET1K_V2 weights | `resnet50-11ad3fa6.pth` | ImageNet-derived pretrained weights. Dataset and weight terms require independent review; this repository does not claim that the weights are BSD-3-Clause. |
-| ONNX | `onnx==1.16.2` | Apache-2.0. |
-| ONNX Runtime | `onnxruntime==1.19.2` | MIT. |
-| ONNX Converter Common | `onnxconverter-common==1.16.0` | MIT. |
-| NumPy | `numpy==1.26.4` | BSD-3-Clause. |
-| PyYAML | `PyYAML==6.0.2` | MIT. |
+| Ultralytics exporter and YOLO weights | Package version and wheel hash in the lock; model identity and source hash in the spec | AGPL-3.0 under the open-source option. A separate Ultralytics Enterprise license is required for uses that cannot comply with AGPL. |
+| PyTorch | Package version and wheel hash in the lock | BSD-3-Clause for the software. |
+| TorchVision | Package version and wheel hash in the lock | BSD-3-Clause for the software. |
+| ResNet50 pretrained weights | Model identity and source hash in the spec | ImageNet-derived pretrained weights. Dataset and weight terms require independent review; this repository does not claim that the weights are BSD-3-Clause. |
+| ONNX | Package version and wheel hash in the lock | Apache-2.0. |
+| ONNX Runtime | Package version and wheel hash in the lock | MIT. |
+| ONNX Converter Common | Package version and wheel hash in the lock | MIT. |
+| NumPy | Package version and wheel hash in the lock | BSD-3-Clause. |
+| PyYAML | Package version and wheel hash in the lock | MIT. |
 
-Exact wheel hashes are recorded in `scripts/model_preparation/requirements.lock`. Model source URLs, source hashes, label sources, and license metadata are recorded in `models/model-spec.yaml`.
+Exact package versions and wheel hashes are recorded only in `scripts/model_preparation/requirements.lock`. Model source URLs, source hashes, label sources, and license metadata are recorded only in `models/model-spec.yaml`; the generated manifest captures the values used for the verified artifacts.
 
 ## Serving and GPU runtime
 

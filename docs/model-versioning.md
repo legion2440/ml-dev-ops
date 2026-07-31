@@ -6,7 +6,7 @@ Step 3 implements only model version `1` for `resnet50_onnx`, `resnet50_tensorrt
 
 Tracked `config.pbtxt` files intentionally contain no `version_policy`. Triton reports its default latest-version policy at runtime, but there is only one numeric version. Directories `0`, zero-padded names such as `01`, and versions other than `1` are rejected by the step 3 structure validator.
 
-TensorRT uses the strict filename `model_cc89.plan` and a `cc_model_filenames` mapping for compute capability 8.9. No generic `model.plan` fallback is produced.
+TensorRT derives a strict `model_cc<capability>.plan` filename and `cc_model_filenames` mapping from `models/model-spec.yaml`. The config omits `default_model_filename`, and no generic `model.plan` fallback is produced.
 
 ## Deferred step 4 scope
 

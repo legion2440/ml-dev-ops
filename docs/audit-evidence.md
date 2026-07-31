@@ -20,7 +20,7 @@ will be expanded as each scope is completed.
 | Runtime environment | Sanitized Docker, Triton image digest, and GPU facts | `docs/evidence/step-2/environment.txt` | Machine-checked reference environment |
 | Model source provenance | Accepted URLs, SHA-256, licenses, package lock, and image digests | `models/model-spec.yaml` | `docs/evidence/step-3/preparation.json` references the current manifest |
 | Two CV workloads | ResNet50 classification and YOLO11n detection | `models/model-manifest.json` | Two ONNX graphs pass checker and synthetic ONNX Runtime inference |
-| TensorRT optimization | Strongly typed FP16 ResNet with FP32 I/O and CC 8.9 profile | `models/resnet50_tensorrt/config.pbtxt` | Engine deserialization and exporter-level parity passed |
+| TensorRT optimization | Strongly typed FP16 ResNet with FP32 I/O; spec-derived capability mapping with no default plan fallback | `models/resnet50_tensorrt/config.pbtxt` and unit regression | Engine deserialization, exporter-level parity, and live explicit load passed |
 | Triton model repository | Three generated configs, model-local labels, and version 1 layout | `python scripts/validate_model_repository.py --structure-only` | Generated text and manifest are current; binaries are not tracked |
 | Runtime model serving | Explicit load, metadata/config, batch inference, parity, and unload | `docs/evidence/step-3/triton-model-smoke.json` | All three models runtime-verified on 2026-07-31 |
 | Runtime repository state | Three version-1 models ready during verification | `docs/evidence/step-3/model-repository.txt` | Sanitized repository index captured before explicit unload |

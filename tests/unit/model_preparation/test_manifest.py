@@ -5,6 +5,7 @@ import json
 import unittest
 
 from scripts.model_preparation import prepare_models
+from scripts.validate_model_repository import validate_spec_semantics
 
 
 class ManifestTests(unittest.TestCase):
@@ -26,6 +27,13 @@ class ManifestTests(unittest.TestCase):
         changed["build"]["onnx_opset"] += 1
         errors = prepare_models.manifest_staleness(changed, self.manifest)
         self.assertTrue(any("ONNX opset" in error for error in errors))
+
+    def test_preprocessing_change_makes_manifest_stale(self) -> None:
+        changed = copy.deepcopy(self.spec)
+        changed["models"]["resnet50"]["preprocessing"]["resize"] += 1
+        self.assertEqual(validate_spec_semantics(changed), [])
+        errors = prepare_models.manifest_staleness(changed, self.manifest)
+        self.assertTrue(any("preprocessing" in error for error in errors))
 
 
 if __name__ == "__main__":
