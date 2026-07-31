@@ -2,10 +2,10 @@
 
 ## Current status
 
-The Docker infrastructure is code-complete. Static validators and canonical Compose
-configuration pass without starting containers. Runtime verification requires a
-running Docker daemon, working GPU passthrough, four healthy services, and a
-successful infrastructure smoke test.
+The Docker infrastructure is runtime-verified on the reference host as of
+2026-07-31. Static validators and canonical Compose configuration pass, all four
+services reach Compose health `healthy`, GPU passthrough works, and the complete
+host-side smoke test succeeds.
 
 Triton intentionally starts with an empty model repository. No model-serving claim
 is made in step 2.
@@ -75,7 +75,7 @@ Critical Compose substitutions fail with a clear message when absent.
 
 ## Topology
 
-All services share the internal `backend` bridge network:
+All services share the project-scoped `backend` bridge network:
 
 - `triton`
 - `prometheus`
@@ -187,6 +187,11 @@ Runtime-verified additionally requires:
 - provisioned Grafana datasource;
 - real DCGM GPU metrics;
 - an empty Triton repository index.
+
+The 2026-07-31 reference run passed every runtime requirement with an NVIDIA
+GeForce RTX 4080 Laptop GPU, driver 610.88, and compute capability 8.9. Runtime
+evidence is host-specific and must be regenerated after material host, driver,
+Docker, image, or Compose changes.
 
 ## Recovery and cleanup
 

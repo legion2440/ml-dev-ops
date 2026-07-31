@@ -11,11 +11,11 @@ will be expanded as each scope is completed.
 | Pinned Docker topology | Four services, pinned images, GPU policy, mounts, ports, healthchecks | `python scripts/validate_deployment.py` | Successful static validation |
 | Dockerfile | Minimal pinned Triton wrapper | `deployment/docker/Dockerfile` | Static validation |
 | Compose configuration | Canonical `.env.example` interpolation | `make compose-config` | Successful config output |
-| Lifecycle commands | Shared Compose helper and start/stop/status wrappers | `deployment/scripts` | Static validation; runtime pending |
-| Triton infrastructure | Explicit control and empty read-only repository | `deployment/scripts/run_triton.sh` | Runtime smoke pending |
-| Minimum observability | Prometheus targets and Grafana datasource provisioning | `monitoring` | Static validation; runtime smoke pending |
-| GPU telemetry | Pinned paired DCGM Exporter service | `docker-compose.yml` | Real `DCGM_` metrics pending |
-| Infrastructure smoke | Host-side health, targets, datasource, and empty-repository checks | `python deployment/scripts/smoke_environment.py` | Pending Docker/GPU runtime |
+| Lifecycle commands | Shared Compose helper and start/stop/status wrappers | `deployment/scripts` | Four services running and healthy on 2026-07-31 |
+| Triton infrastructure | Explicit control and empty read-only repository | `deployment/scripts/run_triton.sh` | Live, ready, metrics, and empty repository checks passed |
+| Minimum observability | Prometheus targets and Grafana datasource provisioning | `monitoring` | Triton/DCGM targets up and datasource provisioned |
+| GPU telemetry | Pinned paired DCGM Exporter service | `docker-compose.yml` | Real `DCGM_` metrics; RTX 4080 Laptop visible in Triton |
+| Infrastructure smoke | Host-side health, targets, datasource, and empty-repository checks | `python deployment/scripts/smoke_environment.py --format json` | All 10 checks passed on 2026-07-31 |
 | Two CV models | Planned | Not implemented | Pending |
 | ONNX and TensorRT benchmark | Planned | Not implemented | Pending |
 | Full Prometheus and Grafana dashboard | Planned for step 7 | Not implemented | Pending |
@@ -23,3 +23,7 @@ will be expanded as each scope is completed.
 | Model version management | Planned | Not implemented | Pending |
 
 README statements alone are not accepted as runtime evidence.
+
+The recorded runtime evidence was produced on Windows 11 with Docker Desktop/WSL2,
+NVIDIA driver 610.88, and compute capability 8.9. It is evidence for that reference
+run, not a substitute for rerunning the smoke test after environment changes.

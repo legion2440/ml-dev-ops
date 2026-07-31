@@ -11,6 +11,10 @@ The step 2 observability containers and minimum provisioning are implemented:
 
 The project dashboard and Prometheus alert rules remain planned for step 7.
 
+The minimum observability runtime was verified on 2026-07-31: both required scrape
+targets were up, the Grafana datasource was provisioned, and DCGM returned real GPU
+metrics.
+
 ## Runtime verification
 
 The infrastructure smoke test requires:

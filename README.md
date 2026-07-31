@@ -8,17 +8,17 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 2 code-complete: reproducible Docker infrastructure.**
+**Step 2 runtime-verified: reproducible Docker infrastructure.**
 
 The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
 services; GPU reservations; loopback-only ports; persistent metrics volumes;
 read-only configuration mounts; lifecycle commands; and infrastructure smoke
 checks.
 
-Runtime verification still requires a running Docker daemon with NVIDIA GPU access.
-No model artifacts, inference implementation, dynamic batching, dashboards, alerts,
-or benchmarks are present yet. Triton is expected to start with an empty model
-repository.
+The complete infrastructure smoke test passed on the reference Windows 11,
+Docker Desktop/WSL2, and NVIDIA GPU host on 2026-07-31. No model artifacts,
+inference implementation, dynamic batching, dashboards, alerts, or benchmarks are
+present yet. Triton starts with the expected empty model repository.
 
 ## Planned architecture
 

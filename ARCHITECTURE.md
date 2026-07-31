@@ -3,10 +3,10 @@
 ## Status
 
 Architecture contracts and the step 2 Docker infrastructure are implemented. Static
-validation is available without a running daemon. Runtime verification requires all
-four GPU-aware services and the infrastructure smoke test to succeed.
+validation is available without a running daemon. The four-service GPU runtime and
+complete infrastructure smoke test passed on the reference host on 2026-07-31.
 
-Triton currently expects an empty model repository. Model artifacts, inference
+Triton currently runs with the expected empty model repository. Model artifacts, inference
 logic, batching, versioned models, dashboards, alerts, logging, and benchmarks
 remain planned.
 
