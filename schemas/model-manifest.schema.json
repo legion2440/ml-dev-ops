@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/legion2440/ml-dev-ops/schemas/model-manifest.schema.json",
+  "title": "Generated model artifact manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at_utc", "spec_path", "spec_sha256", "requirements_lock", "requirements_sha256", "build", "artifact_validation", "models"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "spec_path": {"const": "models/model-spec.yaml"},
+    "spec_sha256": {"$ref": "#/$defs/sha256"},
+    "requirements_lock": {"const": "scripts/model_preparation/requirements.lock"},
+    "requirements_sha256": {"$ref": "#/$defs/sha256"},
+    "build": {"type": "object"},
+    "artifact_validation": {"type": "object"},
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resnet50_onnx", "resnet50_tensorrt", "yolo11n_onnx"],
+      "properties": {
+        "resnet50_onnx": {"$ref": "#/$defs/model"},
+        "resnet50_tensorrt": {"$ref": "#/$defs/model"},
+        "yolo11n_onnx": {"$ref": "#/$defs/model"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "model": {
+      "type": "object",
+      "required": ["logical_model_id", "source", "labels", "artifact", "input", "output", "precision", "max_batch_size", "smoke_batches"],
+      "properties": {
+        "logical_model_id": {"enum": ["resnet50", "yolo11n"]},
+        "source": {
+          "type": "object",
+          "required": ["framework", "identifier", "url", "filename", "sha256", "hash_status", "code_license"],
+          "properties": {
+            "framework": {"type": "string"},
+            "identifier": {"type": "string"},
+            "url": {"type": "string"},
+            "filename": {"type": "string"},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "hash_status": {"const": "resolved"},
+            "code_license": {"type": "string"},
+            "weights_license": {"type": "string"},
+            "weights_terms": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "labels": {"type": "object"},
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "size_bytes"],
+          "properties": {
+            "path": {"type": "string"},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "size_bytes": {"type": "integer", "minimum": 1}
+          }
+        },
+        "input": {"type": "object"},
+        "output": {"type": "object"},
+        "precision": {"enum": ["FP32", "FP16"]},
+        "max_batch_size": {"type": "integer", "minimum": 1},
+        "smoke_batches": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "parity_tolerances": {"type": "object"},
+        "onnx": {"type": "object"},
+        "compute_precision": {"const": "FP16"},
+        "io_precision": {"const": "FP32"},
+        "profile": {"type": "object"},
+        "compute_capability": {"const": "8.9"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

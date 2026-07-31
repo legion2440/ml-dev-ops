@@ -8,17 +8,22 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 2 runtime-verified: reproducible Docker infrastructure.**
+**Step 3 runtime-verified: reproducible model repository and Triton inference.**
 
 The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
 services; GPU reservations; loopback-only ports; persistent metrics volumes;
 read-only configuration mounts; lifecycle commands; and infrastructure smoke
 checks.
 
-The complete infrastructure smoke test passed on the reference Windows 11,
-Docker Desktop/WSL2, and NVIDIA GPU host on 2026-07-31. No model artifacts,
-inference implementation, dynamic batching, dashboards, alerts, or benchmarks are
-present yet. Triton starts with the expected empty model repository.
+The complete infrastructure and model smoke tests passed on the reference Windows
+11, Docker Desktop/WSL2, and NVIDIA GPU host on 2026-07-31. Triton explicitly
+loaded ResNet50 ONNX FP32, ResNet50 TensorRT FP16, and YOLO11n ONNX FP32; verified
+metadata and synthetic inference; compared the two ResNet outputs; and unloaded all
+three models. Dynamic request batching, multi-version policy, the production client,
+dashboards, alerts, and benchmarks remain planned.
+
+Model binaries are reproducible local artifacts and are ignored by Git. The model
+specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
 
 ## Planned architecture
 
@@ -59,6 +64,9 @@ ml-dev-ops/
 - Bash for lifecycle scripts; Git Bash is supported on Windows
 - Docker Desktop with the WSL2 backend for GPU containers on Windows
 
+The exporter and TensorRT images require additional local Docker storage. Together
+with Triton they can consume several tens of gigabytes.
+
 The pinned image and runtime matrix is documented in `docs/deployment.md`.
 
 ## Environment configuration
@@ -98,6 +106,35 @@ Run only Triton:
 ```text
 bash deployment/scripts/run_triton.sh
 ```
+
+## Prepare and verify models
+
+Build all three local artifacts and reach artifact-complete state:
+
+```text
+make prepare-models
+```
+
+With Triton running, reach runtime-verified state:
+
+```text
+make smoke-models
+```
+
+Structure-only validation works on a clean checkout without Docker or model binaries:
+
+```text
+make validate-model-structure
+```
+
+Full artifact validation requires Docker and the CC 8.9 target GPU:
+
+```text
+make validate-models
+```
+
+See `docs/model-preparation.md` for source hashes, exact contracts, cleanup,
+portability limits, and direct Python equivalents.
 
 Remove only the Prometheus and Grafana named volumes:
 
@@ -144,6 +181,8 @@ python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
 python scripts/validate_runtime_evidence.py
+python scripts/validate_model_repository.py --structure-only
+python scripts/validate_model_evidence.py
 python -m unittest discover -s tests/unit -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
@@ -172,6 +211,18 @@ after a successful live run:
 ```text
 python deployment/scripts/capture_runtime_evidence.py
 ```
+
+Model preparation and Triton evidence is under `docs/evidence/step-3`. Refresh it
+with `prepare_models.py manifest` after an artifact rebuild and with
+`deployment/triton/smoke_models.py` after a successful live model run.
+
+## License
+
+This educational repository is licensed under AGPL-3.0-only because it uses the
+open-source Ultralytics YOLO11 workflow. Closed commercial use requires a different
+model/toolchain or an appropriate commercial license. Third-party software,
+pretrained weights, datasets, containers, and NVIDIA runtimes retain their own terms;
+see `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
 ## Delivery roadmap
 

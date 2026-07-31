@@ -1,0 +1,129 @@
+{
+  "captured_at_utc": "2026-07-31T18:27:16.387003Z",
+  "manifest_sha256": "d6b2c1fcb7507ad4bd7a334629708d5460abcd2766a815f5347511217a7819b6",
+  "models": {
+    "resnet50_onnx": {
+      "batches": [
+        {
+          "batch": 1,
+          "finite": true,
+          "output_shape": [
+            1,
+            1000
+          ]
+        },
+        {
+          "batch": 4,
+          "finite": true,
+          "output_shape": [
+            4,
+            1000
+          ]
+        },
+        {
+          "batch": 8,
+          "finite": true,
+          "output_shape": [
+            8,
+            1000
+          ]
+        }
+      ],
+      "config": "passed",
+      "explicit_load": "passed",
+      "metadata": "passed",
+      "readiness": "passed"
+    },
+    "resnet50_tensorrt": {
+      "batches": [
+        {
+          "batch": 1,
+          "finite": true,
+          "output_shape": [
+            1,
+            1000
+          ]
+        },
+        {
+          "batch": 4,
+          "finite": true,
+          "output_shape": [
+            4,
+            1000
+          ]
+        },
+        {
+          "batch": 8,
+          "finite": true,
+          "output_shape": [
+            8,
+            1000
+          ]
+        }
+      ],
+      "config": "passed",
+      "explicit_load": "passed",
+      "metadata": "passed",
+      "readiness": "passed"
+    },
+    "yolo11n_onnx": {
+      "batches": [
+        {
+          "batch": 1,
+          "finite": true,
+          "output_shape": [
+            1,
+            84,
+            8400
+          ]
+        },
+        {
+          "batch": 2,
+          "finite": true,
+          "output_shape": [
+            2,
+            84,
+            8400
+          ]
+        }
+      ],
+      "config": "passed",
+      "explicit_load": "passed",
+      "metadata": "passed",
+      "readiness": "passed"
+    }
+  },
+  "ok": true,
+  "repository_index": "passed",
+  "resnet_parity": [
+    {
+      "batch": 1,
+      "cosine_similarity": 0.9999206233073481,
+      "max_abs_error": 0.025035977363586426,
+      "mean_abs_error": 0.004695557650644332,
+      "status": "passed",
+      "top1_agreement": 1.0
+    },
+    {
+      "batch": 4,
+      "cosine_similarity": 0.9999270819993371,
+      "max_abs_error": 0.025403380393981934,
+      "mean_abs_error": 0.004442435728851706,
+      "status": "passed",
+      "top1_agreement": 1.0
+    },
+    {
+      "batch": 8,
+      "cosine_similarity": 0.9999254623812638,
+      "max_abs_error": 0.02412593364715576,
+      "mean_abs_error": 0.0044723737488966435,
+      "status": "passed",
+      "top1_agreement": 1.0
+    }
+  ],
+  "schema_version": 1,
+  "spec_sha256": "648a2179dc67329694035b33ca0745946b781652a8e92398e7cc318b9a8f5344",
+  "triton_image": "nvcr.io/nvidia/tritonserver:26.07-py3",
+  "triton_url": "http://127.0.0.1:8000",
+  "unload": "passed"
+}

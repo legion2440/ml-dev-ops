@@ -11,6 +11,7 @@ services:
     command:
       - --model-repository=/models
       - --model-control-mode=explicit
+      - --disable-auto-complete-config
       - --allow-http=true
       - --http-port=8000
       - --allow-grpc=true

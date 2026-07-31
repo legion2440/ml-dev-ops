@@ -361,6 +361,8 @@ def _validate_services(
         errors.append("Triton must use explicit model control mode")
     if "--model-repository=/models" not in triton_command:
         errors.append("Triton model repository must be /models")
+    if "--disable-auto-complete-config" not in triton_command:
+        errors.append("Triton must disable config auto-completion for explicit model contracts")
 
 
 def _validate_prometheus(config: dict[str, Any], errors: list[str]) -> None:

@@ -8,3 +8,6 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+.cache/model-preparation/
+models/**/model.onnx
+models/**/model_cc89.plan

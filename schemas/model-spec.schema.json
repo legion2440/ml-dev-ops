@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/legion2440/ml-dev-ops/schemas/model-spec.schema.json",
+  "title": "Model specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "repository_license", "requirements_lock", "build", "models"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "repository_license": {"const": "AGPL-3.0-only"},
+    "requirements_lock": {"const": "scripts/model_preparation/requirements.lock"},
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exporter_image", "exporter_local_image", "tensorrt_builder_image", "onnx_opset", "simplify", "target"],
+      "properties": {
+        "exporter_image": {"$ref": "#/$defs/image"},
+        "exporter_local_image": {"type": "string", "minLength": 1},
+        "tensorrt_builder_image": {"$ref": "#/$defs/image"},
+        "onnx_opset": {"type": "integer", "minimum": 13, "maximum": 21},
+        "simplify": {"const": false},
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["gpu_name", "compute_capability"],
+          "properties": {
+            "gpu_name": {"type": "string", "minLength": 1},
+            "compute_capability": {"const": "8.9"}
+          }
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resnet50", "yolo11n"],
+      "properties": {
+        "resnet50": {"$ref": "#/$defs/resnet"},
+        "yolo11n": {"$ref": "#/$defs/yolo"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "path": {"type": "string", "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"},
+    "image": {"type": "string", "pattern": "^[a-z0-9./_-]+:[A-Za-z0-9][A-Za-z0-9._-]*@sha256:[0-9a-f]{64}$"},
+    "tensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "dtype", "shape"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "dtype": {"const": "FP32"},
+        "shape": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "integer"}
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["framework", "identifier", "url", "filename", "hash_status", "sha256", "code_license"],
+      "properties": {
+        "framework": {"enum": ["torchvision", "ultralytics"]},
+        "identifier": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "filename": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+        "hash_status": {"enum": ["unresolved", "resolved"]},
+        "sha256": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+        "code_license": {"type": "string", "minLength": 1},
+        "weights_license": {"type": "string", "minLength": 1},
+        "weights_terms": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "labels": {
+      "type": "object",
+      "required": ["source_url", "source_sha256", "generated_sha256", "filename", "count"],
+      "properties": {
+        "source_url": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "source_sha256": {"$ref": "#/$defs/sha256"},
+        "generated_sha256": {"$ref": "#/$defs/sha256"},
+        "filename": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+        "count": {"type": "integer", "minimum": 1},
+        "extraction": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dynamic_axes", "nms"],
+      "properties": {
+        "dynamic_axes": {
+          "type": "object",
+          "minProperties": 2,
+          "maxProperties": 2,
+          "additionalProperties": {
+            "type": "array",
+            "items": {"const": "batch"},
+            "minItems": 1,
+            "maxItems": 1
+          }
+        },
+        "nms": {"const": false}
+      }
+    },
+    "onnx_serving": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "artifact_path", "config_path", "precision", "max_batch_size"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "artifact_path": {"$ref": "#/$defs/path"},
+        "config_path": {"$ref": "#/$defs/path"},
+        "precision": {"const": "FP32"},
+        "max_batch_size": {"type": "integer", "minimum": 1}
+      }
+    },
+    "tensorrt_serving": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "artifact_path", "config_path", "precision", "compute_precision", "io_precision", "max_batch_size", "profile"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "artifact_path": {"$ref": "#/$defs/path"},
+        "config_path": {"$ref": "#/$defs/path"},
+        "precision": {"const": "FP16"},
+        "compute_precision": {"const": "FP16"},
+        "io_precision": {"const": "FP32"},
+        "max_batch_size": {"type": "integer", "minimum": 1},
+        "profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "opt", "max"],
+          "properties": {
+            "min": {"type": "array", "items": {"type": "integer"}},
+            "opt": {"type": "array", "items": {"type": "integer"}},
+            "max": {"type": "array", "items": {"type": "integer"}}
+          }
+        }
+      }
+    },
+    "resnet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "preprocessing", "input", "output", "export", "labels", "serving", "smoke_batches", "parity"],
+      "properties": {
+        "source": {"$ref": "#/$defs/source"},
+        "preprocessing": {"type": "object"},
+        "input": {"$ref": "#/$defs/tensor"},
+        "output": {"$ref": "#/$defs/tensor"},
+        "export": {"$ref": "#/$defs/export"},
+        "labels": {"$ref": "#/$defs/labels"},
+        "serving": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["onnx", "tensorrt"],
+          "properties": {
+            "onnx": {"$ref": "#/$defs/onnx_serving"},
+            "tensorrt": {"$ref": "#/$defs/tensorrt_serving"}
+          }
+        },
+        "smoke_batches": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "parity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_abs_error", "mean_abs_error", "minimum_cosine_similarity", "minimum_top1_agreement"],
+          "properties": {
+            "max_abs_error": {"type": "number", "exclusiveMinimum": 0},
+            "mean_abs_error": {"type": "number", "exclusiveMinimum": 0},
+            "minimum_cosine_similarity": {"type": "number", "minimum": 0, "maximum": 1},
+            "minimum_top1_agreement": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    },
+    "yolo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "preprocessing", "input", "output", "export", "labels", "serving", "smoke_batches"],
+      "properties": {
+        "source": {"$ref": "#/$defs/source"},
+        "preprocessing": {"type": "object"},
+        "input": {"$ref": "#/$defs/tensor"},
+        "output": {"$ref": "#/$defs/tensor"},
+        "export": {"$ref": "#/$defs/export"},
+        "labels": {"$ref": "#/$defs/labels"},
+        "serving": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["onnx"],
+          "properties": {"onnx": {"$ref": "#/$defs/onnx_serving"}}
+        },
+        "smoke_batches": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+      }
+    }
+  }
+}

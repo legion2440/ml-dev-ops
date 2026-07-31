@@ -61,8 +61,9 @@ targets remain fixed. Re-run canonical Compose validation before startup.
 ## Triton cannot read the model repository
 
 `MODEL_REPOSITORY_PATH` must be a repository-relative directory. The mount is
-read-only by design. During step 2 the directory should contain no Triton model
-directories, and the smoke test expects an empty repository index.
+read-only by design. Step 3 expects exactly the three model directories documented
+in `models/model-spec.yaml`. Before `make smoke-models`, run `make prepare-models`
+or confirm that all three ignored binaries exist locally.
 
 Inspect:
 
@@ -93,7 +94,55 @@ Normal shutdown preserves `prometheus-data` and `grafana-data`. Use
 `stop_environment.sh --purge` only when intentionally removing those named volumes.
 The command does not remove host directories.
 
-## Models, inference, and benchmarks
+## Source weight hash mismatch
 
-Troubleshooting for model export, inference, version policy, client behavior, and
-benchmarks will be added with their implementation scopes.
+Do not replace the accepted hash automatically. Run the non-mutating discovery
+command and compare the candidate with the upstream release:
+
+```text
+python scripts/model_preparation/prepare_models.py discover
+```
+
+Only an intentional review should change `models/model-spec.yaml`. A partial or
+mismatched download is removed by the preparation workflow.
+
+## TensorRT reports `Unknown option: --fp16`
+
+TensorRT 11.1 removed `trtexec --fp16` because networks are strongly typed. The
+step 3 workflow converts the ResNet graph to an ignored FP16 internal ONNX with
+FP32 boundary casts, then invokes `trtexec` without that historical flag. Use the
+repository command rather than calling an older recipe manually:
+
+```text
+python scripts/model_preparation/prepare_models.py build-tensorrt
+```
+
+## TensorRT plan is rejected on another GPU
+
+`model_cc89.plan` is intentionally bound to compute capability 8.9 and TensorRT
+11.1. Rebuild it on the target host. Do not rename it to `model.plan` or represent
+it as a portable engine.
+
+## Triton model load fails
+
+Inspect the generated config, local binary, and server logs:
+
+```text
+python scripts/validate_model_repository.py
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example logs triton
+```
+
+Triton config auto-completion must remain disabled. If a model was already loaded,
+the smoke script unloads it in a `finally` path before reporting an error.
+
+## Model evidence is stale
+
+After rebuilding artifacts, regenerate the manifest and then rerun live smoke:
+
+```text
+python scripts/model_preparation/prepare_models.py manifest
+python deployment/triton/smoke_models.py --env-file .env.example
+python scripts/validate_model_evidence.py
+```
+
+Client behavior, model-version switching, and benchmarks remain later scopes.

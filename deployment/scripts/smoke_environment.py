@@ -146,15 +146,19 @@ def _status_ok(status: int, _: bytes) -> tuple[bool, str | None]:
     return status == 200, None
 
 
-def _empty_repository(status: int, body: bytes) -> tuple[bool, str | None]:
+def _no_loaded_models(status: int, body: bytes) -> tuple[bool, str | None]:
     if status != 200:
         return False, f"unexpected HTTP {status}"
     payload = json.loads(body.decode("utf-8"))
     if not isinstance(payload, list):
         return False, "repository index is not a JSON array"
-    if payload:
-        names = [str(item.get("name", "<unknown>")) for item in payload if isinstance(item, dict)]
-        return False, f"repository is not empty: {', '.join(names) or payload!r}"
+    ready = [
+        str(item.get("name", "<unknown>"))
+        for item in payload
+        if isinstance(item, dict) and item.get("state") == "READY"
+    ]
+    if ready:
+        return False, f"models are unexpectedly loaded: {', '.join(ready)}"
     return True, None
 
 
@@ -247,9 +251,9 @@ def run_checks(env_file: Path, env: dict[str, str], timeout: float) -> list[Chec
         ),
         _eventually(
             "triton_repository",
-            "Triton model repository is empty",
+            "Triton has no models loaded before model smoke",
             f"{triton_http}/v2/repository/index",
-            _empty_repository,
+            _no_loaded_models,
             timeout=timeout,
             method="POST",
         ),

@@ -1,0 +1,4 @@
+model	version	state	reason
+resnet50_onnx	1	READY	-
+resnet50_tensorrt	1	READY	-
+yolo11n_onnx	1	READY	-

@@ -11,19 +11,31 @@
       "entrypoints": [
         {
           "path": "scripts/model_preparation/prepare_models.py",
-          "status": "planned"
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
         {
           "path": "scripts/model_preparation/README.md",
           "status": "implemented"
+        },
+        {
+          "path": "scripts/model_preparation/Dockerfile.exporter",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/model_preparation/requirements.lock",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/model_preparation/yolo_export_adapter.py",
+          "status": "implemented"
         }
       ],
       "tests": [
         {
           "path": "tests/unit/model_preparation",
-          "status": "planned"
+          "status": "implemented"
         }
       ],
       "docs": [
@@ -34,19 +46,34 @@
       ],
       "generated_artifacts": [
         {
-          "path": "models/resnet50_onnx/1/model.onnx",
-          "status": "planned"
+          "path": "models/model-manifest.json",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml",
+            "scripts/model_preparation/requirements.lock"
+          ]
         },
         {
-          "path": "models/resnet50_tensorrt/1/model.plan",
-          "status": "planned"
-        },
-        {
-          "path": "models/yolo_onnx/1/model.onnx",
-          "status": "planned"
+          "path": "docs/evidence/step-3/preparation.json",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml",
+            "models/model-manifest.json"
+          ]
         }
       ],
-      "owned_configuration": []
+      "owned_configuration": [
+        {
+          "path": "models/model-spec.yaml",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/model_preparation/requirements.lock",
+          "status": "implemented"
+        }
+      ]
     },
     {
       "id": "model-repository",
@@ -54,8 +81,26 @@
       "module_type": "artifact",
       "root": "models",
       "entrypoints": [],
-      "public_interfaces": [],
+      "public_interfaces": [
+        {
+          "path": "models/model-spec.yaml",
+          "status": "implemented"
+        },
+        {
+          "path": "models/model-manifest.json",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml",
+            "scripts/model_preparation/requirements.lock"
+          ]
+        }
+      ],
       "tests": [
+        {
+          "path": "scripts/validate_model_repository.py",
+          "status": "implemented"
+        },
         {
           "path": "tests/integration/model_repository",
           "status": "planned"
@@ -67,19 +112,56 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [],
+      "generated_artifacts": [
+        {
+          "path": "models/resnet50_onnx/imagenet1k.txt",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml"
+          ]
+        },
+        {
+          "path": "models/resnet50_tensorrt/imagenet1k.txt",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml"
+          ]
+        },
+        {
+          "path": "models/yolo11n_onnx/coco80.txt",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml"
+          ]
+        }
+      ],
       "owned_configuration": [
         {
           "path": "models/resnet50_onnx/config.pbtxt",
-          "status": "planned"
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml"
+          ]
         },
         {
           "path": "models/resnet50_tensorrt/config.pbtxt",
-          "status": "planned"
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml"
+          ]
         },
         {
-          "path": "models/yolo_onnx/config.pbtxt",
-          "status": "planned"
+          "path": "models/yolo11n_onnx/config.pbtxt",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml"
+          ]
         }
       ]
     },
@@ -91,6 +173,10 @@
       "entrypoints": [
         {
           "path": "deployment/scripts/run_triton.sh",
+          "status": "implemented"
+        },
+        {
+          "path": "deployment/triton/smoke_models.py",
           "status": "implemented"
         }
       ],
@@ -106,6 +192,14 @@
       ],
       "tests": [
         {
+          "path": "deployment/triton/smoke_models.py",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/validate_model_evidence.py",
+          "status": "implemented"
+        },
+        {
           "path": "tests/integration/triton",
           "status": "planned"
         }
@@ -116,7 +210,26 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [],
+      "generated_artifacts": [
+        {
+          "path": "docs/evidence/step-3/triton-model-smoke.json",
+          "status": "generated",
+          "generator": "deployment/triton/smoke_models.py",
+          "sources": [
+            ".env.example",
+            "models/model-manifest.json"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-3/model-repository.txt",
+          "status": "generated",
+          "generator": "deployment/triton/smoke_models.py",
+          "sources": [
+            ".env.example",
+            "models/model-manifest.json"
+          ]
+        }
+      ],
       "owned_configuration": []
     },
     {
@@ -445,6 +558,22 @@
     }
   ],
   "repository_artifacts": [
+    {
+      "path": "LICENSE",
+      "status": "implemented"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "status": "implemented"
+    },
+    {
+      "path": "schemas/model-spec.schema.json",
+      "status": "implemented"
+    },
+    {
+      "path": "schemas/model-manifest.schema.json",
+      "status": "implemented"
+    },
     {
       "path": "docs/generated/dependency-graph.md",
       "status": "generated",

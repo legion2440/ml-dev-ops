@@ -1,0 +1,14 @@
+# check=skip=InvalidDefaultArgInFrom
+ARG EXPORTER_IMAGE
+FROM ${EXPORTER_IMAGE}
+
+WORKDIR /workspace
+
+COPY scripts/model_preparation/requirements.lock /opt/model-preparation/requirements.lock
+RUN python -m pip install \
+        --disable-pip-version-check \
+        --no-deps \
+        --require-hashes \
+        --requirement /opt/model-preparation/requirements.lock
+
+ENV PYTHONUNBUFFERED=1

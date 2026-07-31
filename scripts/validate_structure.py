@@ -38,14 +38,21 @@ REQUIRED_DIRECTORIES = (
     "docs",
     "docs/evidence",
     "docs/evidence/step-2",
+    "docs/evidence/step-3",
     "docs/generated",
     "schemas",
     "shared",
+    "models/resnet50_onnx",
+    "models/resnet50_tensorrt",
+    "models/yolo11n_onnx",
+    "tests/unit/model_preparation",
 )
 
 REQUIRED_FILES = (
     "AGENTS.md",
     "ARCHITECTURE.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
     "README.md",
     "module-map.json",
     "dependency-graph.json",
@@ -72,6 +79,13 @@ REQUIRED_FILES = (
     "scripts/validate_module_map.py",
     "scripts/validate_deployment.py",
     "scripts/validate_runtime_evidence.py",
+    "scripts/validate_model_repository.py",
+    "scripts/validate_model_evidence.py",
+    "scripts/model_preparation/prepare_models.py",
+    "scripts/model_preparation/Dockerfile.exporter",
+    "scripts/model_preparation/requirements.lock",
+    "scripts/model_preparation/yolo_export_adapter.py",
+    "deployment/triton/smoke_models.py",
     "tests/unit/test_deployment_validation.py",
     "scripts/generate_dependency_graph.py",
     "docs/troubleshooting.md",
@@ -79,6 +93,19 @@ REQUIRED_FILES = (
     "docs/evidence/step-2/smoke.json",
     "docs/evidence/step-2/compose-ps.txt",
     "docs/evidence/step-2/environment.txt",
+    "docs/evidence/step-3/preparation.json",
+    "docs/evidence/step-3/triton-model-smoke.json",
+    "docs/evidence/step-3/model-repository.txt",
+    "models/model-spec.yaml",
+    "models/model-manifest.json",
+    "models/resnet50_onnx/config.pbtxt",
+    "models/resnet50_onnx/imagenet1k.txt",
+    "models/resnet50_tensorrt/config.pbtxt",
+    "models/resnet50_tensorrt/imagenet1k.txt",
+    "models/yolo11n_onnx/config.pbtxt",
+    "models/yolo11n_onnx/coco80.txt",
+    "schemas/model-spec.schema.json",
+    "schemas/model-manifest.schema.json",
     "docs/generated/dependency-graph.md",
 )
 
@@ -106,7 +133,14 @@ LF_TEXT_SUFFIXES = {
     ".yaml",
     ".yml",
 }
-LF_TEXT_NAMES = {"Makefile", "Dockerfile", ".env.example", ".gitattributes"}
+LF_TEXT_NAMES = {
+    "Makefile",
+    "Dockerfile",
+    "Dockerfile.exporter",
+    "LICENSE",
+    ".env.example",
+    ".gitattributes",
+}
 
 
 def _metadata_paths() -> list[Path]:
@@ -138,6 +172,8 @@ def _check_json_files(errors: list[str]) -> None:
         "dependency-graph.json",
         "schemas/module-map.schema.json",
         "schemas/dependency-graph.schema.json",
+        "schemas/model-spec.schema.json",
+        "schemas/model-manifest.schema.json",
     )
     for relative_path in json_paths:
         path = REPOSITORY_ROOT / relative_path

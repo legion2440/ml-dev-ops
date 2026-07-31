@@ -1,0 +1,19 @@
+name: "resnet50_onnx"
+platform: "onnxruntime_onnx"
+max_batch_size: 8
+default_model_filename: "model.onnx"
+input [
+  {
+    name: "images"
+    data_type: TYPE_FP32
+    dims: [ 3, 224, 224 ]
+  }
+]
+output [
+  {
+    name: "logits"
+    data_type: TYPE_FP32
+    dims: [ 1000 ]
+    label_filename: "imagenet1k.txt"
+  }
+]

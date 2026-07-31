@@ -1,0 +1,23 @@
+name: "resnet50_tensorrt"
+platform: "tensorrt_plan"
+max_batch_size: 8
+default_model_filename: "model_cc89.plan"
+cc_model_filenames {
+  key: "8.9"
+  value: "model_cc89.plan"
+}
+input [
+  {
+    name: "images"
+    data_type: TYPE_FP32
+    dims: [ 3, 224, 224 ]
+  }
+]
+output [
+  {
+    name: "logits"
+    data_type: TYPE_FP32
+    dims: [ 1000 ]
+    label_filename: "imagenet1k.txt"
+  }
+]

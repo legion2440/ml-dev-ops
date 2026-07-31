@@ -7,8 +7,10 @@ The Docker infrastructure is runtime-verified on the reference host as of
 services reach Compose health `healthy`, GPU passthrough works, and the complete
 host-side smoke test succeeds.
 
-Triton intentionally starts with an empty model repository. No model-serving claim
-is made in step 2.
+Step 2 evidence was captured while the repository was empty. Step 3 now provides
+three model directories, but Triton still starts with no models loaded because
+explicit model control is enabled. Model-serving claims are recorded separately in
+`docs/evidence/step-3`.
 
 ## Version matrix
 
@@ -157,12 +159,14 @@ Services start in parallel without hard `depends_on` relationships.
 - The distroless DCGM image is checked by directly executing
   `/usr/bin/dcgm-exporter --version`; no shell is assumed.
 
-The host-side smoke test separately checks Triton readiness and metrics, the empty
-repository index, Prometheus targets, the Grafana datasource, and real `DCGM_`
-metrics.
+The host-side infrastructure smoke separately checks Triton readiness and metrics,
+that no model is loaded before model smoke, Prometheus targets, the Grafana
+datasource, and real `DCGM_` metrics.
 
-Triton runs with `--model-control-mode=explicit`. The same infrastructure will
-support load, unload, and reload behavior when models are introduced.
+Triton runs with `--model-control-mode=explicit` and
+`--disable-auto-complete-config`. The latter prevents the TensorRT backend from
+silently enabling dynamic batching; complete configs are generated from the model
+spec. Step 3 verifies explicit load and unload for all three models.
 
 ## Completion gates
 
@@ -187,7 +191,7 @@ Runtime-verified additionally requires:
 - Prometheus targets up;
 - provisioned Grafana datasource;
 - real DCGM GPU metrics;
-- an empty Triton repository index.
+- no model in ready state before the dedicated model smoke.
 
 The 2026-07-31 reference run passed every runtime requirement with an NVIDIA
 GeForce RTX 4080 Laptop GPU, driver 610.88, and compute capability 8.9. Runtime

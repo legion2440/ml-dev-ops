@@ -1,0 +1,20 @@
+--index-url https://pypi.org/simple
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# CPython 3.11 / Linux x86_64 wheels used by the pinned exporter image.
+numpy==1.26.4 \
+    --hash=sha256:666dbfb6ec68962c033a450943ded891bed2d54e6755e35e5835d63f4f6931d5
+onnx==1.16.2 \
+    --hash=sha256:7b98aa9733bd4b781eb931d33b4078ff2837e7d68062460726d6dd011f332bd4
+onnxconverter-common==1.16.0 \
+    --hash=sha256:df39ee96f17fff119dff10dd245467651b60b9e8a96020eb93402239794852f7
+onnxruntime==1.19.2 \
+    --hash=sha256:a36511dc07c5c964b916697e42e366fa43c48cdb3d3503578d78cef30417cb84
+PyYAML==6.0.2 \
+    --hash=sha256:3ad2a3decf9aaba3d29c8f537ac4b243e36bef957511b4766cb0057d32b0be85
+torch==2.4.1+cpu \
+    --hash=sha256:2b03e20f37557d211d14e3fb3f71709325336402db132a1e0dd8b47392185baf
+torchvision==0.19.1+cpu \
+    --hash=sha256:6000f6747232ffc1e346caf2f3b7df30f6f084c93d5af21c5f0461dec0454a7b
+ultralytics==8.3.0 \
+    --hash=sha256:3137c4921c18c8ddf610f64f1badc2dad2a9fd182e10218c2bbb29caee308b9e

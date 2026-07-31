@@ -2,13 +2,15 @@
 
 ## Status
 
-Architecture contracts and the step 2 Docker infrastructure are implemented. Static
-validation is available without a running daemon. The four-service GPU runtime and
-complete infrastructure smoke test passed on the reference host on 2026-07-31.
+Architecture contracts, the step 2 Docker infrastructure, and the step 3 model
+repository are implemented. Structure validation is daemon-free; full artifact
+validation is Triton-free but uses pinned Docker images and the target GPU. The
+four-service infrastructure and three-model runtime smoke passed on the reference
+host on 2026-07-31.
 
-Triton currently runs with the expected empty model repository. Model artifacts, inference
-logic, batching, versioned models, dashboards, alerts, logging, and benchmarks
-remain planned.
+Version-1 ResNet50 ONNX FP32, ResNet50 TensorRT FP16, and YOLO11n ONNX FP32 are
+runtime-verified. Dynamic request batching, additional model versions, the production
+client, dashboards, alerts, logging, and benchmarks remain planned.
 
 ## System context
 
@@ -41,9 +43,10 @@ flowchart LR
 - Inputs: preparation configuration, upstream weights, export parameters, shared
   tensor contracts, and target GPU capabilities.
 - Outputs: validated ONNX files, TensorRT plans, model metadata, and checksums.
-- Public entrypoint: `scripts/model_preparation/prepare_models.py` (`planned`).
+- Public entrypoint: `scripts/model_preparation/prepare_models.py` (`implemented`).
 - Root: `scripts/model_preparation`.
-- Tests: export configuration, ONNX validation, metadata, and reproducibility checks.
+- Tests: spec and manifest staleness, layout, tensor contracts, ONNX validation,
+  TensorRT deserialization, and exporter-level parity.
 
 ### Model repository
 
@@ -63,8 +66,8 @@ flowchart LR
 - Outputs: predictions, service health, model metadata, and Prometheus metrics.
 - Public entrypoint: `deployment/scripts/run_triton.sh` (`implemented`).
 - Root: `deployment/triton`.
-- Tests: step 2 smoke covers health, metrics, and the expected empty repository.
-  Model loading, version selection, and inference tests remain planned.
+- Tests: step 2 smoke covers health and metrics. Step 3 smoke explicitly loads,
+  infers with, compares, and unloads all three models. Version switching remains planned.
 
 ### Deployment
 
@@ -175,7 +178,8 @@ flowchart TB
 ```
 
 `docker-compose.yml` is the only owner of Triton server arguments. Triton uses
-explicit model control and remains PID 1 in a minimal image wrapper. Prometheus and
+explicit model control, disables backend config auto-completion, and remains PID 1
+in a minimal image wrapper. Prometheus and
 Grafana data use named volumes; repository configuration uses read-only bind
 mounts. Services communicate through Compose DNS names and fixed container ports.
 
@@ -204,13 +208,14 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    Config["Pinned preparation config"] --> Weights["Download pretrained weights"]
+    Config["Model spec and hashed package lock"] --> Weights["Verify source SHA-256"]
     Weights --> Export["Export ONNX"]
-    Export --> Validate["Validate ONNX and metadata"]
-    Validate --> Optimize["Build TensorRT on target GPU"]
+    Export --> Validate["ONNX Checker and Runtime"]
+    Validate --> Cast["Strongly typed FP16 intermediate"]
+    Cast --> Optimize["Build CC 8.9 TensorRT plan"]
     Validate --> Repository["Populate versioned repository"]
     Optimize --> Repository
-    Repository --> Verify["Verify Triton configuration contract"]
+    Repository --> Verify["Explicit load, inference, parity, unload"]
 ```
 
 TensorRT plans are target-dependent build artifacts and are not assumed to be
@@ -218,6 +223,6 @@ portable across arbitrary GPU and runtime combinations.
 
 ## Deferred decisions
 
-The architecture does not yet select a YOLO release, model-weight storage mechanism,
-CI provider, model-specific GPU parameters, or benchmark strategy. Each belongs to
-a later implementation scope.
+The YOLO release, source hashes, local binary policy, and CC 8.9 TensorRT profile are
+fixed for step 3. CI provider, cross-host artifact distribution, additional model
+versions, and benchmark strategy remain later-scope decisions.
