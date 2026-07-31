@@ -16,15 +16,15 @@ is made in step 2.
 
 | Component | Pinned version |
 | --- | --- |
-| Triton image | `nvcr.io/nvidia/tritonserver:26.07-py3` |
+| Triton image | `TRITON_IMAGE` in `.env.example` |
 | Triton Server | `2.71.0` |
 | Triton Ubuntu base | `24.04` |
 | CUDA in Triton | `13.3.4.1` |
 | TensorRT in Triton | `11.1.0.106` |
 | ONNX Runtime in Triton | `1.27.0` |
-| Prometheus | `prom/prometheus:v3.11.1` |
-| Grafana | `grafana/grafana:13.1.1` |
-| DCGM Exporter | `nvcr.io/nvidia/k8s/dcgm-exporter:4.6.0-4.8.3-distroless` |
+| Prometheus image | `PROMETHEUS_IMAGE` in `.env.example` |
+| Grafana image | `GRAFANA_IMAGE` in `.env.example` |
+| DCGM Exporter image | `DCGM_EXPORTER_IMAGE` in `.env.example` |
 
 CUDA, TensorRT, and ONNX Runtime versions are properties of the selected Triton
 image. They are documented but are not independent Compose variables. TensorRT
@@ -120,8 +120,7 @@ the literal username `$oauthtoken` and paste the key at the password prompt:
 
 ```text
 docker login nvcr.io --username '$oauthtoken'
-docker pull nvcr.io/nvidia/tritonserver:26.07-py3
-docker image inspect nvcr.io/nvidia/tritonserver:26.07-py3
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example build --pull triton
 ```
 
 Never put the API key in `.env`, `.env.example`, a script, or shell history.
@@ -173,6 +172,8 @@ Code-complete requires:
 python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
+python scripts/validate_runtime_evidence.py
+python -m unittest discover -s tests/unit -p "test_*.py"
 python scripts/generate_dependency_graph.py --check
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
@@ -192,6 +193,18 @@ The 2026-07-31 reference run passed every runtime requirement with an NVIDIA
 GeForce RTX 4080 Laptop GPU, driver 610.88, and compute capability 8.9. Runtime
 evidence is host-specific and must be regenerated after material host, driver,
 Docker, image, or Compose changes.
+
+Capture a sanitized snapshot after a successful runtime check:
+
+```text
+python deployment/scripts/capture_runtime_evidence.py
+```
+
+The command writes `smoke.json`, `compose-ps.txt`, and `environment.txt` under
+`docs/evidence/step-2`. The snapshot contains no secrets, container IDs, hostnames,
+or workspace paths. `scripts/validate_runtime_evidence.py` checks the recorded
+services and smoke results and detects image evidence stale relative to
+`.env.example` without requiring Docker.
 
 ## Recovery and cleanup
 
@@ -214,7 +227,7 @@ data survive normal `down`.
 
 ## References
 
-- [Triton 26.07 release notes](https://docs.nvidia.com/deeplearning/triton-inference-server/release-notes/rel-26-07.html)
+- [Triton release notes](https://docs.nvidia.com/deeplearning/triton-inference-server/release-notes/)
 - [CUDA compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/)
 - [DCGM Exporter installation](https://docs.nvidia.com/datacenter/dcgm/latest/installation/install-dcgm-exporter.html)

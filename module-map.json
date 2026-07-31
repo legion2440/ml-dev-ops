@@ -136,6 +136,10 @@
         {
           "path": "deployment/scripts/check_environment.sh",
           "status": "implemented"
+        },
+        {
+          "path": "deployment/scripts/capture_runtime_evidence.py",
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
@@ -158,6 +162,14 @@
           "status": "implemented"
         },
         {
+          "path": "scripts/validate_runtime_evidence.py",
+          "status": "implemented"
+        },
+        {
+          "path": "tests/unit/test_deployment_validation.py",
+          "status": "implemented"
+        },
+        {
           "path": "tests/integration/deployment",
           "status": "planned"
         }
@@ -168,7 +180,38 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [],
+      "generated_artifacts": [
+        {
+          "path": "docs/evidence/step-2/smoke.json",
+          "status": "generated",
+          "generator": "deployment/scripts/capture_runtime_evidence.py",
+          "sources": [
+            ".env.example",
+            "docker-compose.yml",
+            "deployment/scripts/smoke_environment.py"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-2/compose-ps.txt",
+          "status": "generated",
+          "generator": "deployment/scripts/capture_runtime_evidence.py",
+          "sources": [
+            ".env.example",
+            "docker-compose.yml",
+            "deployment/scripts/smoke_environment.py"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-2/environment.txt",
+          "status": "generated",
+          "generator": "deployment/scripts/capture_runtime_evidence.py",
+          "sources": [
+            ".env.example",
+            "docker-compose.yml",
+            "deployment/scripts/smoke_environment.py"
+          ]
+        }
+      ],
       "owned_configuration": [
         {
           "path": "docker-compose.yml",

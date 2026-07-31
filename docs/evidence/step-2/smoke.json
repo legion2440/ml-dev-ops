@@ -1,0 +1,66 @@
+{
+  "checks": [
+    {
+      "detail": null,
+      "message": "All four expected containers are running",
+      "name": "containers",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Triton is live",
+      "name": "triton_liveness",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Triton is ready",
+      "name": "triton_readiness",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Triton model repository is empty",
+      "name": "triton_repository",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Triton metrics are available",
+      "name": "triton_metrics",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Prometheus is healthy",
+      "name": "prometheus_health",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Prometheus sees Triton and DCGM targets",
+      "name": "prometheus_targets",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Grafana is healthy",
+      "name": "grafana_health",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "Prometheus datasource is provisioned",
+      "name": "grafana_datasource",
+      "ok": true
+    },
+    {
+      "detail": null,
+      "message": "DCGM metrics are available",
+      "name": "dcgm_metrics",
+      "ok": true
+    }
+  ],
+  "env_file": ".env.example",
+  "ok": true
+}

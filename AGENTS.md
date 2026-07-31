@@ -89,6 +89,7 @@ The repository currently supports:
 ```text
 make validate
 make validate-deployment
+make validate-evidence
 make architecture
 make check-architecture
 make compose-config
@@ -96,6 +97,7 @@ make up
 make down
 make status
 make smoke
+make capture-evidence
 ```
 
 The same checks can run without Make:
@@ -104,6 +106,8 @@ The same checks can run without Make:
 python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
+python scripts/validate_runtime_evidence.py
+python -m unittest discover -s tests/unit -p "test_*.py"
 python scripts/generate_dependency_graph.py
 python scripts/generate_dependency_graph.py --check
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
@@ -111,6 +115,7 @@ bash deployment/scripts/run_environment.sh
 bash deployment/scripts/stop_environment.sh
 bash deployment/scripts/check_environment.sh
 python deployment/scripts/smoke_environment.py
+python deployment/scripts/capture_runtime_evidence.py
 ```
 
 These standard commands are reserved for later scopes and must not be documented as
@@ -131,3 +136,8 @@ Deployment has two distinct completion states:
 
 Do not describe deployment as fully verified without runtime evidence. The current
 step intentionally expects an empty Triton model repository.
+
+Step 2 evidence under `docs/evidence/step-2` is a sanitized runtime snapshot. Refresh
+it with `capture_runtime_evidence.py` after material image, Compose, driver, Docker,
+or GPU changes; never hand-edit it or include credentials, container IDs, hostnames,
+or workspace paths.

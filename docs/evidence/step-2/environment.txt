@@ -1,0 +1,13 @@
+captured_at_utc=2026-07-31T15:35:50Z
+compose_project=ml-dev-ops
+compose_env_file=.env.example
+docker_server_version=28.1.1
+docker_compose_version=2.35.1-desktop.1
+docker_operating_system=Docker Desktop
+triton_source_image=nvcr.io/nvidia/tritonserver:26.07-py3
+triton_source_digest=sha256:f76300c73eba7dd4c67183210c10b3fef67fb9aa2c18f150cb916387078442f0
+triton_server_version=2.71.0
+gpu_count=1
+gpu_0_name=NVIDIA GeForce RTX 4080 Laptop GPU
+gpu_0_driver_version=610.88
+gpu_0_compute_capability=8.9

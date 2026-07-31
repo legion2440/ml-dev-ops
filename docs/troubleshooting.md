@@ -2,15 +2,14 @@
 
 ## Triton image pull fails or stalls
 
-The required artifact is the Docker image
-`nvcr.io/nvidia/tritonserver:26.07-py3`; it does not belong under `models` or any
-other repository directory. Authenticate to NVIDIA NGC with a personal API key that
-has NGC Catalog access:
+The required artifact is the Docker image selected by `TRITON_IMAGE` in
+`.env.example`; it does not belong under `models` or any other repository directory.
+If Docker reports an authorization error, authenticate to NVIDIA NGC with a personal
+API key that has NGC Catalog access:
 
 ```text
 docker login nvcr.io --username '$oauthtoken'
-docker pull nvcr.io/nvidia/tritonserver:26.07-py3
-docker image inspect nvcr.io/nvidia/tritonserver:26.07-py3
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example build --pull triton
 ```
 
 Paste the API key only at Docker's password prompt. An authorization failure is

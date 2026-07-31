@@ -1,0 +1,5 @@
+service	image	state	health	published_ports
+dcgm-exporter	nvcr.io/nvidia/k8s/dcgm-exporter:4.6.0-4.8.3-distroless	running	healthy	127.0.0.1:9400->9400/tcp
+grafana	grafana/grafana:13.1.1	running	healthy	127.0.0.1:3000->3000/tcp
+prometheus	prom/prometheus:v3.11.1	running	healthy	127.0.0.1:9090->9090/tcp
+triton	ml-dev-ops/triton:step2	running	healthy	127.0.0.1:8000->8000/tcp;127.0.0.1:8001->8001/tcp;127.0.0.1:8002->8002/tcp

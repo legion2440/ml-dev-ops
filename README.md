@@ -143,6 +143,8 @@ On systems without Make, run:
 python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
+python scripts/validate_runtime_evidence.py
+python -m unittest discover -s tests/unit -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
 
@@ -163,6 +165,13 @@ python scripts/generate_dependency_graph.py --check
 `scripts/validate_deployment.py` reports `[SKIP]` when `promtool` is unavailable.
 The Compose and Python YAML checks remain mandatory. A successful GPU smoke test is
 required before the deployment is considered runtime-verified.
+
+The committed runtime snapshot is under `docs/evidence/step-2`. Refresh it only
+after a successful live run:
+
+```text
+python deployment/scripts/capture_runtime_evidence.py
+```
 
 ## Delivery roadmap
 

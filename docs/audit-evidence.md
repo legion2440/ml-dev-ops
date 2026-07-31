@@ -15,7 +15,9 @@ will be expanded as each scope is completed.
 | Triton infrastructure | Explicit control and empty read-only repository | `deployment/scripts/run_triton.sh` | Live, ready, metrics, and empty repository checks passed |
 | Minimum observability | Prometheus targets and Grafana datasource provisioning | `monitoring` | Triton/DCGM targets up and datasource provisioned |
 | GPU telemetry | Pinned paired DCGM Exporter service | `docker-compose.yml` | Real `DCGM_` metrics; RTX 4080 Laptop visible in Triton |
-| Infrastructure smoke | Host-side health, targets, datasource, and empty-repository checks | `python deployment/scripts/smoke_environment.py --format json` | All 10 checks passed on 2026-07-31 |
+| Infrastructure smoke | Host-side health, targets, datasource, and empty-repository checks | `docs/evidence/step-2/smoke.json` | All 10 checks passed on 2026-07-31 |
+| Runtime service state | Sanitized service, image, health, and port snapshot | `docs/evidence/step-2/compose-ps.txt` | Four running and healthy services; loopback-only ports |
+| Runtime environment | Sanitized Docker, Triton image digest, and GPU facts | `docs/evidence/step-2/environment.txt` | Machine-checked reference environment |
 | Two CV models | Planned | Not implemented | Pending |
 | ONNX and TensorRT benchmark | Planned | Not implemented | Pending |
 | Full Prometheus and Grafana dashboard | Planned for step 7 | Not implemented | Pending |
@@ -27,3 +29,4 @@ README statements alone are not accepted as runtime evidence.
 The recorded runtime evidence was produced on Windows 11 with Docker Desktop/WSL2,
 NVIDIA driver 610.88, and compute capability 8.9. It is evidence for that reference
 run, not a substitute for rerunning the smoke test after environment changes.
+Validate the committed evidence with `python scripts/validate_runtime_evidence.py`.

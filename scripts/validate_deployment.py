@@ -23,16 +23,30 @@ DASHBOARD_PROVIDER_PATH = (
     REPOSITORY_ROOT / "monitoring/grafana/provisioning/dashboards/provider.yml"
 )
 
-EXPECTED_IMAGES = {
-    "TRITON_IMAGE": "nvcr.io/nvidia/tritonserver:26.07-py3",
-    "PROMETHEUS_IMAGE": "prom/prometheus:v3.11.1",
-    "GRAFANA_IMAGE": "grafana/grafana:13.1.1",
+IMAGE_RULES = {
+    "TRITON_IMAGE": (
+        "nvcr.io/nvidia/tritonserver",
+        re.compile(r"\d{2}\.\d{2}-py3"),
+        "a full monthly py3 tag",
+    ),
+    "PROMETHEUS_IMAGE": (
+        "prom/prometheus",
+        re.compile(r"v\d+\.\d+\.\d+"),
+        "a full v-prefixed semantic version tag",
+    ),
+    "GRAFANA_IMAGE": (
+        "grafana/grafana",
+        re.compile(r"\d+\.\d+\.\d+"),
+        "a full semantic version tag",
+    ),
     "DCGM_EXPORTER_IMAGE": (
-        "nvcr.io/nvidia/k8s/dcgm-exporter:4.6.0-4.8.3-distroless"
+        "nvcr.io/nvidia/k8s/dcgm-exporter",
+        re.compile(r"\d+\.\d+\.\d+-\d+\.\d+\.\d+-distroless"),
+        "a full paired DCGM/exporter distroless tag",
     ),
 }
 REQUIRED_ENV_KEYS = {
-    *EXPECTED_IMAGES,
+    *IMAGE_RULES,
     "TRITON_HTTP_PORT",
     "TRITON_GRPC_PORT",
     "TRITON_METRICS_PORT",
@@ -144,14 +158,6 @@ def _validate_env(env: dict[str, str], errors: list[str]) -> None:
     if missing:
         errors.append(f".env.example is missing required values: {', '.join(missing)}")
 
-    unexpected_images = [
-        f"{key}={env.get(key)!r}, expected {expected!r}"
-        for key, expected in EXPECTED_IMAGES.items()
-        if env.get(key) != expected
-    ]
-    if unexpected_images:
-        errors.extend(f"Pinned image mismatch: {item}" for item in unexpected_images)
-
     port_values: list[int] = []
     for key in sorted(PORT_KEYS):
         value = env.get(key, "")
@@ -199,19 +205,19 @@ def _validate_images(
             errors.append(f"{variable} must be consumed through a required Compose variable")
             continue
         image = env.get(variable, "")
-        if image.endswith(":latest") or image.endswith("/latest"):
-            errors.append(f"{variable} must not use latest")
-        if image != EXPECTED_IMAGES[variable]:
+        repository, separator, tag = image.rpartition(":")
+        expected_repository, tag_pattern, tag_description = IMAGE_RULES[variable]
+        if not separator:
+            errors.append(f"{variable} must contain an explicit image tag")
             continue
-        tag = image.rsplit(":", 1)[-1]
-        if variable in {"PROMETHEUS_IMAGE", "GRAFANA_IMAGE"}:
-            if not re.fullmatch(r"v?\d+\.\d+\.\d+", tag):
-                errors.append(f"{variable} must use a full semantic version tag")
-        elif variable == "TRITON_IMAGE":
-            if not re.fullmatch(r"\d{2}\.\d{2}-py3", tag):
-                errors.append("TRITON_IMAGE must use a full monthly py3 tag")
-        elif not re.fullmatch(r"\d+\.\d+\.\d+-\d+\.\d+\.\d+-distroless", tag):
-            errors.append("DCGM_EXPORTER_IMAGE must use the full paired distroless tag")
+        if repository != expected_repository:
+            errors.append(
+                f"{variable} must use the canonical repository {expected_repository}"
+            )
+        if tag == "latest":
+            errors.append(f"{variable} must not use latest")
+        elif not tag_pattern.fullmatch(tag):
+            errors.append(f"{variable} must use {tag_description}")
 
 
 def _validate_mounts(
@@ -518,6 +524,25 @@ def _run_external_checks() -> list[tuple[str, str, str]]:
         detail = process.stderr.strip() or process.stdout.strip()
         status = "OK" if process.returncode == 0 else "FAIL"
         results.append((status, "promtool config", detail))
+
+    bash = shutil.which("bash")
+    if bash is None:
+        results.append(("SKIP", "Bash syntax", "bash is unavailable"))
+    else:
+        shell_scripts = (
+            "deployment/scripts/compose_common.sh",
+            *LIFECYCLE_SCRIPTS,
+        )
+        process = subprocess.run(
+            [bash, "-n", *shell_scripts],
+            cwd=REPOSITORY_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        detail = process.stderr.strip() or process.stdout.strip()
+        status = "OK" if process.returncode == 0 else "FAIL"
+        results.append((status, "Bash syntax", detail))
     return results
 
 
