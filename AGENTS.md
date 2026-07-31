@@ -78,7 +78,8 @@ For a feature change:
 5. Regenerate derived architecture documentation.
 6. Run scoped checks first, then repository-wide validation.
 
-New and rewritten text files use LF line endings.
+New and rewritten text files use LF line endings. `.gitattributes` enforces LF
+checkouts for repository text files on every supported host.
 
 ## Available commands
 

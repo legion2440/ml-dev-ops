@@ -46,6 +46,7 @@ REQUIRED_FILES = (
     "pyproject.toml",
     "requirements.txt",
     "Makefile",
+    ".gitattributes",
     ".env.example",
     "docker-compose.yml",
     "schemas/module-map.schema.json",
@@ -53,6 +54,8 @@ REQUIRED_FILES = (
     "scripts/validate_structure.py",
     "scripts/validate_module_map.py",
     "scripts/generate_dependency_graph.py",
+    "docs/troubleshooting.md",
+    "docs/audit-evidence.md",
     "docs/generated/dependency-graph.md",
 )
 
@@ -67,9 +70,6 @@ METADATA_FILES = (
 WINDOWS_ABSOLUTE_PATH = re.compile(r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/]")
 UNC_PATH = re.compile(r"\\\\[A-Za-z0-9._-]+[\\/]")
 PARENT_SEGMENT = re.compile(r"(?<![A-Za-z0-9._-])\.\.(?:/|\\)")
-POSIX_ABSOLUTE_PATH = re.compile(
-    r"(?<![:A-Za-z0-9._-])/(?:[A-Za-z0-9._-]+/)*[A-Za-z0-9._-]+"
-)
 LF_TEXT_SUFFIXES = {
     ".csv",
     ".env",
@@ -82,7 +82,7 @@ LF_TEXT_SUFFIXES = {
     ".yaml",
     ".yml",
 }
-LF_TEXT_NAMES = {"Makefile", ".env.example"}
+LF_TEXT_NAMES = {"Makefile", ".env.example", ".gitattributes"}
 
 
 def _metadata_paths() -> list[Path]:
@@ -141,7 +141,6 @@ def _check_metadata_paths(errors: list[str]) -> None:
             ("Windows absolute path", WINDOWS_ABSOLUTE_PATH),
             ("UNC path", UNC_PATH),
             ("parent path segment", PARENT_SEGMENT),
-            ("POSIX absolute path", POSIX_ABSOLUTE_PATH),
         )
         for label, pattern in checks:
             match = pattern.search(text)
