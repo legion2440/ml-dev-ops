@@ -1,0 +1,113 @@
+# Repository instructions
+
+This repository is organized around explicit feature boundaries. Work within the
+smallest relevant module and treat architecture metadata as part of the change.
+
+## Navigation order
+
+1. Read `module-map.json`.
+2. Find the module that owns the requested feature.
+3. Read the matching section in `ARCHITECTURE.md`.
+4. Open the module's public entrypoint or interface.
+5. Read only the related configuration, implementation, schemas, and tests.
+6. Inspect another module only when an allowed dependency makes that necessary.
+
+`dependency-graph.json` is the only editable source of allowed and forbidden
+dependencies. `docs/generated/dependency-graph.md` is generated from it and must not
+be edited manually.
+
+## Module boundaries
+
+The fixed modules are:
+
+- `model-preparation`
+- `model-repository`
+- `triton-serving`
+- `deployment`
+- `inference-client`
+- `inference-logging`
+- `benchmarking`
+- `observability`
+- `shared-contracts`
+
+`model-repository` is an artifact module and does not require an executable
+entrypoint. `shared-contracts` is reserved for schemas and data-transfer contracts
+used by more than one module. Generic helpers do not belong there.
+
+Do not:
+
+- change a neighboring module without an allowed dependency and a task-level need;
+- add an architectural dependency without updating `dependency-graph.json`;
+- add a package without recording its purpose in dependency metadata;
+- hand-edit generated files;
+- treat documentation as evidence that a feature works;
+- commit secrets, access tokens, local environment files, or large model weights;
+- expand the requested scope merely to prepare unrelated future work.
+
+## Path policy
+
+Paths in repository metadata and documentation must be repository-relative POSIX
+paths. Do not use host-specific absolute paths, parent-directory traversal, or
+backslashes.
+
+Examples:
+
+- `client/inference_client.py`
+- `models/resnet50_onnx/config.pbtxt`
+- `tests/unit/client`
+
+## File statuses
+
+Every mapped path has one status:
+
+- `planned`: the path may be absent and must not be presented as implemented;
+- `implemented`: the path must exist;
+- `generated`: the path must exist and its generator must pass freshness checks.
+
+Every module root must exist regardless of its entrypoint statuses.
+
+## Change workflow
+
+For a feature change:
+
+1. Update implementation and scoped tests together.
+2. Update the owning documentation.
+3. Update `module-map.json` when paths, entrypoints, interfaces, tests, or artifacts
+   change.
+4. Update `dependency-graph.json` when architectural dependencies change.
+5. Regenerate derived architecture documentation.
+6. Run scoped checks first, then repository-wide validation.
+
+New and rewritten text files use LF line endings.
+
+## Available commands
+
+The step 1 scaffold supports:
+
+```text
+make validate
+make architecture
+make check-architecture
+```
+
+The same checks can run without Make:
+
+```text
+python scripts/validate_structure.py
+python scripts/validate_module_map.py
+python scripts/generate_dependency_graph.py
+python scripts/generate_dependency_graph.py --check
+```
+
+These standard commands are reserved for later scopes and must not be documented as
+working until implemented:
+
+```text
+make test
+make test-feature FEATURE=client
+make prepare-models
+make up
+make smoke
+make benchmark
+make down
+```

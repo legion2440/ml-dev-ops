@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dependency-graph.schema.json",
+  "title": "ML DevOps dependency graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "nodes",
+    "allowed_edges",
+    "forbidden_edges",
+    "acyclic_edge_types"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/moduleId"
+      }
+    },
+    "allowed_edges": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/allowedEdge"
+      }
+    },
+    "forbidden_edges": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/forbiddenEdge"
+      }
+    },
+    "acyclic_edge_types": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/edgeType"
+      }
+    }
+  },
+  "$defs": {
+    "moduleId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "edgeType": {
+      "enum": [
+        "runtime",
+        "build",
+        "configuration",
+        "test",
+        "artifact"
+      ]
+    },
+    "allowedEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "type",
+        "rationale"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/moduleId"
+        },
+        "to": {
+          "$ref": "#/$defs/moduleId"
+        },
+        "type": {
+          "$ref": "#/$defs/edgeType"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "forbiddenEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "reason"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/moduleId"
+        },
+        "to": {
+          "$ref": "#/$defs/moduleId"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

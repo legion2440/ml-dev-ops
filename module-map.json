@@ -1,0 +1,378 @@
+{
+  "schema_version": 1,
+  "repository": "ml-dev-ops",
+  "path_policy": "repository-relative-posix",
+  "modules": [
+    {
+      "id": "model-preparation",
+      "description": "Downloads weights, exports models, builds TensorRT engines, and validates model metadata.",
+      "module_type": "tooling",
+      "root": "scripts/model_preparation",
+      "entrypoints": [
+        {
+          "path": "scripts/model_preparation/prepare_models.py",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "scripts/model_preparation/README.md",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/unit/model_preparation",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/model-preparation.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [
+        {
+          "path": "models/resnet50_onnx/1/model.onnx",
+          "status": "planned"
+        },
+        {
+          "path": "models/resnet50_tensorrt/1/model.plan",
+          "status": "planned"
+        },
+        {
+          "path": "models/yolo_onnx/1/model.onnx",
+          "status": "planned"
+        }
+      ],
+      "owned_configuration": []
+    },
+    {
+      "id": "model-repository",
+      "description": "Owns Triton model configurations, version directories, and generated model artifacts.",
+      "module_type": "artifact",
+      "root": "models",
+      "entrypoints": [],
+      "public_interfaces": [],
+      "tests": [
+        {
+          "path": "tests/integration/model_repository",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/model-versioning.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [],
+      "owned_configuration": [
+        {
+          "path": "models/resnet50_onnx/config.pbtxt",
+          "status": "planned"
+        },
+        {
+          "path": "models/resnet50_tensorrt/config.pbtxt",
+          "status": "planned"
+        },
+        {
+          "path": "models/yolo_onnx/config.pbtxt",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "triton-serving",
+      "description": "Exposes model health, metadata, repository control, REST inference, gRPC inference, and metrics.",
+      "module_type": "service",
+      "root": "deployment/triton",
+      "entrypoints": [
+        {
+          "path": "deployment/scripts/run_triton.sh",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "deployment/triton/README.md",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/integration/triton",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/model-versioning.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [],
+      "owned_configuration": []
+    },
+    {
+      "id": "deployment",
+      "description": "Builds, starts, stops, and health-checks the containerized runtime.",
+      "module_type": "operations",
+      "root": "deployment",
+      "entrypoints": [
+        {
+          "path": "deployment/scripts/run_environment.sh",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "docker-compose.yml",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/integration/deployment",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/deployment.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [],
+      "owned_configuration": [
+        {
+          "path": "docker-compose.yml",
+          "status": "implemented"
+        },
+        {
+          "path": ".env.example",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "id": "inference-client",
+      "description": "Preprocesses images, calls Triton over REST or gRPC, and renders predictions.",
+      "module_type": "application",
+      "root": "client",
+      "entrypoints": [
+        {
+          "path": "client/inference_client.py",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "client/README.md",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/unit/client",
+          "status": "planned"
+        },
+        {
+          "path": "tests/integration/client",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/client.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [],
+      "owned_configuration": []
+    },
+    {
+      "id": "inference-logging",
+      "description": "Records inference history as JSONL and exports it as CSV for offline analysis.",
+      "module_type": "library",
+      "root": "client/logging",
+      "entrypoints": [
+        {
+          "path": "client/logging/writer.py",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "client/logging/README.md",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/unit/inference_logging",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/client.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [
+        {
+          "path": "logs/inference.jsonl",
+          "status": "planned"
+        },
+        {
+          "path": "logs/inference.csv",
+          "status": "planned"
+        }
+      ],
+      "owned_configuration": []
+    },
+    {
+      "id": "benchmarking",
+      "description": "Runs controlled load tests and compares baseline and optimized model performance.",
+      "module_type": "tooling",
+      "root": "benchmarks",
+      "entrypoints": [
+        {
+          "path": "benchmarks/run_benchmark.py",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "benchmarks/README.md",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/unit/benchmarking",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/benchmarking.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [
+        {
+          "path": "benchmarks/results/baseline.csv",
+          "status": "planned"
+        },
+        {
+          "path": "benchmarks/results/optimized.csv",
+          "status": "planned"
+        },
+        {
+          "path": "benchmarks/results/comparison.csv",
+          "status": "planned"
+        },
+        {
+          "path": "benchmarks/report.md",
+          "status": "planned"
+        }
+      ],
+      "owned_configuration": [
+        {
+          "path": "benchmarks/configs/benchmark.yaml",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "observability",
+      "description": "Collects Triton, GPU, and availability metrics and provisions dashboards and alerts.",
+      "module_type": "operations",
+      "root": "monitoring",
+      "entrypoints": [
+        {
+          "path": "monitoring/prometheus/prometheus.yml",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "monitoring/README.md",
+          "status": "implemented"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/integration/monitoring",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "docs/monitoring.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [],
+      "owned_configuration": [
+        {
+          "path": "monitoring/prometheus/prometheus.yml",
+          "status": "planned"
+        },
+        {
+          "path": "monitoring/prometheus/alerts.yml",
+          "status": "planned"
+        },
+        {
+          "path": "monitoring/grafana/grafana-dashboard.json",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "shared-contracts",
+      "description": "Contains only cross-module inference schemas and data-transfer contracts.",
+      "module_type": "library",
+      "root": "shared",
+      "entrypoints": [
+        {
+          "path": "shared/contracts.py",
+          "status": "planned"
+        }
+      ],
+      "public_interfaces": [
+        {
+          "path": "shared/contracts.py",
+          "status": "planned"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/unit/shared_contracts",
+          "status": "planned"
+        }
+      ],
+      "docs": [
+        {
+          "path": "ARCHITECTURE.md",
+          "status": "implemented"
+        }
+      ],
+      "generated_artifacts": [],
+      "owned_configuration": []
+    }
+  ],
+  "repository_artifacts": [
+    {
+      "path": "docs/generated/dependency-graph.md",
+      "status": "generated",
+      "generator": "scripts/generate_dependency_graph.py",
+      "sources": [
+        "dependency-graph.json"
+      ]
+    }
+  ]
+}

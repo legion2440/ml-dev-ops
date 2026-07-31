@@ -1,0 +1,2 @@
+# Architecture metadata validation used in step 1.
+jsonschema>=4.23,<5

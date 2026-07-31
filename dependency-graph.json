@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    "model-preparation",
+    "model-repository",
+    "triton-serving",
+    "deployment",
+    "inference-client",
+    "inference-logging",
+    "benchmarking",
+    "observability",
+    "shared-contracts"
+  ],
+  "allowed_edges": [
+    {
+      "from": "model-preparation",
+      "to": "shared-contracts",
+      "type": "configuration",
+      "rationale": "Model exporters use shared tensor and metadata contracts."
+    },
+    {
+      "from": "model-repository",
+      "to": "model-preparation",
+      "type": "build",
+      "rationale": "Repository artifacts are produced by the model preparation workflow."
+    },
+    {
+      "from": "triton-serving",
+      "to": "model-repository",
+      "type": "artifact",
+      "rationale": "Triton loads versioned models and configuration from the model repository."
+    },
+    {
+      "from": "triton-serving",
+      "to": "shared-contracts",
+      "type": "configuration",
+      "rationale": "Serving metadata must match shared input and output contracts."
+    },
+    {
+      "from": "deployment",
+      "to": "triton-serving",
+      "type": "configuration",
+      "rationale": "Deployment configures and controls the Triton service."
+    },
+    {
+      "from": "deployment",
+      "to": "observability",
+      "type": "configuration",
+      "rationale": "Deployment composes the metrics and dashboard services."
+    },
+    {
+      "from": "inference-client",
+      "to": "triton-serving",
+      "type": "runtime",
+      "rationale": "The client calls Triton health, metadata, repository, and inference APIs."
+    },
+    {
+      "from": "inference-client",
+      "to": "shared-contracts",
+      "type": "runtime",
+      "rationale": "The client uses shared request and prediction contracts."
+    },
+    {
+      "from": "inference-client",
+      "to": "inference-logging",
+      "type": "runtime",
+      "rationale": "The client records one structured history event per inference."
+    },
+    {
+      "from": "inference-logging",
+      "to": "shared-contracts",
+      "type": "runtime",
+      "rationale": "Log records use shared identifiers and prediction summaries."
+    },
+    {
+      "from": "benchmarking",
+      "to": "inference-client",
+      "type": "runtime",
+      "rationale": "Benchmarks reuse the public Triton transport and payload boundary."
+    },
+    {
+      "from": "benchmarking",
+      "to": "inference-logging",
+      "type": "runtime",
+      "rationale": "Benchmark requests produce the same structured inference history."
+    },
+    {
+      "from": "observability",
+      "to": "triton-serving",
+      "type": "runtime",
+      "rationale": "Observability consumes Triton metrics and availability endpoints."
+    }
+  ],
+  "forbidden_edges": [
+    {
+      "from": "observability",
+      "to": "inference-client",
+      "reason": "Observability consumes metrics and must not import client implementation."
+    },
+    {
+      "from": "shared-contracts",
+      "to": "inference-client",
+      "reason": "Shared contracts must remain independent of application code."
+    },
+    {
+      "from": "shared-contracts",
+      "to": "benchmarking",
+      "reason": "Shared contracts must remain independent of benchmark tooling."
+    },
+    {
+      "from": "triton-serving",
+      "to": "inference-client",
+      "reason": "The server boundary must not depend on its client implementation."
+    },
+    {
+      "from": "model-preparation",
+      "to": "deployment",
+      "reason": "Model preparation must remain reproducible outside runtime orchestration."
+    },
+    {
+      "from": "inference-logging",
+      "to": "inference-client",
+      "reason": "Logging is a lower-level service and must not depend on its caller."
+    }
+  ],
+  "acyclic_edge_types": [
+    "runtime",
+    "build",
+    "configuration",
+    "artifact"
+  ]
+}
