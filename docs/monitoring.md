@@ -2,17 +2,31 @@
 
 ## Current status
 
-Prometheus, Grafana, DCGM metrics, dashboards, and alerts are planned.
+The step 2 observability containers and minimum provisioning are implemented:
 
-## Metrics contract
+- Prometheus scrapes itself, Triton, and DCGM Exporter;
+- Grafana receives a Prometheus datasource with UID `prometheus`;
+- a dashboard file provider watches `/var/lib/grafana/dashboards`;
+- DCGM Exporter publishes GPU metrics on port 9400.
 
-Prometheus will collect Triton request, failure, inference, queue, compute, and
-throughput metrics; GPU utilization and memory; and container availability.
+The project dashboard and Prometheus alert rules remain planned for step 7.
 
-Grafana will show service and model state, request rate, latency percentiles,
-throughput, failures, GPU behavior, and model or version comparisons.
+## Runtime verification
 
-Planned alert categories are unavailable Triton or models, high latency, increasing
-failed requests, high GPU utilization or memory, and missing metrics.
+The infrastructure smoke test requires:
 
-Provisioning must be automatic when the deployment is implemented.
+- Prometheus health;
+- active and healthy `triton` and `dcgm-exporter` targets;
+- Grafana health;
+- the provisioned datasource at `http://prometheus:9090`;
+- a DCGM response containing metrics with the `DCGM_` prefix.
+
+`monitoring/prometheus/prometheus.yml` and both Grafana provisioning files are
+validated statically. If `promtool` is available, deployment validation runs it; an
+unavailable binary is reported as `[SKIP]`.
+
+## Planned scope
+
+Step 7 will add latency percentiles, throughput, failures, GPU utilization and
+memory panels, model/version comparisons, and alert rules. Their existence or
+correctness is not claimed by the step 2 infrastructure.

@@ -91,12 +91,16 @@
       "entrypoints": [
         {
           "path": "deployment/scripts/run_triton.sh",
-          "status": "planned"
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
         {
           "path": "deployment/triton/README.md",
+          "status": "implemented"
+        },
+        {
+          "path": "deployment/scripts/run_triton.sh",
           "status": "implemented"
         }
       ],
@@ -123,16 +127,36 @@
       "entrypoints": [
         {
           "path": "deployment/scripts/run_environment.sh",
-          "status": "planned"
+          "status": "implemented"
+        },
+        {
+          "path": "deployment/scripts/stop_environment.sh",
+          "status": "implemented"
+        },
+        {
+          "path": "deployment/scripts/check_environment.sh",
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
         {
           "path": "docker-compose.yml",
           "status": "implemented"
+        },
+        {
+          "path": "deployment/scripts/compose_common.sh",
+          "status": "implemented"
         }
       ],
       "tests": [
+        {
+          "path": "scripts/validate_deployment.py",
+          "status": "implemented"
+        },
+        {
+          "path": "deployment/scripts/smoke_environment.py",
+          "status": "implemented"
+        },
         {
           "path": "tests/integration/deployment",
           "status": "planned"
@@ -152,6 +176,10 @@
         },
         {
           "path": ".env.example",
+          "status": "implemented"
+        },
+        {
+          "path": "deployment/docker/Dockerfile",
           "status": "implemented"
         }
       ]
@@ -295,7 +323,7 @@
       "entrypoints": [
         {
           "path": "monitoring/prometheus/prometheus.yml",
-          "status": "planned"
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
@@ -320,14 +348,22 @@
       "owned_configuration": [
         {
           "path": "monitoring/prometheus/prometheus.yml",
-          "status": "planned"
+          "status": "implemented"
         },
         {
           "path": "monitoring/prometheus/alerts.yml",
           "status": "planned"
         },
         {
-          "path": "monitoring/grafana/grafana-dashboard.json",
+          "path": "monitoring/grafana/provisioning/datasources/prometheus.yml",
+          "status": "implemented"
+        },
+        {
+          "path": "monitoring/grafana/provisioning/dashboards/provider.yml",
+          "status": "implemented"
+        },
+        {
+          "path": "monitoring/grafana/dashboards/ml-dev-ops.json",
           "status": "planned"
         }
       ]

@@ -8,15 +8,17 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 1: architecture and repository scaffolding.**
+**Step 2 code-complete: reproducible Docker infrastructure.**
 
-The repository currently contains module boundaries, machine-readable architecture
-metadata, generated dependency documentation, and structural validators. Triton,
-model artifacts, Docker services, the Python inference client, monitoring, and
-benchmarks are not implemented yet.
+The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
+services; GPU reservations; loopback-only ports; persistent metrics volumes;
+read-only configuration mounts; lifecycle commands; and infrastructure smoke
+checks.
 
-`docker-compose.yml` is intentionally a valid empty scaffold. It does not start any
-services.
+Runtime verification still requires a running Docker daemon with NVIDIA GPU access.
+No model artifacts, inference implementation, dynamic batching, dashboards, alerts,
+or benchmarks are present yet. Triton is expected to start with an empty model
+repository.
 
 ## Planned architecture
 
@@ -46,24 +48,90 @@ ml-dev-ops/
 └── dependency-graph.json   Allowed and forbidden dependencies
 ```
 
-## Step 1 requirements
+## Deployment requirements
 
 - Python 3.10 or newer
 - packages from `requirements.txt`
-- Make is optional
+- Docker Engine with Docker Compose v2
+- an NVIDIA GPU with a compatible driver
+- NVIDIA Container Toolkit
+- Linux `amd64` containers
+- Bash for lifecycle scripts; Git Bash is supported on Windows
+- Docker Desktop with the WSL2 backend for GPU containers on Windows
 
-GPU drivers, Docker, NVIDIA Container Toolkit, and runtime image requirements will
-be pinned during the deployment scope.
+The pinned image and runtime matrix is documented in `docs/deployment.md`.
 
-## Architecture checks
+## Environment configuration
 
-Install the current validation dependency:
+`.env.example` is the canonical configuration. A local `.env` may override it and
+is ignored by Git. Lifecycle scripts select `.env` when present and otherwise use
+`.env.example`; neither file is executed as shell code.
+
+Validate the clean-checkout configuration:
+
+```text
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
+```
+
+## Start and inspect the infrastructure
+
+With Make:
+
+```text
+make up
+make status
+make smoke
+make down
+```
+
+Direct equivalents:
+
+```text
+bash deployment/scripts/run_environment.sh
+bash deployment/scripts/check_environment.sh
+python deployment/scripts/smoke_environment.py
+bash deployment/scripts/stop_environment.sh
+```
+
+Run only Triton:
+
+```text
+bash deployment/scripts/run_triton.sh
+```
+
+Remove only the Prometheus and Grafana named volumes:
+
+```text
+bash deployment/scripts/stop_environment.sh --purge
+```
+
+The purge command does not delete repository-owned host directories.
+
+## Local endpoints
+
+Default ports are bound to loopback:
+
+| Service | Address |
+| --- | --- |
+| Triton HTTP | `http://127.0.0.1:8000` |
+| Triton gRPC | `127.0.0.1:8001` |
+| Triton metrics | `http://127.0.0.1:8002/metrics` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Grafana | `http://127.0.0.1:3000` |
+| DCGM metrics | `http://127.0.0.1:9400/metrics` |
+
+Grafana's Prometheus datasource is provisioned automatically. The dashboard file is
+planned for step 7.
+
+## Validation
+
+Install validation dependencies:
 
 ```text
 python -m pip install -r requirements.txt
 ```
 
-Run all step 1 checks:
+Run all code-complete checks:
 
 ```text
 make validate
@@ -74,6 +142,8 @@ On systems without Make, run:
 ```text
 python scripts/validate_structure.py
 python scripts/validate_module_map.py
+python scripts/validate_deployment.py
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
 
 Regenerate or check the derived dependency documentation:
@@ -89,6 +159,10 @@ Equivalent direct commands are:
 python scripts/generate_dependency_graph.py
 python scripts/generate_dependency_graph.py --check
 ```
+
+`scripts/validate_deployment.py` reports `[SKIP]` when `promtool` is unavailable.
+The Compose and Python YAML checks remain mandatory. A successful GPU smoke test is
+required before the deployment is considered runtime-verified.
 
 ## Delivery roadmap
 

@@ -18,6 +18,10 @@ REQUIRED_DIRECTORIES = (
     "monitoring",
     "monitoring/prometheus",
     "monitoring/grafana",
+    "monitoring/grafana/provisioning",
+    "monitoring/grafana/provisioning/datasources",
+    "monitoring/grafana/provisioning/dashboards",
+    "monitoring/grafana/dashboards",
     "client",
     "client/samples",
     "client/logging",
@@ -49,10 +53,21 @@ REQUIRED_FILES = (
     ".gitattributes",
     ".env.example",
     "docker-compose.yml",
+    "deployment/docker/Dockerfile",
+    "deployment/scripts/compose_common.sh",
+    "deployment/scripts/run_environment.sh",
+    "deployment/scripts/stop_environment.sh",
+    "deployment/scripts/check_environment.sh",
+    "deployment/scripts/run_triton.sh",
+    "deployment/scripts/smoke_environment.py",
+    "monitoring/prometheus/prometheus.yml",
+    "monitoring/grafana/provisioning/datasources/prometheus.yml",
+    "monitoring/grafana/provisioning/dashboards/provider.yml",
     "schemas/module-map.schema.json",
     "schemas/dependency-graph.schema.json",
     "scripts/validate_structure.py",
     "scripts/validate_module_map.py",
+    "scripts/validate_deployment.py",
     "scripts/generate_dependency_graph.py",
     "docs/troubleshooting.md",
     "docs/audit-evidence.md",
@@ -77,12 +92,13 @@ LF_TEXT_SUFFIXES = {
     ".json",
     ".md",
     ".py",
+    ".sh",
     ".toml",
     ".txt",
     ".yaml",
     ".yml",
 }
-LF_TEXT_NAMES = {"Makefile", ".env.example", ".gitattributes"}
+LF_TEXT_NAMES = {"Makefile", "Dockerfile", ".env.example", ".gitattributes"}
 
 
 def _metadata_paths() -> list[Path]:

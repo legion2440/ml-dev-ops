@@ -46,9 +46,10 @@ Do not:
 
 ## Path policy
 
-Paths in repository metadata and documentation must be repository-relative POSIX
-paths. Do not use host-specific absolute paths, parent-directory traversal, or
-backslashes.
+Repository-owned paths in architecture metadata must be repository-relative POSIX
+paths. Documentation may show absolute container paths and HTTP API routes when
+their context is explicit. Do not use host-specific absolute paths,
+parent-directory traversal, or backslashes.
 
 Examples:
 
@@ -83,12 +84,18 @@ checkouts for repository text files on every supported host.
 
 ## Available commands
 
-The step 1 scaffold supports:
+The repository currently supports:
 
 ```text
 make validate
+make validate-deployment
 make architecture
 make check-architecture
+make compose-config
+make up
+make down
+make status
+make smoke
 ```
 
 The same checks can run without Make:
@@ -96,8 +103,14 @@ The same checks can run without Make:
 ```text
 python scripts/validate_structure.py
 python scripts/validate_module_map.py
+python scripts/validate_deployment.py
 python scripts/generate_dependency_graph.py
 python scripts/generate_dependency_graph.py --check
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
+bash deployment/scripts/run_environment.sh
+bash deployment/scripts/stop_environment.sh
+bash deployment/scripts/check_environment.sh
+python deployment/scripts/smoke_environment.py
 ```
 
 These standard commands are reserved for later scopes and must not be documented as
@@ -107,8 +120,14 @@ working until implemented:
 make test
 make test-feature FEATURE=client
 make prepare-models
-make up
-make smoke
 make benchmark
-make down
 ```
+
+Deployment has two distinct completion states:
+
+- code-complete: static validation and canonical Compose configuration pass;
+- runtime-verified: the GPU services are running and the infrastructure smoke test
+  passes.
+
+Do not describe deployment as fully verified without runtime evidence. The current
+step intentionally expects an empty Triton model repository.

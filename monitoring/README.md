@@ -1,6 +1,6 @@
 # Observability
 
-This directory will contain Prometheus scraping and alert rules, Grafana
-provisioning, dashboards, and GPU metrics integration.
+Step 2 implements Prometheus scraping, Grafana datasource and dashboard-provider
+provisioning, and the DCGM Exporter container contract.
 
-No monitoring service is implemented in step 1.
+The full dashboard JSON and alert rules remain planned for step 7.

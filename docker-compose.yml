@@ -1,2 +1,145 @@
-# Triton and observability services will be added during step 2.
-services: {}
+name: ml-dev-ops
+
+services:
+  triton:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile
+      args:
+        TRITON_IMAGE: ${TRITON_IMAGE:?TRITON_IMAGE is required}
+    image: ml-dev-ops/triton:step2
+    command:
+      - --model-repository=/models
+      - --model-control-mode=explicit
+      - --allow-http=true
+      - --http-port=8000
+      - --allow-grpc=true
+      - --grpc-port=8001
+      - --allow-metrics=true
+      - --metrics-port=8002
+      - --log-info=true
+      - --log-warning=true
+      - --log-error=true
+    ports:
+      - "127.0.0.1:${TRITON_HTTP_PORT:?TRITON_HTTP_PORT is required}:8000"
+      - "127.0.0.1:${TRITON_GRPC_PORT:?TRITON_GRPC_PORT is required}:8001"
+      - "127.0.0.1:${TRITON_METRICS_PORT:?TRITON_METRICS_PORT is required}:8002"
+    volumes:
+      - type: bind
+        source: ${MODEL_REPOSITORY_PATH:?MODEL_REPOSITORY_PATH is required}
+        target: /models
+        read_only: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --fail --silent http://127.0.0.1:8000/v2/health/live > /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - backend
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:?PROMETHEUS_IMAGE is required}
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:?PROMETHEUS_PORT is required}:9090"
+    volumes:
+      - type: bind
+        source: ./monitoring/prometheus/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+      - type: volume
+        source: prometheus-data
+        target: /prometheus
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget --quiet --spider http://127.0.0.1:9090/-/healthy
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+
+  grafana:
+    image: ${GRAFANA_IMAGE:?GRAFANA_IMAGE is required}
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:?GRAFANA_PORT is required}:3000"
+    volumes:
+      - type: volume
+        source: grafana-data
+        target: /var/lib/grafana
+      - type: bind
+        source: ./monitoring/grafana/provisioning
+        target: /etc/grafana/provisioning
+        read_only: true
+      - type: bind
+        source: ./monitoring/grafana/dashboards
+        target: /var/lib/grafana/dashboards
+        read_only: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget --quiet --spider http://127.0.0.1:3000/api/health
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - backend
+
+  dcgm-exporter:
+    image: ${DCGM_EXPORTER_IMAGE:?DCGM_EXPORTER_IMAGE is required}
+    cap_add:
+      - SYS_ADMIN
+    ports:
+      - "127.0.0.1:${DCGM_METRICS_PORT:?DCGM_METRICS_PORT is required}:9400"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    healthcheck:
+      test:
+        - CMD
+        - /usr/bin/dcgm-exporter
+        - --version
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  backend:
+    driver: bridge

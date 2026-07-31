@@ -1,4 +1,5 @@
 # Container build definitions
 
-Container build files will be added here during the deployment scope. Runtime,
-CUDA, and TensorRT image versions have not yet been selected.
+`Dockerfile` is a minimal wrapper around the official Triton image selected through
+the required `TRITON_IMAGE` build argument. Triton server arguments belong only to
+`docker-compose.yml`, and `tritonserver` remains PID 1.

@@ -2,7 +2,9 @@
 
 ## Current status
 
-No model artifacts or Triton version policies exist yet.
+No model artifacts or model version policies exist yet. The step 2 Triton runtime
+already uses explicit model control so later load, unload, and reload operations do
+not require an infrastructure-mode change.
 
 ## Planned contract
 

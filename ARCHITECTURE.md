@@ -2,9 +2,13 @@
 
 ## Status
 
-The repository currently contains architecture contracts and structural validation
-only. Triton serving, model artifacts, deployment services, inference code,
-benchmarks, and observability are planned but not implemented.
+Architecture contracts and the step 2 Docker infrastructure are implemented. Static
+validation is available without a running daemon. Runtime verification requires all
+four GPU-aware services and the infrastructure smoke test to succeed.
+
+Triton currently expects an empty model repository. Model artifacts, inference
+logic, batching, versioned models, dashboards, alerts, logging, and benchmarks
+remain planned.
 
 ## System context
 
@@ -57,10 +61,10 @@ flowchart LR
   inference, metrics, batching, GPU instances, and version policy.
 - Inputs: the model repository and shared inference contracts.
 - Outputs: predictions, service health, model metadata, and Prometheus metrics.
-- Public entrypoint: `deployment/scripts/run_triton.sh` (`planned`).
+- Public entrypoint: `deployment/scripts/run_triton.sh` (`implemented`).
 - Root: `deployment/triton`.
-- Tests: health endpoints, metadata, explicit loading, version selection, and
-  inference smoke tests.
+- Tests: step 2 smoke covers health, metrics, and the expected empty repository.
+  Model loading, version selection, and inference tests remain planned.
 
 ### Deployment
 
@@ -70,9 +74,10 @@ flowchart LR
   configuration.
 - Outputs: a reproducible container network containing serving and observability
   services.
-- Public entrypoint: `deployment/scripts/run_environment.sh` (`planned`).
+- Public entrypoint: `deployment/scripts/run_environment.sh` (`implemented`).
 - Root: `deployment`.
-- Tests: static Compose validation and later GPU smoke tests.
+- Tests: `scripts/validate_deployment.py` provides static validation and
+  `deployment/scripts/smoke_environment.py` provides runtime verification.
 
 ### Inference client
 
@@ -111,10 +116,12 @@ flowchart LR
 - Responsibility: collect Triton, GPU, and availability metrics; provision dashboards;
   and evaluate alert rules.
 - Inputs: Triton metrics, DCGM metrics, and container health.
-- Outputs: Prometheus time series, Grafana dashboards, and alert states.
-- Public entrypoint: `monitoring/prometheus/prometheus.yml` (`planned`).
+- Outputs: step 2 provides Prometheus targets and a provisioned Grafana datasource;
+  dashboards and alert states remain planned.
+- Public entrypoint: `monitoring/prometheus/prometheus.yml` (`implemented`).
 - Root: `monitoring`.
-- Tests: configuration validation, target discovery, dashboard JSON, and alert rules.
+- Tests: configuration validation and runtime target discovery are implemented.
+  Dashboard JSON and alert-rule tests remain planned.
 
 ### Shared contracts
 
@@ -142,28 +149,39 @@ flowchart LR
 The complete generated graph is in
 `docs/generated/dependency-graph.md`.
 
-## Planned deployment
+## Deployment topology
 
 ```mermaid
 flowchart TB
-    Host["GPU host with NVIDIA Container Toolkit"]
-    subgraph Compose["Docker Compose network"]
+    Host["GPU host with NVIDIA runtime"]
+    Loopback["Loopback-only published ports"]
+    Models["Read-only models bind mount"]
+    PromData["Prometheus named volume"]
+    GrafanaData["Grafana named volume"]
+    subgraph Compose["Project-scoped Compose network"]
         Triton["Triton container"]
         Prometheus["Prometheus container"]
         Grafana["Grafana container"]
         DCGM["DCGM exporter container"]
-        Runner["Optional client and benchmark container"]
     end
-    Models["Model repository volume"] --> Triton
+    Host --> Compose
+    Models --> Triton
     Triton --> Prometheus
     DCGM --> Prometheus
     Prometheus --> Grafana
-    Runner --> Triton
-    Host --> Compose
+    PromData --> Prometheus
+    GrafanaData --> Grafana
+    Compose --> Loopback
 ```
 
-Container image versions, GPU reservation, volumes, health checks, ports, and
-provisioning are deliberately deferred to the deployment scope.
+`docker-compose.yml` is the only owner of Triton server arguments. Triton uses
+explicit model control and remains PID 1 in a minimal image wrapper. Prometheus and
+Grafana data use named volumes; repository configuration uses read-only bind
+mounts. Services communicate through Compose DNS names and fixed container ports.
+
+`.env.example` owns pinned image references, host ports, and local defaults.
+Lifecycle scripts share the same Compose command and pass either `.env` or
+`.env.example` explicitly without executing it.
 
 ## Inference sequence
 
@@ -201,5 +219,5 @@ portable across arbitrary GPU and runtime combinations.
 ## Deferred decisions
 
 The architecture does not yet select a YOLO release, model-weight storage mechanism,
-Triton or CUDA versions, base images, CI provider, GPU parameters, or benchmark
-strategy. Each belongs to a later implementation scope.
+CI provider, model-specific GPU parameters, or benchmark strategy. Each belongs to
+a later implementation scope.
