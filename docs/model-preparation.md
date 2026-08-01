@@ -18,7 +18,7 @@ decoding, NMS, and performance benchmarking remain outside this step.
 
 `models/model-spec.yaml` is the only editable source for model identities, source URLs and hashes, licenses, tensor contracts, preprocessing, opset, build images, artifact paths, TensorRT profile, and parity tolerances.
 
-`scripts/model_preparation/requirements.lock` is the only source for exact exporter package versions and Linux CPython 3.11 wheel hashes. `config.pbtxt`, model-local labels, `models/model-manifest.json`, and preparation evidence are generated and checked for staleness.
+`scripts/model_preparation/requirements.lock` is the only source for exact exporter package versions and Linux CPython 3.11 wheel hashes. `config.pbtxt`, model-local labels, `models/model-manifest.json`, the repository-independent `shared/client-model-contracts.json` projection, and preparation evidence are generated and checked for staleness. The client projection contains runtime tensors, preprocessing, tasks, versions, and labels but no artifact paths or build details.
 
 The accepted full source hashes live only in the model spec and are copied into the generated artifact manifest for auditability.
 

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/client-runtime-evidence.schema.json",
+  "title": "Step 5 production client runtime evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at_utc",
+    "source_fingerprint_sha256",
+    "client_contract_sha256",
+    "samples_manifest_sha256",
+    "requirements_sha256",
+    "samples_count",
+    "classification",
+    "detection",
+    "logging",
+    "initial_ready",
+    "final_ready",
+    "runtime_state_restored"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "source_fingerprint_sha256": {"$ref": "#/$defs/sha256"},
+    "client_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "samples_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "requirements_sha256": {"$ref": "#/$defs/sha256"},
+    "samples_count": {"type": "integer", "minimum": 10},
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["http", "grpc", "tensorRT"],
+      "properties": {
+        "http": {"const": "passed"},
+        "grpc": {"const": "passed"},
+        "tensorRT": {"const": "passed"}
+      }
+    },
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["http", "grpc", "detections"],
+      "properties": {
+        "http": {"const": "passed"},
+        "grpc": {"const": "passed"},
+        "detections": {"type": "integer", "minimum": 1}
+      }
+    },
+    "logging": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "jsonl_events", "csv_rows", "jsonl_sha256", "csv_sha256", "predictions_sha256"
+      ],
+      "properties": {
+        "jsonl_events": {"type": "integer", "minimum": 11},
+        "csv_rows": {"type": "integer", "minimum": 11},
+        "jsonl_sha256": {"$ref": "#/$defs/sha256"},
+        "csv_sha256": {"$ref": "#/$defs/sha256"},
+        "predictions_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "initial_ready": {"type": "array", "items": {"$ref": "#/$defs/ready"}},
+    "final_ready": {"type": "array", "items": {"$ref": "#/$defs/ready"}},
+    "runtime_state_restored": {"const": true}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "ready": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "version"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+      }
+    }
+  }
+}

@@ -1,0 +1,145 @@
+=== ResNet ONNX v1 / HTTP / all samples ===
+01_dog.jpg
+  1. African hunting dog          0.5248
+  2. hyena                        0.0081
+  3. dhole                        0.0075
+  4. dingo                        0.0019
+  5. kit fox                      0.0015
+02_cat.jpg
+  1. tabby                        0.2141
+  2. tiger cat                    0.1827
+  3. Egyptian cat                 0.0323
+  4. carton                       0.0046
+  5. washbasin                    0.0042
+03_car.jpg
+  1. pier                         0.3077
+  2. suspension bridge            0.0459
+  3. analog clock                 0.0292
+  4. steel arch bridge            0.0280
+  5. bell cote                    0.0280
+04_bus.jpg
+  1. minibus                      0.4014
+  2. trolleybus                   0.1735
+  3. passenger car                0.0300
+  4. streetcar                    0.0129
+  5. oystercatcher                0.0032
+05_bicycle.jpg
+  1. tricycle                     0.1990
+  2. bicycle-built-for-two        0.1644
+  3. picket fence                 0.0250
+  4. moped                        0.0172
+  5. mountain bike                0.0112
+06_bird.jpg
+  1. robin                        0.1175
+  2. water ouzel                  0.0845
+  3. indigo bunting               0.0258
+  4. brambling                    0.0177
+  5. magpie                       0.0165
+07_horse.jpg
+  1. sorrel                       0.1803
+  2. horse cart                   0.0239
+  3. muzzle                       0.0230
+  4. cowboy hat                   0.0178
+  5. sombrero                     0.0140
+08_chair.jpg
+  1. dining table                 0.4034
+  2. desk                         0.0387
+  3. microwave                    0.0099
+  4. window shade                 0.0094
+  5. folding chair                0.0079
+09_bottle.jpg
+  1. water bottle                 0.5915
+  2. bottlecap                    0.0409
+  3. pop bottle                   0.0057
+  4. water jug                    0.0018
+  5. grocery store                0.0012
+10_laptop.jpg
+  1. abacus                       0.4928
+  2. matchstick                   0.0011
+  3. screen                       0.0010
+  4. monitor                      0.0010
+  5. slide rule                   0.0010
+=== ResNet ONNX v2 / gRPC ===
+04_bus.jpg
+  1. minibus                      0.4008
+  2. trolleybus                   0.1739
+  3. passenger car                0.0300
+  4. streetcar                    0.0129
+  5. oystercatcher                0.0032
+=== ResNet TensorRT v1 / HTTP ===
+04_bus.jpg
+  1. minibus                      0.4026
+  2. trolleybus                   0.1731
+  3. passenger car                0.0302
+  4. streetcar                    0.0127
+  5. oystercatcher                0.0032
+=== YOLO ONNX v1 / HTTP / all samples ===
+01_dog.jpg
+  dog                  0.8291 [1.7, 67.0, 722.3, 673.6]
+02_cat.jpg
+  cat                  0.9122 [0.7, 10.7, 767.9, 675.6]
+  bed                  0.6222 [2.7, 0.7, 1000.7, 683.0]
+  chair                0.2617 [792.2, 2.1, 1023.5, 668.5]
+03_car.jpg
+  car                  0.9042 [270.1, 879.2, 388.0, 969.7]
+  car                  0.7699 [91.7, 872.8, 204.7, 957.9]
+  car                  0.7512 [239.9, 894.2, 273.4, 940.9]
+  car                  0.5594 [445.2, 881.6, 543.4, 959.4]
+  car                  0.5075 [188.7, 890.0, 232.4, 950.8]
+  car                  0.5057 [406.9, 885.1, 444.9, 940.4]
+  car                  0.4459 [393.0, 884.7, 442.1, 935.5]
+  clock                0.3678 [297.4, 456.6, 387.9, 629.4]
+  car                  0.3289 [428.2, 884.7, 464.7, 949.4]
+  car                  0.3045 [410.4, 885.1, 457.0, 942.8]
+04_bus.jpg
+  bus                  0.9193 [61.6, 118.2, 426.9, 343.1]
+  car                  0.8923 [422.8, 222.3, 474.8, 294.2]
+  car                  0.7994 [478.3, 215.2, 499.9, 264.8]
+  car                  0.5950 [424.9, 207.1, 470.5, 238.8]
+  person               0.5233 [109.8, 178.2, 143.6, 218.0]
+  bus                  0.5134 [465.9, 159.7, 499.9, 243.1]
+  traffic light        0.4376 [49.5, 82.7, 79.2, 160.6]
+  person               0.2988 [373.0, 186.5, 392.9, 226.8]
+05_bicycle.jpg
+  bicycle              0.9210 [122.4, 177.0, 820.8, 676.1]
+06_bird.jpg
+  bird                 0.9409 [122.0, 169.5, 629.9, 616.0]
+07_horse.jpg
+  horse                0.9618 [181.8, 69.9, 833.1, 760.8]
+08_chair.jpg
+  chair                0.9376 [657.4, 415.8, 915.5, 676.5]
+  chair                0.9160 [351.6, 419.6, 555.6, 678.3]
+  tv                   0.8596 [33.9, 92.3, 272.8, 222.2]
+  chair                0.8039 [875.9, 331.1, 960.5, 561.2]
+  chair                0.7760 [604.2, 277.8, 669.8, 293.6]
+  chair                0.7580 [947.6, 295.0, 1022.8, 479.5]
+  chair                0.5752 [149.1, 245.6, 264.3, 359.4]
+  chair                0.4674 [142.8, 245.9, 294.0, 591.8]
+  chair                0.3550 [139.2, 303.9, 294.9, 544.8]
+  dining table         0.3214 [160.8, 290.4, 912.5, 447.4]
+  chair                0.2902 [139.6, 334.9, 224.9, 538.9]
+09_bottle.jpg
+  bottle               0.8248 [143.2, 199.2, 449.7, 758.0]
+  bottle               0.7869 [662.2, 195.7, 1010.8, 755.8]
+  bottle               0.6600 [0.5, 281.8, 249.1, 759.8]
+  bottle               0.5097 [676.2, 104.1, 864.0, 326.9]
+  bottle               0.5076 [433.2, 253.6, 714.5, 755.3]
+  bottle               0.4798 [263.1, 107.6, 453.7, 385.5]
+  bottle               0.3216 [648.2, 61.9, 762.9, 239.5]
+  bottle               0.2922 [850.2, 65.7, 954.7, 204.2]
+  bottle               0.2745 [11.3, 109.2, 164.8, 303.5]
+  bottle               0.2546 [317.0, 61.2, 458.7, 266.2]
+10_laptop.jpg
+  laptop               0.9410 [426.6, 766.5, 604.9, 916.2]
+=== YOLO ONNX v1 / gRPC ===
+04_bus.jpg
+  bus                  0.9191 [61.6, 118.2, 426.9, 343.2]
+  car                  0.8924 [422.8, 222.3, 474.8, 294.2]
+  car                  0.7996 [478.3, 215.2, 499.9, 264.8]
+  car                  0.5945 [424.9, 207.1, 470.5, 238.8]
+  person               0.5231 [109.8, 178.2, 143.6, 218.0]
+  bus                  0.5133 [465.9, 159.7, 499.9, 243.1]
+  traffic light        0.4375 [49.5, 82.7, 79.2, 160.6]
+  person               0.2988 [373.0, 186.5, 392.9, 226.8]
+=== CSV export ===
+Exported 11 inference events to docs/evidence/step-5/inference-log.csv

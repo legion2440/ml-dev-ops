@@ -3,7 +3,7 @@ BASH ?= bash
 ENV_FILE ?= $(if $(wildcard .env),.env,.env.example)
 COMPOSE = docker compose --project-directory . --file docker-compose.yml --env-file $(ENV_FILE)
 
-.PHONY: validate validate-deployment validate-evidence validate-models validate-model-structure validate-model-evidence validate-serving validate-serving-artifacts validate-serving-evidence architecture check-architecture compose-config up down status smoke smoke-models prepare-models prepare-serving-versions verify-serving clean-models capture-evidence
+.PHONY: validate validate-deployment validate-evidence validate-models validate-model-structure validate-model-evidence validate-serving validate-serving-artifacts validate-serving-evidence validate-client validate-client-evidence architecture check-architecture compose-config up down status smoke smoke-models prepare-models prepare-serving-versions verify-serving verify-client client-health export-logs clean-models capture-evidence
 
 validate:
 	$(PYTHON) scripts/validate_structure.py
@@ -14,7 +14,9 @@ validate:
 	$(PYTHON) scripts/validate_model_evidence.py
 	$(PYTHON) scripts/validate_serving.py --structure-only
 	$(PYTHON) scripts/validate_serving_evidence.py
-	$(PYTHON) -m unittest discover -s tests/unit -p "test_*.py"
+	$(PYTHON) scripts/validate_client.py
+	$(PYTHON) scripts/validate_client_evidence.py
+	$(PYTHON) -m unittest discover -s tests/unit -t . -p "test_*.py"
 
 validate-deployment:
 	$(PYTHON) scripts/validate_deployment.py
@@ -39,6 +41,12 @@ validate-serving-artifacts:
 
 validate-serving-evidence:
 	$(PYTHON) scripts/validate_serving_evidence.py
+
+validate-client:
+	$(PYTHON) scripts/validate_client.py
+
+validate-client-evidence:
+	$(PYTHON) scripts/validate_client_evidence.py
 
 architecture:
 	$(PYTHON) scripts/generate_dependency_graph.py
@@ -69,6 +77,15 @@ prepare-serving-versions:
 
 verify-serving:
 	$(COMPOSE) --profile verification run --rm triton-verifier
+
+verify-client:
+	$(PYTHON) client/verify_runtime.py
+
+client-health:
+	$(PYTHON) client/inference_client.py health
+
+export-logs:
+	$(PYTHON) client/inference_client.py export-logs
 
 smoke-models:
 	$(PYTHON) deployment/triton/smoke_models.py --check

@@ -361,19 +361,47 @@
       "entrypoints": [
         {
           "path": "client/inference_client.py",
-          "status": "planned"
+          "status": "implemented"
+        },
+        {
+          "path": "client/verify_runtime.py",
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
         {
           "path": "client/README.md",
           "status": "implemented"
+        },
+        {
+          "path": "client/transport.py",
+          "status": "implemented"
+        },
+        {
+          "path": "client/preprocessing.py",
+          "status": "implemented"
+        },
+        {
+          "path": "client/postprocessing.py",
+          "status": "implemented"
+        },
+        {
+          "path": "client/input_loader.py",
+          "status": "implemented"
         }
       ],
       "tests": [
         {
           "path": "tests/unit/client",
-          "status": "planned"
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/validate_client.py",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/validate_client_evidence.py",
+          "status": "implemented"
         },
         {
           "path": "tests/integration/client",
@@ -386,8 +414,57 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [],
-      "owned_configuration": []
+      "generated_artifacts": [
+        {
+          "path": "docs/evidence/step-5/client-runtime.json",
+          "status": "generated",
+          "generator": "client/verify_runtime.py",
+          "sources": [
+            "client/verify_runtime.py",
+            "shared/client-model-contracts.json",
+            "client/samples/manifest.json",
+            "requirements.txt"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-5/inference-log.jsonl",
+          "status": "generated",
+          "generator": "client/verify_runtime.py",
+          "sources": [
+            "client/verify_runtime.py",
+            "shared/client-model-contracts.json",
+            "client/samples/manifest.json"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-5/inference-log.csv",
+          "status": "generated",
+          "generator": "client/verify_runtime.py",
+          "sources": [
+            "docs/evidence/step-5/inference-log.jsonl",
+            "client/logging/csv_export.py"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-5/predictions.txt",
+          "status": "generated",
+          "generator": "client/verify_runtime.py",
+          "sources": [
+            "client/verify_runtime.py",
+            "client/samples/manifest.json"
+          ]
+        }
+      ],
+      "owned_configuration": [
+        {
+          "path": "client/client-config.yaml",
+          "status": "implemented"
+        },
+        {
+          "path": "client/samples/manifest.json",
+          "status": "implemented"
+        }
+      ]
     },
     {
       "id": "inference-logging",
@@ -397,7 +474,11 @@
       "entrypoints": [
         {
           "path": "client/logging/writer.py",
-          "status": "planned"
+          "status": "implemented"
+        },
+        {
+          "path": "client/logging/csv_export.py",
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
@@ -409,7 +490,7 @@
       "tests": [
         {
           "path": "tests/unit/inference_logging",
-          "status": "planned"
+          "status": "implemented"
         }
       ],
       "docs": [
@@ -418,17 +499,13 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [
+      "generated_artifacts": [],
+      "owned_configuration": [
         {
-          "path": "logs/inference.jsonl",
-          "status": "planned"
-        },
-        {
-          "path": "logs/inference.csv",
-          "status": "planned"
+          "path": "schemas/inference-event.schema.json",
+          "status": "implemented"
         }
-      ],
-      "owned_configuration": []
+      ]
     },
     {
       "id": "benchmarking",
@@ -552,6 +629,17 @@
                 {
                     "path": "shared/triton_model_config.py",
                     "status": "implemented"
+                },
+                {
+                    "path": "shared/client-model-contracts.json",
+                    "status": "generated",
+                    "generator": "scripts/model_preparation/prepare_models.py",
+                    "sources": [
+                        "models/model-manifest.json",
+                        "models/resnet50_onnx/imagenet1k.txt",
+                        "models/resnet50_tensorrt/imagenet1k.txt",
+                        "models/yolo11n_onnx/coco80.txt"
+                    ]
                 }
       ],
       "tests": [
@@ -566,7 +654,19 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [],
+      "generated_artifacts": [
+        {
+          "path": "shared/client-model-contracts.json",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-manifest.json",
+            "models/resnet50_onnx/imagenet1k.txt",
+            "models/resnet50_tensorrt/imagenet1k.txt",
+            "models/yolo11n_onnx/coco80.txt"
+          ]
+        }
+      ],
       "owned_configuration": []
     }
   ],
@@ -589,6 +689,18 @@
         },
         {
             "path": "schemas/serving-evidence.schema.json",
+            "status": "implemented"
+        },
+        {
+            "path": "schemas/client-model-contracts.schema.json",
+            "status": "implemented"
+        },
+        {
+            "path": "schemas/inference-event.schema.json",
+            "status": "implemented"
+        },
+        {
+            "path": "schemas/client-runtime-evidence.schema.json",
             "status": "implemented"
         },
         {

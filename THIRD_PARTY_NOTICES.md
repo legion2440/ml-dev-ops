@@ -18,6 +18,17 @@ This educational repository is licensed under AGPL-3.0-only. That repository lic
 
 Exact package versions and wheel hashes are recorded only in `scripts/model_preparation/requirements.lock`. Model source URLs, source hashes, label sources, and license metadata are recorded only in `models/model-spec.yaml`; the generated manifest captures the values used for the verified artifacts.
 
+## Host client software and sample images
+
+Exact direct host dependency versions, including the Triton HTTP/gRPC Python client,
+NumPy, Pillow, PyYAML, and JSON Schema validator, are recorded only in
+`requirements.txt`. Their transitive dependencies retain their upstream licenses.
+
+The ten tracked client photographs are dedicated under CC0 1.0 or marked as public
+domain through Public Domain Mark 1.0. The editable provenance record is
+`client/samples/manifest.json`; it contains the source page and attribution for each
+file. Image license statements remain governed by those source pages.
+
 ## Serving and GPU runtime
 
 | Component | Selected image | License or terms |

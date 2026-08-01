@@ -154,3 +154,56 @@ python scripts/model_preparation/prepare_models.py manifest
 python deployment/triton/smoke_models.py --check
 make verify-serving
 ```
+
+## Client rejects a model or batch before connecting
+
+The runtime client validates task, version, and maximum batch size against
+`shared/client-model-contracts.json` before image discovery or a network request.
+Regenerate tracked projections after an intentional model-manifest change:
+
+```text
+python scripts/model_preparation/prepare_models.py client-contract
+python scripts/model_preparation/prepare_models.py --check
+```
+
+Do not make the client read `models/model-spec.yaml` or
+`models/model-manifest.json`; that would violate the declared module boundary.
+
+## Client reports that a model is not READY
+
+Auto-load is enabled by default and uses Triton's HTTP repository API even when
+inference uses gRPC. Confirm Triton is reachable and the local artifacts exist:
+
+```text
+python client/inference_client.py health
+python scripts/validate_model_repository.py
+```
+
+If `--no-auto-load` was supplied, load the model through the serving workflow or
+remove that option. A normal client request intentionally leaves the model READY.
+
+## Inference log or CSV is invalid
+
+JSONL is the primary append-only history. Do not edit the CSV and expect the client
+to consume it. Validate operational history by exporting it again:
+
+```text
+python client/inference_client.py export-logs
+```
+
+A malformed image is rejected before request-ID creation. Failures after a request
+starts produce a sanitized error event without raw inputs or absolute host paths.
+
+## Step 5 evidence is stale
+
+Source, contract, sample-manifest, dependency, JSONL, CSV, and transcript hashes are
+validated without contacting Triton. Refresh the snapshot only against a live,
+prepared server:
+
+```text
+make verify-client
+python scripts/validate_client_evidence.py
+```
+
+The verifier refuses a partially READY model state it cannot reproduce exactly and
+unloads only models that it loaded itself.

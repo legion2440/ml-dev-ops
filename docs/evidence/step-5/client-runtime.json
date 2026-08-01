@@ -1,0 +1,55 @@
+{
+  "classification": {
+    "grpc": "passed",
+    "http": "passed",
+    "tensorRT": "passed"
+  },
+  "client_contract_sha256": "22fa12256728edd0c604b9c573d86dec23110ce62ad5543df8c95062ce1509bc",
+  "detection": {
+    "detections": 55,
+    "grpc": "passed",
+    "http": "passed"
+  },
+  "final_ready": [
+    {
+      "model": "resnet50_onnx",
+      "version": "1"
+    },
+    {
+      "model": "resnet50_onnx",
+      "version": "2"
+    },
+    {
+      "model": "yolo11n_onnx",
+      "version": "1"
+    }
+  ],
+  "generated_at_utc": "2026-08-01T17:45:32.850473Z",
+  "initial_ready": [
+    {
+      "model": "resnet50_onnx",
+      "version": "1"
+    },
+    {
+      "model": "resnet50_onnx",
+      "version": "2"
+    },
+    {
+      "model": "yolo11n_onnx",
+      "version": "1"
+    }
+  ],
+  "logging": {
+    "csv_rows": 11,
+    "csv_sha256": "9a1959a7b7acaaf1d5f3228cf74ed90a28733ef156d80a7e4dd2daa5c8aa2806",
+    "jsonl_events": 11,
+    "jsonl_sha256": "e0be4e3f65c3452c1cec2fdacbaf5dbcfe4fb2cd5dc51ddaa40b9f04a05203d1",
+    "predictions_sha256": "c8441f1cadf0ea472d5a84fc6cfd301e3a8d1ed5bf521b6db9d447786e5a03f9"
+  },
+  "requirements_sha256": "6d25220c983ddd21731063dbbc765428ad704e6b373c20635107f77de3b8d53e",
+  "runtime_state_restored": true,
+  "samples_count": 10,
+  "samples_manifest_sha256": "f33ab812cea355900d86eb0a701d0ff2f2fc6f21f42cde5c8fdace16c47978b3",
+  "schema_version": 1,
+  "source_fingerprint_sha256": "1541fbada6e497f4d04bfc4bd8fa315f6d9655cfca4e0691f60fb0b8e5d25fee"
+}

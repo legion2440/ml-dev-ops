@@ -1,0 +1,18 @@
+schema_version: 1
+endpoints:
+  http: 127.0.0.1:8000
+  grpc: 127.0.0.1:8001
+defaults:
+  protocol: http
+  timeout_seconds: 60.0
+  auto_load: true
+  log_path: logs/inference.jsonl
+models:
+  classification: resnet50_onnx
+  detection: yolo11n_onnx
+classification:
+  top_k: 5
+detection:
+  confidence_threshold: 0.25
+  iou_threshold: 0.70
+  max_detections: 100

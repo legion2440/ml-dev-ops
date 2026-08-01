@@ -8,7 +8,7 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 4 runtime-verified: batching, HTTP/gRPC, and model-version control.**
+**Step 5 runtime-verified: production image client and persistent inference logging.**
 
 The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
 services; GPU reservations; loopback-only ports; persistent metrics volumes;
@@ -16,16 +16,19 @@ read-only configuration mounts; lifecycle commands; and infrastructure smoke
 checks.
 
 The reference Windows 11, Docker Desktop/WSL2, and NVIDIA GPU host verifies the
-three serving models through both HTTP and gRPC. Runtime statistics prove dynamic
-batching for a concrete version of every model. ResNet50 ONNX versions 1 and 2 are
-selected explicitly, loaded together, and reloaded without a preliminary unload;
-cleanup leaves no model READY. The production image client, dashboards, alerts, and
-benchmarks remain planned. Batching values are functional defaults, not performance
-tuning results.
+three serving models through both HTTP and gRPC. The production client accepts real
+JPG/PNG files or directories, performs contract-driven ResNet and YOLO preprocessing,
+decodes predictions, auto-loads an unavailable model, appends one JSONL event per
+Triton request, and exports the history to CSV. Dashboards, alerts, and formal
+benchmarks remain planned. Client timing is operational diagnostics, not benchmark
+evidence.
 
 Cleanup evidence covers both the repository READY set and every model-level and
 version-specific readiness endpoint. Batching evidence records `attempts_used` and
 permits no more than three attempts.
+
+Step 5 runtime evidence covers all ten tracked sample images, ONNX versions 1 and 2,
+TensorRT, HTTP and gRPC, 11 logged requests, and exact restoration of the READY set.
 
 Model binaries are reproducible local artifacts and are ignored by Git. The model
 specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
@@ -141,6 +144,29 @@ make validate-models
 See `docs/model-preparation.md` for source hashes, exact contracts, cleanup,
 portability limits, and direct Python equivalents.
 
+## Run the production client
+
+Install the single host dependency set and start Triton with prepared models:
+
+```text
+python -m pip install -r requirements.txt
+python client/inference_client.py health
+```
+
+Run classification, detection, metadata, and CSV export:
+
+```text
+python client/inference_client.py classify client/samples/01_dog.jpg
+python client/inference_client.py classify client/samples/ --model resnet50_tensorrt --protocol grpc --batch-size 4
+python client/inference_client.py detect client/samples/ --protocol http --batch-size 2
+python client/inference_client.py metadata --model resnet50_onnx --version 2
+python client/inference_client.py export-logs
+```
+
+Models are loaded through Triton's HTTP repository API when needed and remain READY
+after a normal client request. Operational `logs/*.jsonl` and `logs/*.csv` files are
+ignored by Git. See `docs/client.md` for the CLI and event contracts.
+
 Remove only the Prometheus and Grafana named volumes:
 
 ```text
@@ -167,7 +193,7 @@ planned for step 7.
 
 ## Validation
 
-Install validation dependencies:
+Install the validation and production-client dependencies:
 
 ```text
 python -m pip install -r requirements.txt
@@ -190,7 +216,9 @@ python scripts/validate_model_repository.py --structure-only
 python scripts/validate_model_evidence.py
 python scripts/validate_serving.py --structure-only
 python scripts/validate_serving_evidence.py
-python -m unittest discover -s tests/unit -p "test_*.py"
+python scripts/validate_client.py
+python scripts/validate_client_evidence.py
+python -m unittest discover -s tests/unit -t . -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
 
@@ -226,6 +254,11 @@ evidence check; it never contacts Triton or rewrites evidence.
 Step 4 evidence is under `docs/evidence/step-4` and is refreshed only by a
 successful `make verify-serving` run. The verifier uses the official SDK image and
 mounts the repository read-only except for that evidence directory.
+
+Step 5 evidence is under `docs/evidence/step-5`. Refresh it only against live Triton
+with `make verify-client`; validate the tracked snapshot without a daemon with
+`make validate-client-evidence`. The verifier unloads only models it loaded and
+requires the final READY set to equal the initial set.
 
 ## License
 

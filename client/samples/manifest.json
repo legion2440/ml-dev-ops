@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "samples": [
+    {
+      "filename": "01_dog.jpg",
+      "source_url": "https://www.flickr.com/photos/91501748@N07/25989424636",
+      "license": "CC0-1.0",
+      "attribution": "dog by Mathias Appel, dedicated to the public domain under CC0 1.0",
+      "sha256": "9bfc6cf11338ffd94c0ae33b35b2c43bc36b5a8db6fc6ea087dcf32d4c9241b9",
+      "width": 1024,
+      "height": 678
+    },
+    {
+      "filename": "02_cat.jpg",
+      "source_url": "https://www.flickr.com/photos/51686021@N07/42700002412",
+      "license": "CC0-1.0",
+      "attribution": "Cat by Burnt Pineapple Productions, dedicated to the public domain under CC0 1.0",
+      "sha256": "7f45640a2c4b38f40557fd7b51c37cf3781c7fcf2998a896669eb0129735b436",
+      "width": 1024,
+      "height": 683
+    },
+    {
+      "filename": "03_car.jpg",
+      "source_url": "https://www.flickr.com/photos/137643065@N06/24031145630",
+      "license": "CC0-1.0",
+      "attribution": "city-cars-street-buildings by pixellaphoto, dedicated to the public domain under CC0 1.0",
+      "sha256": "068f17749c0c4609151140036e85b12456c2f806ae226a9ef619cead79975e36",
+      "width": 683,
+      "height": 1024
+    },
+    {
+      "filename": "04_bus.jpg",
+      "source_url": "https://www.flickr.com/photos/37938224@N03/6806949410",
+      "license": "PDM-1.0",
+      "attribution": "T983OWA powells bus doncaster by martin 65, marked as public domain",
+      "sha256": "6c11d512ce28b6108fa11bc113e173335fdeab72cc1ba27d2f31bbc68eb20979",
+      "width": 500,
+      "height": 404
+    },
+    {
+      "filename": "05_bicycle.jpg",
+      "source_url": "https://www.flickr.com/photos/88123769@N02/15655615295",
+      "license": "CC0-1.0",
+      "attribution": "The Red Bicycle by Bernard Spragg, dedicated to the public domain under CC0 1.0",
+      "sha256": "5eb3b98ae2a53bdb00e17a8215ae579df3302867df844d1407b4343bbefde511",
+      "width": 1023,
+      "height": 728
+    },
+    {
+      "filename": "06_bird.jpg",
+      "source_url": "https://www.flickr.com/photos/91501748@N07/26576011703",
+      "license": "CC0-1.0",
+      "attribution": "bird by Mathias Appel, dedicated to the public domain under CC0 1.0",
+      "sha256": "51cb269716393aa73a0808da8ddbc8232e4dd605c09267f85c43651d8f737677",
+      "width": 1024,
+      "height": 678
+    },
+    {
+      "filename": "07_horse.jpg",
+      "source_url": "https://www.flickr.com/photos/49976053@N00/1053024318",
+      "license": "CC0-1.0",
+      "attribution": "Horse by mnsc, dedicated to the public domain under CC0 1.0",
+      "sha256": "60b27660652a7a0c1ac1851fd95a2a22167dd83b6983f6398fe39d24feb596a6",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "filename": "08_chair.jpg",
+      "source_url": "https://www.flickr.com/photos/71401718@N00/5526839767",
+      "license": "CC0-1.0",
+      "attribution": "Microsoft conference room by Wonderlane, dedicated to the public domain under CC0 1.0",
+      "sha256": "c07dec335695bead5cb15a37d0af72fd58173bff36f8608336b5950f8b77232a",
+      "width": 1023,
+      "height": 681
+    },
+    {
+      "filename": "09_bottle.jpg",
+      "source_url": "https://www.flickr.com/photos/40632439@N00/16466809032",
+      "license": "CC0-1.0",
+      "attribution": "Water bottles by Thad Zajdowicz, dedicated to the public domain under CC0 1.0",
+      "sha256": "d1906afccb7734238b68579e9212edbe60cd7872ddf9ceea675dd77c5c692f19",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "filename": "10_laptop.jpg",
+      "source_url": "https://www.flickr.com/photos/29507259@N02/6773901305",
+      "license": "CC0-1.0",
+      "attribution": "Soda Hall abacus with laptop and smartphone by D Coetzee, dedicated to the public domain under CC0 1.0",
+      "sha256": "5472e881fc3002d4de1d5e0ef2a1cf8c77f168637dce802572aa4893f5de7201",
+      "width": 680,
+      "height": 1024
+    }
+  ]
+}

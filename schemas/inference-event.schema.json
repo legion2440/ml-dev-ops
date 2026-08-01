@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/inference-event.schema.json",
+  "title": "Persistent inference request event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "timestamp_utc", "request_id", "model", "requested_version", "resolved_version", "protocol", "inputs", "batch_size", "timing_ms", "status", "predictions", "error"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "model": {"type": "string", "minLength": 1},
+    "requested_version": {"type": ["string", "null"], "pattern": "^[1-9][0-9]*$"},
+    "resolved_version": {"type": ["string", "null"], "pattern": "^[1-9][0-9]*$"},
+    "protocol": {"enum": ["http", "grpc"]},
+    "inputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/input"}},
+    "batch_size": {"type": "integer", "minimum": 1},
+    "timing_ms": {"$ref": "#/$defs/timing"},
+    "status": {"enum": ["success", "error"]},
+    "predictions": {"type": ["array", "null"], "items": {"$ref": "#/$defs/predictionSet"}},
+    "error": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "success"}}}, "then": {"properties": {"resolved_version": {"type": "string"}, "predictions": {"type": "array"}, "error": {"const": null}}}},
+    {"if": {"properties": {"status": {"const": "error"}}}, "then": {"properties": {"predictions": {"const": null}, "error": {"type": "string", "minLength": 1}}}}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "input": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "sha256", "width", "height"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "pattern": "^[^/\\\\]+$"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1}
+      }
+    },
+    "timing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["preprocessing", "request", "postprocessing", "total"],
+      "properties": {
+        "preprocessing": {"type": "number", "minimum": 0},
+        "request": {"type": "number", "minimum": 0},
+        "postprocessing": {"type": "number", "minimum": 0},
+        "total": {"type": "number", "minimum": 0}
+      }
+    },
+    "classification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rank", "class_id", "label", "probability"],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "class_id": {"type": "integer", "minimum": 0},
+        "label": {"type": "string", "minLength": 1},
+        "probability": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "detection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["class_id", "label", "confidence", "box_xyxy"],
+      "properties": {
+        "class_id": {"type": "integer", "minimum": 0},
+        "label": {"type": "string", "minLength": 1},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "box_xyxy": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0}}
+      }
+    },
+    "predictionSet": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input_name", "items"],
+      "properties": {
+        "input_name": {"type": "string", "minLength": 1, "pattern": "^[^/\\\\]+$"},
+        "items": {"type": "array", "items": {"oneOf": [{"$ref": "#/$defs/classification"}, {"$ref": "#/$defs/detection"}]}}
+      }
+    }
+  }
+}

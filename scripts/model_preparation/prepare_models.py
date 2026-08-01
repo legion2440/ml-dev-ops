@@ -26,6 +26,7 @@ from shared.triton_model_config import (  # noqa: E402
 SPEC_PATH = REPOSITORY_ROOT / "models/model-spec.yaml"
 LOCK_PATH = REPOSITORY_ROOT / "scripts/model_preparation/requirements.lock"
 MANIFEST_PATH = REPOSITORY_ROOT / "models/model-manifest.json"
+CLIENT_CONTRACT_PATH = REPOSITORY_ROOT / "shared/client-model-contracts.json"
 STEP3_MANIFEST_SNAPSHOT_PATH = (
     REPOSITORY_ROOT / "docs/evidence/step-3/model-manifest-v1.json"
 )
@@ -79,6 +80,67 @@ def sha256_file(path: Path) -> str:
 
 def canonical_json(value: Any) -> str:
     return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def render_client_contract(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Project the artifact manifest into a repository-independent client contract."""
+    models: dict[str, Any] = {}
+    for name, entry in manifest["models"].items():
+        labels_path = REPOSITORY_ROOT / "models" / name / entry["labels"]["filename"]
+        labels = labels_path.read_text(encoding="utf-8").splitlines()
+        if len(labels) != entry["labels"]["count"]:
+            raise PreparationError(f"{name} client label count is stale")
+        output_shape = entry["output"]["shape"]
+        if len(output_shape) == 2 and output_shape[-1] == len(labels):
+            task = "classification"
+            output_semantics = {"kind": "logits"}
+            preprocessing = {
+                **entry["preprocessing"],
+                "channel_order": "RGB",
+                "tensor_layout": "CHW",
+            }
+        elif len(output_shape) == 3 and output_shape[1] == len(labels) + 4:
+            task = "detection"
+            output_semantics = {
+                "kind": "yolo_xywh_class_scores",
+                "box_format": "xywh",
+                "class_scores_start": 4,
+                "class_aware_nms": True,
+            }
+            preprocessing = {
+                **entry["preprocessing"],
+                "resize_mode": "letterbox",
+                "letterbox_center": True,
+                "padding_value": 114,
+                "tensor_layout": "CHW",
+            }
+        else:
+            raise PreparationError(f"Cannot derive client task semantics for {name}")
+        models[name] = {
+            "task": task,
+            "max_batch_size": entry["max_batch_size"],
+            "versions": sorted(entry["versions"], key=int),
+            "input": entry["input"],
+            "output": entry["output"],
+            "preprocessing": preprocessing,
+            "labels": labels,
+            "output_semantics": output_semantics,
+        }
+    return {
+        "schema_version": 1,
+        "source_manifest_sha256": hashlib.sha256(
+            canonical_json(manifest).encode("utf-8")
+        ).hexdigest(),
+        "models": models,
+    }
+
+
+def generate_client_contract() -> None:
+    if not MANIFEST_PATH.is_file():
+        raise PreparationError("models/model-manifest.json is required")
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    _write_text(CLIENT_CONTRACT_PATH, canonical_json(render_client_contract(manifest)))
+    print("[OK] Generated repository-independent client model contract.")
 
 
 def _write_text(path: Path, content: str) -> None:
@@ -958,6 +1020,7 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
         },
     }
     _write_text(MANIFEST_PATH, canonical_json(manifest))
+    generate_client_contract()
     create_preparation_evidence()
     print("[OK] Wrote artifact-complete model manifest and preparation evidence.")
     return manifest
@@ -1134,6 +1197,16 @@ def check_generated(spec: dict[str, Any]) -> list[str]:
                 errors.append("preparation evidence is stale")
         except (json.JSONDecodeError, OSError, TypeError) as error:
             errors.append(f"cannot read preparation evidence: {error}")
+    if not CLIENT_CONTRACT_PATH.is_file():
+        errors.append("missing generated shared/client-model-contracts.json")
+    elif MANIFEST_PATH.is_file():
+        try:
+            manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+            expected_contract = canonical_json(render_client_contract(manifest))
+            if CLIENT_CONTRACT_PATH.read_text(encoding="utf-8") != expected_contract:
+                errors.append("stale generated client model contract")
+        except (json.JSONDecodeError, OSError, TypeError) as error:
+            errors.append(f"cannot validate client model contract: {error}")
     return errors
 
 
@@ -1209,6 +1282,7 @@ def main() -> int:
             "validate",
             "clean",
             "manifest",
+            "client-contract",
             "_export",
             "_inspect-onnx",
             "_prepare-tensorrt-onnx",
@@ -1246,6 +1320,7 @@ def main() -> int:
             "validate": lambda: _validate_repository(structure_only=False),
             "clean": lambda: clean_models(spec),
             "manifest": lambda: create_manifest(spec),
+            "client-contract": generate_client_contract,
             "_export": lambda: _internal_export(spec),
             "_inspect-onnx": lambda: _internal_inspect_onnx(spec),
             "_prepare-tensorrt-onnx": lambda: _internal_prepare_tensorrt_onnx(spec),

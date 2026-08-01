@@ -26,7 +26,10 @@ will be expanded as each scope is completed.
 | Runtime repository state | Three version-1 models ready during verification | `docs/evidence/step-3/model-repository.txt` | Sanitized repository index captured before explicit unload |
 | ONNX and TensorRT benchmark | Planned for step 6 | Functional parity is implemented, performance benchmark pending | Pending |
 | Full Prometheus and Grafana dashboard | Planned for step 7 | Not implemented | Pending |
-| Inference logs and CSV | Planned | Not implemented | Pending |
+| Production image client | Contract-driven ResNet/YOLO preprocessing and postprocessing, bounded batches, auto-load, explicit versions | `client/inference_client.py` | `docs/evidence/step-5/predictions.txt` records real-image HTTP, gRPC, ONNX v1/v2, and TensorRT results |
+| Sample image provenance | Ten real CC0/public-domain-marked JPG images with source, attribution, hash, and dimensions | `client/samples/manifest.json` | `python scripts/validate_client.py` decodes and verifies the complete inventory |
+| Inference logs and CSV | One schema-validated JSONL event per request plus deterministic CSV export | `docs/evidence/step-5/inference-log.jsonl` and `inference-log.csv` | 11 successful events/rows; final predictions retained without raw tensors or host paths |
+| Client runtime matrix | Full ten-image ResNet batch-4 and YOLO batch-2 runs plus explicit protocol/version/TensorRT cases | `docs/evidence/step-5/client-runtime.json` | HTTP/gRPC passed, 55 detections, source fingerprints current, initial READY set restored exactly |
 | HTTP and gRPC serving | SDK protocol matrix for every model/version | `docs/evidence/step-4/serving-runtime.json` | Metadata, binary inference, finite outputs, and numerical protocol parity passed |
 | Dynamic batching | Spec-owned schedulers, bounded attempt history, and per-version statistics deltas | `docs/evidence/step-4/serving-runtime.json` | `attempts_used` matches 1–3 recorded attempts; inference deltas exceed execution deltas and batch sizes above one are observed |
 | Model version management | ResNet ONNX v1/v2, load overrides, tracked policy, and in-place reload | `docs/evidence/step-4/repository-versions.txt` | Versions 1 and 2 READY together; default selects v2; cleanup repository empty and every model/version readiness endpoint false |
@@ -34,8 +37,10 @@ will be expanded as each scope is completed.
 README statements alone are not accepted as runtime evidence.
 
 The recorded runtime evidence was produced on Windows 11 with Docker Desktop/WSL2,
-NVIDIA driver 610.88, and compute capability 8.9. It is evidence for that reference
-run, not a substitute for rerunning the smoke test after environment changes.
+NVIDIA driver 610.88, and compute capability 8.9. Steps 2–4 were captured on
+2026-07-31 and step 5 on 2026-08-01. These files prove the reference runs, not a
+substitute for rerunning verification after environment changes.
 Validate the committed evidence with `python scripts/validate_runtime_evidence.py`
 `python scripts/validate_model_evidence.py`, and
-`python scripts/validate_serving_evidence.py`.
+`python scripts/validate_serving_evidence.py`, and
+`python scripts/validate_client_evidence.py`.

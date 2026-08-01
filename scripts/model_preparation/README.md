@@ -6,6 +6,6 @@
 python scripts/model_preparation/prepare_models.py prepare
 ```
 
-Additional commands are `discover`, `download`, `generate`, `export`, `build-tensorrt`, `validate`, `manifest`, and `clean`. `--check` is daemon-free and verifies tracked generated files.
+Additional commands are `discover`, `download`, `generate`, `export`, `build-tensorrt`, `validate`, `manifest`, `client-contract`, and `clean`. `--check` is daemon-free and verifies tracked generated files, including the client-facing projection in `shared/client-model-contracts.json`.
 
 The exporter image is built from `Dockerfile.exporter`; package versions and wheel hashes come only from `requirements.lock`. Runtime model smoke belongs to `deployment/triton/smoke_models.py`, not this module.
