@@ -1,13 +1,24 @@
 # Triton serving
 
-Triton startup policy is owned by `docker-compose.yml` and exposed through `deployment/scripts/run_triton.sh`. The server uses explicit model control, disables backend config auto-completion, publishes HTTP, gRPC, and metrics endpoints, and mounts `models` read-only.
+Triton startup policy is owned by `docker-compose.yml`. The server uses explicit
+model control, disables backend config auto-completion, exposes HTTP, gRPC, and
+metrics, and mounts `models` read-only. Complete generated ModelConfig data comes
+from `models/model-spec.yaml` through `shared/triton_model_config.py` for both tracked
+protobuf text and HTTP load overrides.
 
-Disabling auto-completion is required for the step 3 contract: the TensorRT backend otherwise adds a dynamic scheduler when `max_batch_size` is greater than one. All model configs are therefore complete and generated from `models/model-spec.yaml`.
-
-Run the model runtime verification after artifact preparation and Triton startup:
+Run the step 4 verifier against an existing Compose server:
 
 ```text
-python deployment/triton/smoke_models.py --env-file .env.example
+make verify-serving
 ```
 
-The smoke explicitly loads all three version-1 models, checks metadata and config, performs synthetic inference, compares ResNet ONNX and TensorRT, records evidence, unloads the models, and confirms that none remains ready.
+The profile-only `triton-verifier` service uses the pinned official SDK image, needs
+no GPU, publishes no ports, and cannot write outside `docs/evidence/step-4`. It checks
+the required server extensions, HTTP/gRPC metadata and binary inference, exact
+cross-protocol results, dynamic-batching statistics, ResNet version switching, a
+reload without unload, and final cleanup.
+
+`deployment/triton/smoke_models.py` and immutable `docs/evidence/step-3` remain the
+historical single-version proof. This verifier is not the production image client;
+preprocessing, postprocessing, user-facing requests, and inference logging belong to
+step 5.

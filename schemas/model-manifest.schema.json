@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/legion2440/ml-dev-ops/schemas/model-manifest.schema.json",
-  "title": "Generated model artifact manifest",
+  "title": "Generated model artifact manifest v2",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "generated_at_utc", "spec_path", "spec_sha256", "requirements_lock", "requirements_sha256", "build", "artifact_validation", "models"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"const": 2},
     "generated_at_utc": {"type": "string", "format": "date-time"},
     "spec_path": {"const": "models/model-spec.yaml"},
     "spec_sha256": {"$ref": "#/$defs/sha256"},
@@ -27,61 +27,89 @@
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "revision"],
+      "properties": {
+        "artifact": {"$ref": "#/$defs/artifact"},
+        "revision": {"type": "string", "minLength": 1},
+        "derived_from": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+        "transform": {"type": "string", "minLength": 1},
+        "onnx": {"type": "object"}
+      },
+      "dependentRequired": {
+        "derived_from": ["transform"],
+        "transform": ["derived_from"]
+      }
+    },
+    "versions": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[1-9][0-9]*$"},
+      "additionalProperties": {"$ref": "#/$defs/version"}
+    },
+    "source": {
+      "type": "object",
+      "required": ["framework", "identifier", "url", "filename", "sha256", "hash_status", "code_license"],
+      "properties": {
+        "framework": {"type": "string"},
+        "identifier": {"type": "string"},
+        "url": {"type": "string"},
+        "filename": {"type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "hash_status": {"const": "resolved"},
+        "code_license": {"type": "string"},
+        "weights_license": {"type": "string"},
+        "weights_terms": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "opt", "max"],
+      "properties": {
+        "min": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
+        "opt": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
+        "max": {"type": "array", "minItems": 2, "items": {"type": "integer"}}
+      }
+    },
     "model": {
       "type": "object",
-      "required": ["logical_model_id", "source", "preprocessing", "labels", "artifact", "input", "output", "precision", "max_batch_size", "smoke_batches"],
+      "additionalProperties": false,
+      "required": ["logical_model_id", "source", "preprocessing", "labels", "input", "output", "precision", "max_batch_size", "smoke_batches", "version_policy", "scheduling", "model_config", "versions"],
       "properties": {
         "logical_model_id": {"enum": ["resnet50", "yolo11n"]},
-        "source": {
-          "type": "object",
-          "required": ["framework", "identifier", "url", "filename", "sha256", "hash_status", "code_license"],
-          "properties": {
-            "framework": {"type": "string"},
-            "identifier": {"type": "string"},
-            "url": {"type": "string"},
-            "filename": {"type": "string"},
-            "sha256": {"$ref": "#/$defs/sha256"},
-            "hash_status": {"const": "resolved"},
-            "code_license": {"type": "string"},
-            "weights_license": {"type": "string"},
-            "weights_terms": {"type": "string"}
-          },
-          "additionalProperties": false
-        },
+        "source": {"$ref": "#/$defs/source"},
         "preprocessing": {"type": "object", "minProperties": 1},
         "labels": {"type": "object"},
-        "artifact": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["path", "sha256", "size_bytes"],
-          "properties": {
-            "path": {"type": "string"},
-            "sha256": {"$ref": "#/$defs/sha256"},
-            "size_bytes": {"type": "integer", "minimum": 1}
-          }
-        },
         "input": {"type": "object"},
         "output": {"type": "object"},
         "precision": {"enum": ["FP32", "FP16"]},
         "max_batch_size": {"type": "integer", "minimum": 1},
-        "smoke_batches": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "smoke_batches": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}},
+        "version_policy": {"type": "object"},
+        "scheduling": {"type": "object"},
+        "model_config": {"type": "object"},
+        "versions": {"$ref": "#/$defs/versions"},
         "parity_tolerances": {"type": "object"},
-        "onnx": {"type": "object"},
+        "version_parity_tolerances": {"type": "object"},
         "compute_precision": {"const": "FP16"},
         "io_precision": {"const": "FP32"},
-        "profile": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["min", "opt", "max"],
-          "properties": {
-            "min": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
-            "opt": {"type": "array", "minItems": 2, "items": {"type": "integer"}},
-            "max": {"type": "array", "minItems": 2, "items": {"type": "integer"}}
-          }
-        },
+        "profile": {"$ref": "#/$defs/profile"},
         "compute_capability": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"}
-      },
-      "additionalProperties": false
+      }
     }
   }
 }

@@ -22,7 +22,10 @@ class ArtifactStalenessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             errors: list[str] = []
             validate_artifact_inventory(self.manifest, errors, Path(directory))
-        self.assertEqual(sum("missing" in error for error in errors), 3)
+        self.assertEqual(
+            sum("missing" in error for error in errors),
+            len(prepare_models.serving_artifact_paths(self.spec)),
+        )
 
     def test_consistent_compute_capability_change_stales_generated_data(self) -> None:
         changed = copy.deepcopy(self.spec)
@@ -31,10 +34,11 @@ class ArtifactStalenessTests(unittest.TestCase):
         capability = f"{major}.{int(minor) + 1}"
         changed["build"]["target"]["compute_capability"] = capability
         serving = changed["models"]["resnet50"]["serving"]["tensorrt"]
-        artifact = PurePosixPath(serving["artifact_path"])
-        serving["artifact_path"] = (
-            artifact.parent / f"model_cc{capability.replace('.', '')}.plan"
-        ).as_posix()
+        for version in serving["versions"].values():
+            artifact = PurePosixPath(version["artifact_path"])
+            version["artifact_path"] = (
+                artifact.parent / f"model_cc{capability.replace('.', '')}.plan"
+            ).as_posix()
 
         self.assertEqual(validate_spec_semantics(changed), [])
         generated = prepare_models.render_config(changed, serving["name"])
@@ -44,7 +48,7 @@ class ArtifactStalenessTests(unittest.TestCase):
         self.assertNotEqual(generated, tracked)
         manifest_errors = prepare_models.manifest_staleness(changed, self.manifest)
         self.assertTrue(any("compute capability" in error for error in manifest_errors))
-        self.assertTrue(any("artifact path" in error for error in manifest_errors))
+        self.assertTrue(any("version 1 path" in error for error in manifest_errors))
 
     def test_contract_change_makes_generated_config_stale(self) -> None:
         changed = copy.deepcopy(self.spec)

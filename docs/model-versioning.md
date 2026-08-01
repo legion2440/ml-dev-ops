@@ -1,13 +1,29 @@
 # Model versioning
 
-## Current state
+## Implemented policy
 
-Step 3 implements only model version `1` for `resnet50_onnx`, `resnet50_tensorrt`, and `yolo11n_onnx`. Triton runs with explicit model control, and `deployment/triton/smoke_models.py` verifies load, readiness, inference, repository state, and unload.
+`models/model-spec.yaml` is the editable source for every version and policy.
+`resnet50_onnx` exposes versions `1` and `2`; the TensorRT and YOLO variants expose
+version `1`. Generated `config.pbtxt` files use an explicit `specific` policy, so
+Triton never relies on its implicit latest-version default.
 
-Tracked `config.pbtxt` files intentionally contain no `version_policy`. Triton reports its default latest-version policy at runtime, but there is only one numeric version. Directories `0`, zero-padded names such as `01`, and versions other than `1` are rejected by the step 3 structure validator.
+ResNet version 2 is a serving graph revision, not new weights or a new training
+checkpoint. Preparation deterministically renames the terminal tensor and appends an
+Identity node while preserving public names, shapes, dtypes, preprocessing, and
+weights. ONNX Checker, ONNX Runtime batches from the spec, distinct artifact hashes,
+and strict v1/v2 output parity are required before the manifest is generated.
 
-TensorRT derives a strict `model_cc<capability>.plan` filename and `cc_model_filenames` mapping from `models/model-spec.yaml`. The config omits `default_model_filename`, and no generic `model.plan` fallback is produced.
+The runtime verifier exercises policy overrides through the HTTP repository API:
 
-## Deferred step 4 scope
+- only version 1, with default inference selecting `1`;
+- only version 2, with default inference selecting `2`;
+- tracked policy `1+2`, with explicit requests to both and default selection of `2`;
+- a genuine load/reload while the model is already loaded, without a prior unload.
 
-Step 4 will introduce an additional version with the same public tensor contract, explicit version-policy behavior, requests to a selected version, default selection, reload, and rollback verification. Dynamic batching also remains deferred even though the current models accept batched tensors.
+Model control is HTTP-only in the verifier. HTTP and gRPC are both used for metadata
+and binary inference. Cleanup unloads all models and confirms Triton remains live and
+ready with an empty READY set.
+
+TensorRT remains strictly capability-qualified through `cc_model_filenames`. Its
+config has no `default_model_filename`, and `model.plan` is absent, so another GPU
+capability cannot fall back to the CC 8.9 engine.

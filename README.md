@@ -8,19 +8,20 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 3 runtime-verified: reproducible model repository and Triton inference.**
+**Step 4 runtime-verified: batching, HTTP/gRPC, and model-version control.**
 
 The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
 services; GPU reservations; loopback-only ports; persistent metrics volumes;
 read-only configuration mounts; lifecycle commands; and infrastructure smoke
 checks.
 
-The complete infrastructure and model smoke tests passed on the reference Windows
-11, Docker Desktop/WSL2, and NVIDIA GPU host on 2026-07-31. Triton explicitly
-loaded ResNet50 ONNX FP32, ResNet50 TensorRT FP16, and YOLO11n ONNX FP32; verified
-metadata and synthetic inference; compared the two ResNet outputs; and unloaded all
-three models. Dynamic request batching, multi-version policy, the production client,
-dashboards, alerts, and benchmarks remain planned.
+The reference Windows 11, Docker Desktop/WSL2, and NVIDIA GPU host verifies the
+three serving models through both HTTP and gRPC. Runtime statistics prove dynamic
+batching for a concrete version of every model. ResNet50 ONNX versions 1 and 2 are
+selected explicitly, loaded together, and reloaded without a preliminary unload;
+cleanup leaves no model READY. The production image client, dashboards, alerts, and
+benchmarks remain planned. Batching values are functional defaults, not performance
+tuning results.
 
 Model binaries are reproducible local artifacts and are ignored by Git. The model
 specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
@@ -119,6 +120,7 @@ With Triton running, reach runtime-verified state:
 
 ```text
 make smoke-models
+make verify-serving
 ```
 
 Structure-only validation works on a clean checkout without Docker or model binaries:
@@ -183,6 +185,8 @@ python scripts/validate_deployment.py
 python scripts/validate_runtime_evidence.py
 python scripts/validate_model_repository.py --structure-only
 python scripts/validate_model_evidence.py
+python scripts/validate_serving.py --structure-only
+python scripts/validate_serving_evidence.py
 python -m unittest discover -s tests/unit -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
@@ -215,6 +219,10 @@ python deployment/scripts/capture_runtime_evidence.py
 Model preparation and Triton evidence is under `docs/evidence/step-3`. Refresh it
 with `prepare_models.py manifest` after an artifact rebuild and with
 `deployment/triton/smoke_models.py` after a successful live model run.
+
+Step 4 evidence is under `docs/evidence/step-4` and is refreshed only by a
+successful `make verify-serving` run. The verifier uses the official SDK image and
+mounts the repository read-only except for that evidence directory.
 
 ## License
 

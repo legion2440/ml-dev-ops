@@ -5,6 +5,16 @@ cc_model_filenames {
   key: "8.9"
   value: "model_cc89.plan"
 }
+version_policy {
+  specific {
+    versions: 1
+  }
+}
+dynamic_batching {
+  preferred_batch_size: 4
+  preferred_batch_size: 8
+  max_queue_delay_microseconds: 5000
+}
 input [
   {
     name: "images"

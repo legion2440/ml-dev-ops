@@ -137,6 +137,30 @@ services:
     networks:
       - backend
 
+  triton-verifier:
+    image: ${TRITON_SDK_IMAGE:?TRITON_SDK_IMAGE is required}
+    profiles:
+      - verification
+    working_dir: /workspace
+    command:
+      - python
+      - deployment/triton/verify_serving.py
+      - --http-url
+      - triton:8000
+      - --grpc-url
+      - triton:8001
+    volumes:
+      - type: bind
+        source: .
+        target: /workspace
+        read_only: true
+      - type: bind
+        source: ./docs/evidence/step-4
+        target: /workspace/docs/evidence/step-4
+    restart: "no"
+    networks:
+      - backend
+
 volumes:
   prometheus-data:
   grafana-data:

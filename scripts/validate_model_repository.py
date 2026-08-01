@@ -117,13 +117,29 @@ def validate_spec_semantics(spec: dict[str, Any]) -> list[str]:
         smoke_batches = model.get("smoke_batches", [])
         for serving_kind, serving in servings.items():
             serving_name = str(serving.get("name", ""))
-            artifact_path = PurePosixPath(str(serving.get("artifact_path", "")))
             config_path = str(serving.get("config_path", ""))
             expected_parent = PurePosixPath("models") / serving_name
-            if artifact_path.parent != expected_parent / "1":
-                errors.append(f"{model_key} {serving_kind} artifact path is inconsistent")
             if config_path != (expected_parent / "config.pbtxt").as_posix():
                 errors.append(f"{model_key} {serving_kind} config path is inconsistent")
+            versions = serving.get("versions", {})
+            version_numbers = sorted(int(version) for version in versions)
+            policy = serving.get("version_policy", {}).get("specific", [])
+            if policy != version_numbers:
+                errors.append(f"{model_key} {serving_kind} version policy is inconsistent")
+            artifact_names: set[str] = set()
+            for version, details in versions.items():
+                artifact_path = PurePosixPath(str(details.get("artifact_path", "")))
+                if artifact_path.parent != expected_parent / version:
+                    errors.append(
+                        f"{model_key} {serving_kind} version {version} path is inconsistent"
+                    )
+                artifact_names.add(artifact_path.name)
+                if serving_kind == "onnx" and artifact_path.name != "model.onnx":
+                    errors.append(
+                        f"{model_key} ONNX version {version} must use model.onnx"
+                    )
+            if len(artifact_names) != 1:
+                errors.append(f"{model_key} {serving_kind} artifact filenames differ by version")
             max_batch_size = serving.get("max_batch_size")
             if (
                 not isinstance(smoke_batches, list)
@@ -135,8 +151,21 @@ def validate_spec_semantics(spec: dict[str, Any]) -> list[str]:
                 )
             ):
                 errors.append(f"{model_key} smoke batches exceed serving capacity")
-            if serving_kind == "onnx" and artifact_path.name != "model.onnx":
-                errors.append(f"{model_key} ONNX artifact must use Triton's standard filename")
+            dynamic = serving.get("scheduling", {}).get("dynamic_batching", {})
+            preferred = dynamic.get("preferred_batch_sizes", [])
+            delay = dynamic.get("max_queue_delay_microseconds")
+            if (
+                not isinstance(preferred, list)
+                or not preferred
+                or not isinstance(max_batch_size, int)
+                or any(
+                    not isinstance(batch, int) or batch < 1 or batch > max_batch_size
+                    for batch in preferred
+                )
+            ):
+                errors.append(f"{model_key} {serving_kind} dynamic batching is inconsistent")
+            if not isinstance(delay, int) or delay < 0:
+                errors.append(f"{model_key} {serving_kind} queue delay is inconsistent")
 
     resnet = models["resnet50"]
     resnet_input = resnet.get("input", {}).get("shape", [])
@@ -208,9 +237,10 @@ def validate_spec_semantics(spec: dict[str, Any]) -> list[str]:
     capability = str(build.get("target", {}).get("compute_capability", ""))
     if re.fullmatch(r"[0-9]+\.[0-9]+", capability):
         expected_plan = f"model_cc{capability.replace('.', '')}.plan"
-        actual_plan = PurePosixPath(str(tensorrt_serving.get("artifact_path", ""))).name
-        if actual_plan != expected_plan:
-            errors.append("TensorRT artifact filename is inconsistent with target capability")
+        for version in tensorrt_serving.get("versions", {}).values():
+            actual_plan = PurePosixPath(str(version.get("artifact_path", ""))).name
+            if actual_plan != expected_plan:
+                errors.append("TensorRT artifact filename is inconsistent with target capability")
 
     yolo = models["yolo11n"]
     yolo_input = yolo.get("input", {}).get("shape", [])
@@ -281,13 +311,21 @@ def validate_lock_file(path: Path = preparation.LOCK_PATH) -> list[str]:
     return errors
 
 
-def validate_version_directories(models_root: Path) -> list[str]:
+def validate_version_directories(models_root: Path, spec: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     for model_name in EXPECTED_MODEL_DIRECTORIES:
         model_path = models_root / model_name
         if not model_path.is_dir():
             errors.append(f"missing model directory: models/{model_name}")
             continue
+        expected_versions = {
+            version
+            for model in spec["models"].values()
+            for serving in model["serving"].values()
+            if serving["name"] == model_name
+            for version in serving["versions"]
+        }
+        actual_versions: set[str] = set()
         for child in model_path.iterdir():
             if not child.is_dir():
                 continue
@@ -298,11 +336,14 @@ def validate_version_directories(models_root: Path) -> list[str]:
             )
             if invalid_name:
                 errors.append(f"invalid version directory: models/{model_name}/{child.name}")
-            elif child.name != "1":
-                errors.append(
-                    f"step 3 permits only model version 1: "
-                    f"models/{model_name}/{child.name}"
-                )
+            else:
+                actual_versions.add(child.name)
+        unexpected_versions = actual_versions - expected_versions
+        if unexpected_versions:
+            errors.append(
+                f"unexpected version directories for {model_name}: "
+                f"{sorted(unexpected_versions)}"
+            )
     return errors
 
 
@@ -312,7 +353,7 @@ def _validate_layout(spec: dict[str, Any], errors: list[str]) -> None:
     unexpected = sorted(actual_directories - EXPECTED_MODEL_DIRECTORIES)
     if unexpected:
         errors.append("unexpected top-level model directories: " + ", ".join(unexpected))
-    errors.extend(validate_version_directories(models_root))
+    errors.extend(validate_version_directories(models_root, spec))
     for model_name in EXPECTED_MODEL_DIRECTORIES:
         config_path = models_root / model_name / "config.pbtxt"
         if not config_path.is_file():
@@ -321,11 +362,10 @@ def _validate_layout(spec: dict[str, Any], errors: list[str]) -> None:
         content = config_path.read_text(encoding="utf-8")
         if content != preparation.render_config(spec, model_name):
             errors.append(f"stale Triton config: models/{model_name}/config.pbtxt")
-        for forbidden in ("dynamic_batching", "version_policy", "instance_group"):
-            if forbidden in content:
-                errors.append(f"models/{model_name}/config.pbtxt contains out-of-scope {forbidden}")
     tensorrt_artifact = PurePosixPath(
-        spec["models"]["resnet50"]["serving"]["tensorrt"]["artifact_path"]
+        preparation.serving_version_path(
+            spec["models"]["resnet50"]["serving"]["tensorrt"], "1"
+        )
     )
     fallback_path = REPOSITORY_ROOT / tensorrt_artifact.parent.as_posix() / "model.plan"
     if fallback_path.exists():
@@ -344,9 +384,10 @@ def _validate_git_tracking(spec: dict[str, Any], errors: list[str]) -> None:
         return
     tracked = process.stdout.decode("utf-8").split("\0")
     artifact_paths = {
-        serving["artifact_path"]
+        version["artifact_path"]
         for model in spec["models"].values()
         for serving in model["serving"].values()
+        for version in serving["versions"].values()
     }
     forbidden = [
         path
@@ -388,19 +429,20 @@ def validate_artifact_inventory(
     manifest: dict[str, Any], errors: list[str], root: Path = REPOSITORY_ROOT
 ) -> None:
     for model_name, entry in manifest.get("models", {}).items():
-        artifact = entry.get("artifact", {})
-        relative_path = artifact.get("path")
-        if not isinstance(relative_path, str):
-            errors.append(f"manifest {model_name} has no artifact path")
-            continue
-        path = root / relative_path
-        if not path.is_file():
-            errors.append(f"artifact-complete validation missing {relative_path}")
-            continue
-        if preparation.sha256_file(path) != artifact.get("sha256"):
-            errors.append(f"artifact SHA-256 is stale for {relative_path}")
-        if path.stat().st_size != artifact.get("size_bytes"):
-            errors.append(f"artifact size is stale for {relative_path}")
+        for version, version_entry in entry.get("versions", {}).items():
+            artifact = version_entry.get("artifact", {})
+            relative_path = artifact.get("path")
+            if not isinstance(relative_path, str):
+                errors.append(f"manifest {model_name}:{version} has no artifact path")
+                continue
+            path = root / relative_path
+            if not path.is_file():
+                errors.append(f"artifact-complete validation missing {relative_path}")
+                continue
+            if preparation.sha256_file(path) != artifact.get("sha256"):
+                errors.append(f"artifact SHA-256 is stale for {relative_path}")
+            if path.stat().st_size != artifact.get("size_bytes"):
+                errors.append(f"artifact size is stale for {relative_path}")
 
 
 def validate_repository(structure_only: bool) -> list[str]:

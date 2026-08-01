@@ -39,7 +39,7 @@ class TensorContractTests(unittest.TestCase):
         self.assertIn("cc_model_filenames {", config)
         self.assertNotIn("default_model_filename", config)
 
-        artifact = PurePosixPath(serving["artifact_path"])
+        artifact = PurePosixPath(serving["versions"]["1"]["artifact_path"])
         fallback = prepare_models.REPOSITORY_ROOT / artifact.parent.as_posix() / "model.plan"
         self.assertFalse(fallback.exists())
 

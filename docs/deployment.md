@@ -7,10 +7,10 @@ The Docker infrastructure is runtime-verified on the reference host as of
 services reach Compose health `healthy`, GPU passthrough works, and the complete
 host-side smoke test succeeds.
 
-Step 2 evidence was captured while the repository was empty. Step 3 now provides
-three model directories, but Triton still starts with no models loaded because
-explicit model control is enabled. Model-serving claims are recorded separately in
-`docs/evidence/step-3`.
+Step 2 evidence was captured while the repository was empty. Triton still starts
+with no models loaded because explicit model control is enabled. Historical
+single-version claims remain in immutable `docs/evidence/step-3`; current HTTP/gRPC,
+batching, and version-control claims are in `docs/evidence/step-4`.
 
 ## Version matrix
 
@@ -19,6 +19,7 @@ explicit model control is enabled. Model-serving claims are recorded separately 
 | Component | Pinned version |
 | --- | --- |
 | Triton image | `TRITON_IMAGE` in `.env.example` |
+| Triton SDK verifier image | `TRITON_SDK_IMAGE` in `.env.example` |
 | Triton Server | `2.71.0` |
 | Triton Ubuntu base | `24.04` |
 | CUDA in Triton | `13.3.4.1` |
@@ -83,6 +84,10 @@ All services share the project-scoped `backend` bridge network:
 - `prometheus`
 - `grafana`
 - `dcgm-exporter`
+
+The profile-only `triton-verifier` joins the same network only for `make
+verify-serving`. It is not a fifth persistent service, publishes no ports, reserves
+no GPU, and writes only step 4 evidence.
 
 Inter-container traffic uses these DNS names and fixed container ports. Published
 host ports bind to `127.0.0.1` only.
@@ -166,7 +171,9 @@ datasource, and real `DCGM_` metrics.
 Triton runs with `--model-control-mode=explicit` and
 `--disable-auto-complete-config`. The latter prevents the TensorRT backend from
 silently enabling dynamic batching; complete configs are generated from the model
-spec. Step 3 verifies explicit load and unload for all three models.
+spec. Step 4 verifies model control through HTTP, inference through HTTP and gRPC,
+statistics-based dynamic batching, version switching, reload without unload, and
+cleanup back to an empty READY set.
 
 ## Completion gates
 
@@ -177,6 +184,8 @@ python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
 python scripts/validate_runtime_evidence.py
+python scripts/validate_serving.py --structure-only
+python scripts/validate_serving_evidence.py
 python -m unittest discover -s tests/unit -p "test_*.py"
 python scripts/generate_dependency_graph.py --check
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet

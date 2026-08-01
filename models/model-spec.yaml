@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 repository_license: AGPL-3.0-only
 requirements_lock: scripts/model_preparation/requirements.lock
 
@@ -51,18 +51,41 @@ models:
     serving:
       onnx:
         name: resnet50_onnx
-        artifact_path: models/resnet50_onnx/1/model.onnx
         config_path: models/resnet50_onnx/config.pbtxt
         precision: FP32
         max_batch_size: 8
+        versions:
+          "1":
+            artifact_path: models/resnet50_onnx/1/model.onnx
+            revision: baseline-export
+          "2":
+            artifact_path: models/resnet50_onnx/2/model.onnx
+            revision: identity-output-graph
+            derived_from: "1"
+            transform: append-output-identity
+        version_policy:
+          specific: [1, 2]
+        scheduling:
+          dynamic_batching:
+            preferred_batch_sizes: [4, 8]
+            max_queue_delay_microseconds: 5000
       tensorrt:
         name: resnet50_tensorrt
-        artifact_path: models/resnet50_tensorrt/1/model_cc89.plan
         config_path: models/resnet50_tensorrt/config.pbtxt
         precision: FP16
         compute_precision: FP16
         io_precision: FP32
         max_batch_size: 8
+        versions:
+          "1":
+            artifact_path: models/resnet50_tensorrt/1/model_cc89.plan
+            revision: fp16-engine
+        version_policy:
+          specific: [1]
+        scheduling:
+          dynamic_batching:
+            preferred_batch_sizes: [4, 8]
+            max_queue_delay_microseconds: 5000
         profile:
           min: [1, 3, 224, 224]
           opt: [4, 3, 224, 224]
@@ -72,6 +95,11 @@ models:
       max_abs_error: 0.5
       mean_abs_error: 0.05
       minimum_cosine_similarity: 0.999
+      minimum_top1_agreement: 1.0
+    version_parity:
+      max_abs_error: 0.0
+      mean_abs_error: 0.0
+      minimum_cosine_similarity: 1.0
       minimum_top1_agreement: 1.0
 
   yolo11n:
@@ -111,8 +139,17 @@ models:
     serving:
       onnx:
         name: yolo11n_onnx
-        artifact_path: models/yolo11n_onnx/1/model.onnx
         config_path: models/yolo11n_onnx/config.pbtxt
         precision: FP32
         max_batch_size: 2
+        versions:
+          "1":
+            artifact_path: models/yolo11n_onnx/1/model.onnx
+            revision: baseline-export
+        version_policy:
+          specific: [1]
+        scheduling:
+          dynamic_batching:
+            preferred_batch_sizes: [2]
+            max_queue_delay_microseconds: 5000
     smoke_batches: [1, 2]

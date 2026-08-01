@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/serving-evidence.schema.json",
+  "title": "Triton serving runtime evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "captured_at_utc", "manifest_path", "manifest_sha256",
+    "spec_path", "spec_sha256", "images", "extensions", "protocols", "models",
+    "dynamic_batching", "version_switching", "final_repository_ready_models",
+    "server_after_cleanup"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "captured_at_utc": {"type": "string", "format": "date-time"},
+    "manifest_path": {"const": "models/model-manifest.json"},
+    "manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "spec_path": {"const": "models/model-spec.yaml"},
+    "spec_sha256": {"$ref": "#/$defs/sha256"},
+    "images": {
+      "type": "object", "additionalProperties": false,
+      "required": ["server", "sdk"],
+      "properties": {"server": {"type": "string"}, "sdk": {"type": "string"}}
+    },
+    "extensions": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "protocols": {"$ref": "#/$defs/protocols"},
+    "models": {
+      "type": "object", "minProperties": 4,
+      "additionalProperties": {"$ref": "#/$defs/modelResult"}
+    },
+    "dynamic_batching": {
+      "type": "object", "minProperties": 3,
+      "additionalProperties": {"$ref": "#/$defs/batchingResult"}
+    },
+    "version_switching": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "default_with_tracked_policy", "version_parity", "reload_without_unload", "passed"],
+      "properties": {
+        "sequence": {"type": "array", "items": {"type": "string"}},
+        "default_with_tracked_policy": {"type": "string"},
+        "version_parity": {"const": "passed"},
+        "reload_without_unload": {"const": "passed"},
+        "passed": {"const": true}
+      }
+    },
+    "final_repository_ready_models": {"type": "array", "maxItems": 0},
+    "server_after_cleanup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["live", "ready"],
+      "properties": {"live": {"const": true}, "ready": {"const": true}}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "protocols": {
+      "type": "object", "additionalProperties": false,
+      "required": ["http", "grpc"],
+      "properties": {"http": {"const": "passed"}, "grpc": {"const": "passed"}}
+    },
+    "modelResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["http", "grpc", "response_version", "output_shape", "output_dtype", "max_abs_protocol_error"],
+      "properties": {
+        "http": {"const": "passed"}, "grpc": {"const": "passed"},
+        "response_version": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+        "output_shape": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "output_dtype": {"type": "string"},
+        "max_abs_protocol_error": {"type": "number", "minimum": 0}
+      }
+    },
+    "attempt": {
+      "type": "object", "additionalProperties": true,
+      "required": ["attempt", "requests", "concurrency", "inference_count_delta", "execution_count_delta", "success_count_delta", "observed_batch_sizes", "finite_outputs", "passed"]
+    },
+    "batchingResult": {
+      "allOf": [
+        {"$ref": "#/$defs/attempt"},
+        {
+          "type": "object",
+          "required": ["model_version", "attempts"],
+          "properties": {
+            "model_version": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+            "attempts": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/attempt"}}
+          }
+        }
+      ]
+    }
+  }
+}

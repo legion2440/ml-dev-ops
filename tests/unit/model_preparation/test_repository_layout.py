@@ -8,9 +8,13 @@ from scripts.validate_model_repository import (
     EXPECTED_MODEL_DIRECTORIES,
     validate_version_directories,
 )
+from scripts.model_preparation import prepare_models
 
 
 class RepositoryLayoutTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.spec = prepare_models.load_spec()
+
     def _root_with_versions(self, versions: tuple[str, ...]) -> Path:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -21,14 +25,16 @@ class RepositoryLayoutTests(unittest.TestCase):
         return root
 
     def test_version_one_is_accepted(self) -> None:
-        self.assertEqual(validate_version_directories(self._root_with_versions(("1",))), [])
+        self.assertEqual(
+            validate_version_directories(self._root_with_versions(("1",)), self.spec), []
+        )
 
     def test_version_zero_is_rejected(self) -> None:
-        errors = validate_version_directories(self._root_with_versions(("0",)))
+        errors = validate_version_directories(self._root_with_versions(("0",)), self.spec)
         self.assertTrue(any("invalid version directory" in error for error in errors))
 
     def test_zero_padded_version_is_rejected(self) -> None:
-        errors = validate_version_directories(self._root_with_versions(("01",)))
+        errors = validate_version_directories(self._root_with_versions(("01",)), self.spec)
         self.assertTrue(any("invalid version directory" in error for error in errors))
 
 

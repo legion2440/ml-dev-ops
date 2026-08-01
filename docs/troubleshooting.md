@@ -61,9 +61,8 @@ targets remain fixed. Re-run canonical Compose validation before startup.
 ## Triton cannot read the model repository
 
 `MODEL_REPOSITORY_PATH` must be a repository-relative directory. The mount is
-read-only by design. Step 3 expects exactly the three model directories documented
-in `models/model-spec.yaml`. Before `make smoke-models`, run `make prepare-models`
-or confirm that all three ignored binaries exist locally.
+read-only by design. The three model directories and four versioned binaries are
+declared in `models/model-spec.yaml`. Before verification, run `make prepare-models`.
 
 Inspect:
 
@@ -125,6 +124,15 @@ the target host. Do not rename it to `model.plan` or represent it as a portable
 engine.
 
 ## Triton model load fails
+
+If `make verify-serving` spends a long time before creating a container, Docker is
+usually downloading the large `TRITON_SDK_IMAGE`. This requires Docker storage but
+does not require placing any file in the repository. Pull the exact SDK pin from
+`.env.example` to separate download problems from verifier failures.
+
+If batching evidence fails, do not weaken the criterion. The verifier retries at
+most three times and requires statistics deltas with fewer executions than batch-1
+inferences plus an observed batch size greater than one.
 
 Inspect the generated config, local binary, and server logs:
 

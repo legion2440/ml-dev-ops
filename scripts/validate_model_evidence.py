@@ -17,7 +17,7 @@ EVIDENCE_DIRECTORY = REPOSITORY_ROOT / "docs/evidence/step-3"
 PREPARATION_PATH = EVIDENCE_DIRECTORY / "preparation.json"
 SMOKE_PATH = EVIDENCE_DIRECTORY / "triton-model-smoke.json"
 REPOSITORY_PATH = EVIDENCE_DIRECTORY / "model-repository.txt"
-MANIFEST_PATH = REPOSITORY_ROOT / "models/model-manifest.json"
+MANIFEST_PATH = EVIDENCE_DIRECTORY / "model-manifest-v1.json"
 ENV_EXAMPLE_PATH = REPOSITORY_ROOT / ".env.example"
 MODEL_NAMES = {"resnet50_onnx", "resnet50_tensorrt", "yolo11n_onnx"}
 WINDOWS_ABSOLUTE_PATH = re.compile(r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/]")
@@ -46,7 +46,7 @@ def _load_env(path: Path) -> dict[str, str]:
 
 def _validate_preparation(preparation: dict[str, Any], errors: list[str]) -> None:
     expected = {
-        "manifest_path": "models/model-manifest.json",
+        "manifest_path": "docs/evidence/step-3/model-manifest-v1.json",
         "manifest_sha256": _sha256(MANIFEST_PATH),
     }
     if preparation != expected:
@@ -143,7 +143,7 @@ def _validate_repository_listing(errors: list[str]) -> None:
 
 
 def _validate_sanitization(errors: list[str]) -> None:
-    for path in (PREPARATION_PATH, SMOKE_PATH, REPOSITORY_PATH):
+    for path in (PREPARATION_PATH, SMOKE_PATH, REPOSITORY_PATH, MANIFEST_PATH):
         content = path.read_text(encoding="utf-8")
         if WINDOWS_ABSOLUTE_PATH.search(content) or UNC_PATH.search(content) or "/mnt/" in content:
             errors.append(f"{path.name} contains a host-specific path")

@@ -2,15 +2,17 @@
 
 ## Runtime-verified scope
 
-Step 3 produces and verifies three serving artifacts:
+Model preparation produces four serving artifacts for three Triton models:
 
 | Triton model | Artifact | Contract source |
 |---|---|---|
-| `resnet50_onnx` | ONNX FP32 | ResNet tensor and preprocessing sections in the model spec |
+| `resnet50_onnx` | ONNX FP32 versions 1 and 2 | ResNet tensor, preprocessing, versions, and parity sections in the model spec |
 | `resnet50_tensorrt` | TensorRT FP16 compute, FP32 I/O | Same ResNet contract plus the spec profile and target capability |
 | `yolo11n_onnx` | ONNX FP32, no NMS | YOLO tensor and preprocessing sections in the model spec |
 
-Only the batch dimension is dynamic. Dynamic request batching, model version switching, user-image preprocessing, detection decoding, NMS, and performance benchmarking remain outside this step.
+Only the batch dimension is dynamic. Version 2 is a deterministic terminal-Identity
+graph revision of version 1, not new weights. User-image preprocessing, detection
+decoding, NMS, and performance benchmarking remain outside this step.
 
 ## Sources of truth
 
@@ -30,7 +32,7 @@ Artifact preparation refuses an unresolved or mismatched source hash.
 
 ## Reproducible build
 
-The exporter runs in the pinned Ultralytics CPU image declared as `tag@sha256` in the spec. It exports ResNet50 and YOLO11n with the spec opset, runs ONNX Checker, checks graph metadata, and performs ONNX Runtime synthetic inference. The YOLO adapter copies the fixed output dimensions from the spec into ONNX metadata; only batch remains symbolic.
+The exporter runs in the pinned Ultralytics CPU image declared as `tag@sha256` in the spec. It exports ResNet50 and YOLO11n with the spec opset, derives ResNet v2, runs ONNX Checker, checks graph metadata, performs ONNX Runtime synthetic inference for spec-owned batches, and enforces strict v1/v2 parity. The YOLO adapter copies the fixed output dimensions from the spec into ONNX metadata; only batch remains symbolic.
 
 The selected TensorRT toolchain uses strongly typed networks and does not accept the historical `trtexec --fp16` flag. The workflow therefore creates an ignored intermediate ResNet ONNX with FP16 internal weights and tensors plus FP32 boundary casts, then builds the engine in the pinned container. Its `model_cc<capability>.plan` name and `cc_model_filenames` mapping are derived from the spec. The TensorRT config deliberately omits `default_model_filename`, and no generic `model.plan` is produced, so another capability cannot fall back to this engine.
 
@@ -69,6 +71,7 @@ Runtime verification requires the running step 2 Triton service:
 ```text
 make smoke-models
 python deployment/triton/smoke_models.py --env-file .env.example
+make verify-serving
 ```
 
 The smoke performs explicit load, readiness, metadata/config checks, ResNet inference for batches 1, 4, and 8, YOLO inference for batches 1 and 2, ResNet ONNX/TensorRT parity, and explicit unload. It writes sanitized evidence under `docs/evidence/step-3`.
@@ -78,10 +81,11 @@ The smoke performs explicit load, readiness, metadata/config checks, ResNet infe
 Source weights and intermediates live under `.cache/model-preparation`. Serving binaries are:
 
 - `models/resnet50_onnx/1/model.onnx`;
+- `models/resnet50_onnx/2/model.onnx`;
 - the capability-qualified TensorRT plan declared in the model spec;
 - `models/yolo11n_onnx/1/model.onnx`.
 
-They are ignored by Git. A clean checkout retains the spec, configs, labels, manifest, and evidence, while the three binaries must be reproduced locally for full validation or serving. Allow roughly 1 GB for model sources and generated artifacts, plus local Docker storage for the exporter, TensorRT, and Triton images. The container images dominate disk use and can require several tens of gigabytes.
+They are ignored by Git. A clean checkout retains the spec, configs, labels, manifest, and evidence, while the four binaries must be reproduced locally for full validation or serving. Allow roughly 1 GB for model sources and generated artifacts, plus local Docker storage for the exporter, TensorRT, Triton, and SDK images. The container images dominate disk use and can require several tens of gigabytes.
 
 Remove only ignored model binaries, source weights, and preparation cache:
 

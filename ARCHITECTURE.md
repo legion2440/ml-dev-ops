@@ -2,15 +2,11 @@
 
 ## Status
 
-Architecture contracts, the step 2 Docker infrastructure, and the step 3 model
-repository are implemented. Structure validation is daemon-free; full artifact
-validation is Triton-free but uses pinned Docker images and the target GPU. The
-four-service infrastructure and three-model runtime smoke passed on the reference
-host on 2026-07-31.
-
-Version-1 ResNet50 ONNX FP32, ResNet50 TensorRT FP16, and YOLO11n ONNX FP32 are
-runtime-verified. Dynamic request batching, additional model versions, the production
-client, dashboards, alerts, logging, and benchmarks remain planned.
+Architecture contracts through step 4 are implemented. ResNet50 ONNX has two
+contract-compatible serving revisions; all three serving models have explicit
+version policies and dynamic batching. HTTP/gRPC inference, statistics-based
+batching, version switching, in-place reload, and final unload are runtime-verified.
+The production client, dashboards, alerts, logging, and benchmarks remain planned.
 
 ## System context
 
@@ -66,8 +62,8 @@ flowchart LR
 - Outputs: predictions, service health, model metadata, and Prometheus metrics.
 - Public entrypoint: `deployment/scripts/run_triton.sh` (`implemented`).
 - Root: `deployment/triton`.
-- Tests: step 2 smoke covers health and metrics. Step 3 smoke explicitly loads,
-  infers with, compares, and unloads all three models. Version switching remains planned.
+- Tests: the SDK verifier covers HTTP/gRPC metadata and inference, numerical protocol
+  parity, statistics-based batching, version switching, in-place reload, and cleanup.
 
 ### Deployment
 
@@ -133,9 +129,9 @@ flowchart LR
 - Inputs: stable cross-module data requirements.
 - Outputs: tensor metadata, request identifiers, prediction summaries, and log event
   contracts.
-- Public entrypoint: `shared/contracts.py` (`planned`).
+- Public entrypoint: `shared/triton_model_config.py` (`implemented`).
 - Root: `shared`.
-- Tests: serialization and backward-compatible schema behavior.
+- Tests: complete ModelConfig rendering, policy, and scheduler relationships.
 
 ## Boundary rules
 

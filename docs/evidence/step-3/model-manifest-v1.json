@@ -1,7 +1,7 @@
 {
   "artifact_validation": {
     "onnx": {
-      "resnet50_onnx:1": {
+      "resnet50_onnx": {
         "input": {
           "name": "images",
           "shape": [
@@ -13,11 +13,7 @@
         },
         "ir_version": 8,
         "onnx_checker": "passed",
-        "onnxruntime_batches": [
-          1,
-          4,
-          8
-        ],
+        "onnxruntime_inference": "passed",
         "opset": 17,
         "output": {
           "name": "logits",
@@ -27,62 +23,7 @@
           ]
         }
       },
-      "resnet50_onnx:2": {
-        "input": {
-          "name": "images",
-          "shape": [
-            "batch",
-            3,
-            224,
-            224
-          ]
-        },
-        "ir_version": 8,
-        "onnx_checker": "passed",
-        "onnxruntime_batches": [
-          1,
-          4,
-          8
-        ],
-        "opset": 17,
-        "output": {
-          "name": "logits",
-          "shape": [
-            "batch",
-            1000
-          ]
-        }
-      },
-      "version_parity": {
-        "batches": {
-          "1": {
-            "cosine_similarity": 1.0,
-            "max_abs_error": 0.0,
-            "mean_abs_error": 0.0,
-            "top1_agreement": 1.0
-          },
-          "4": {
-            "cosine_similarity": 1.0,
-            "max_abs_error": 0.0,
-            "mean_abs_error": 0.0,
-            "top1_agreement": 1.0
-          },
-          "8": {
-            "cosine_similarity": 1.0000001036729995,
-            "max_abs_error": 0.0,
-            "mean_abs_error": 0.0,
-            "top1_agreement": 1.0
-          }
-        },
-        "status": "passed",
-        "tolerances": {
-          "max_abs_error": 0.0,
-          "mean_abs_error": 0.0,
-          "minimum_cosine_similarity": 1.0,
-          "minimum_top1_agreement": 1.0
-        }
-      },
-      "yolo11n_onnx:1": {
+      "yolo11n_onnx": {
         "input": {
           "name": "images",
           "shape": [
@@ -94,10 +35,7 @@
         },
         "ir_version": 8,
         "onnx_checker": "passed",
-        "onnxruntime_batches": [
-          1,
-          2
-        ],
+        "onnxruntime_inference": "passed",
         "opset": 17,
         "output": {
           "name": "output0",
@@ -180,9 +118,14 @@
       "source_sha256": "7a91a4d645e5eca6608573c7a0bb0d82e0f8c65db48e891380efc2c470f8f016"
     }
   },
-  "generated_at_utc": "2026-08-01T08:22:13.931344Z",
+  "generated_at_utc": "2026-07-31T19:26:15.313313Z",
   "models": {
     "resnet50_onnx": {
+      "artifact": {
+        "path": "models/resnet50_onnx/1/model.onnx",
+        "sha256": "7a91a4d645e5eca6608573c7a0bb0d82e0f8c65db48e891380efc2c470f8f016",
+        "size_bytes": 102146384
+      },
       "input": {
         "dtype": "FP32",
         "name": "images",
@@ -202,46 +145,26 @@
       },
       "logical_model_id": "resnet50",
       "max_batch_size": 8,
-      "model_config": {
-        "default_model_filename": "model.onnx",
-        "dynamic_batching": {
-          "max_queue_delay_microseconds": 5000,
-          "preferred_batch_size": [
-            4,
-            8
+      "onnx": {
+        "input": {
+          "name": "images",
+          "shape": [
+            "batch",
+            3,
+            224,
+            224
           ]
         },
-        "input": [
-          {
-            "data_type": "TYPE_FP32",
-            "dims": [
-              3,
-              224,
-              224
-            ],
-            "name": "images"
-          }
-        ],
-        "max_batch_size": 8,
-        "name": "resnet50_onnx",
-        "output": [
-          {
-            "data_type": "TYPE_FP32",
-            "dims": [
-              1000
-            ],
-            "label_filename": "imagenet1k.txt",
-            "name": "logits"
-          }
-        ],
-        "platform": "onnxruntime_onnx",
-        "version_policy": {
-          "specific": {
-            "versions": [
-              1,
-              2
-            ]
-          }
+        "ir_version": 8,
+        "onnx_checker": "passed",
+        "onnxruntime_inference": "passed",
+        "opset": 17,
+        "output": {
+          "name": "logits",
+          "shape": [
+            "batch",
+            1000
+          ]
         }
       },
       "output": {
@@ -277,15 +200,6 @@
           0.225
         ]
       },
-      "scheduling": {
-        "dynamic_batching": {
-          "max_queue_delay_microseconds": 5000,
-          "preferred_batch_sizes": [
-            4,
-            8
-          ]
-        }
-      },
       "smoke_batches": [
         1,
         4,
@@ -300,93 +214,14 @@
         "sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca",
         "url": "https://download.pytorch.org/models/resnet50-11ad3fa6.pth",
         "weights_terms": "ImageNet-derived; upstream dataset and weight terms require independent review"
-      },
-      "version_parity_tolerances": {
-        "max_abs_error": 0.0,
-        "mean_abs_error": 0.0,
-        "minimum_cosine_similarity": 1.0,
-        "minimum_top1_agreement": 1.0
-      },
-      "version_policy": {
-        "specific": [
-          1,
-          2
-        ]
-      },
-      "versions": {
-        "1": {
-          "artifact": {
-            "path": "models/resnet50_onnx/1/model.onnx",
-            "sha256": "7a91a4d645e5eca6608573c7a0bb0d82e0f8c65db48e891380efc2c470f8f016",
-            "size_bytes": 102146384
-          },
-          "onnx": {
-            "input": {
-              "name": "images",
-              "shape": [
-                "batch",
-                3,
-                224,
-                224
-              ]
-            },
-            "ir_version": 8,
-            "onnx_checker": "passed",
-            "onnxruntime_batches": [
-              1,
-              4,
-              8
-            ],
-            "opset": 17,
-            "output": {
-              "name": "logits",
-              "shape": [
-                "batch",
-                1000
-              ]
-            }
-          },
-          "revision": "baseline-export"
-        },
-        "2": {
-          "artifact": {
-            "path": "models/resnet50_onnx/2/model.onnx",
-            "sha256": "0e9525a142618a773523aa95493eace9da8f033361073bcbcd181036ae77a420",
-            "size_bytes": 102146485
-          },
-          "derived_from": "1",
-          "onnx": {
-            "input": {
-              "name": "images",
-              "shape": [
-                "batch",
-                3,
-                224,
-                224
-              ]
-            },
-            "ir_version": 8,
-            "onnx_checker": "passed",
-            "onnxruntime_batches": [
-              1,
-              4,
-              8
-            ],
-            "opset": 17,
-            "output": {
-              "name": "logits",
-              "shape": [
-                "batch",
-                1000
-              ]
-            }
-          },
-          "revision": "identity-output-graph",
-          "transform": "append-output-identity"
-        }
       }
     },
     "resnet50_tensorrt": {
+      "artifact": {
+        "path": "models/resnet50_tensorrt/1/model_cc89.plan",
+        "sha256": "73918c7d2379f130f6b712e392c8f604ef11b3ada49e18b26e9c5e131c6d5183",
+        "size_bytes": 51657828
+      },
       "compute_capability": "8.9",
       "compute_precision": "FP16",
       "input": {
@@ -409,49 +244,6 @@
       },
       "logical_model_id": "resnet50",
       "max_batch_size": 8,
-      "model_config": {
-        "cc_model_filenames": {
-          "8.9": "model_cc89.plan"
-        },
-        "dynamic_batching": {
-          "max_queue_delay_microseconds": 5000,
-          "preferred_batch_size": [
-            4,
-            8
-          ]
-        },
-        "input": [
-          {
-            "data_type": "TYPE_FP32",
-            "dims": [
-              3,
-              224,
-              224
-            ],
-            "name": "images"
-          }
-        ],
-        "max_batch_size": 8,
-        "name": "resnet50_tensorrt",
-        "output": [
-          {
-            "data_type": "TYPE_FP32",
-            "dims": [
-              1000
-            ],
-            "label_filename": "imagenet1k.txt",
-            "name": "logits"
-          }
-        ],
-        "platform": "tensorrt_plan",
-        "version_policy": {
-          "specific": {
-            "versions": [
-              1
-            ]
-          }
-        }
-      },
       "output": {
         "dtype": "FP32",
         "name": "logits",
@@ -505,15 +297,6 @@
           224
         ]
       },
-      "scheduling": {
-        "dynamic_batching": {
-          "max_queue_delay_microseconds": 5000,
-          "preferred_batch_sizes": [
-            4,
-            8
-          ]
-        }
-      },
       "smoke_batches": [
         1,
         4,
@@ -528,24 +311,14 @@
         "sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca",
         "url": "https://download.pytorch.org/models/resnet50-11ad3fa6.pth",
         "weights_terms": "ImageNet-derived; upstream dataset and weight terms require independent review"
-      },
-      "version_policy": {
-        "specific": [
-          1
-        ]
-      },
-      "versions": {
-        "1": {
-          "artifact": {
-            "path": "models/resnet50_tensorrt/1/model_cc89.plan",
-            "sha256": "73918c7d2379f130f6b712e392c8f604ef11b3ada49e18b26e9c5e131c6d5183",
-            "size_bytes": 51657828
-          },
-          "revision": "fp16-engine"
-        }
       }
     },
     "yolo11n_onnx": {
+      "artifact": {
+        "path": "models/yolo11n_onnx/1/model.onnx",
+        "sha256": "c1ef3ec4e3eaff27304c193e4fcd296ae14dc12a171c91eeef87ce670e91efb5",
+        "size_bytes": 10584348
+      },
       "input": {
         "dtype": "FP32",
         "name": "images",
@@ -566,44 +339,27 @@
       },
       "logical_model_id": "yolo11n",
       "max_batch_size": 2,
-      "model_config": {
-        "default_model_filename": "model.onnx",
-        "dynamic_batching": {
-          "max_queue_delay_microseconds": 5000,
-          "preferred_batch_size": [
-            2
+      "onnx": {
+        "input": {
+          "name": "images",
+          "shape": [
+            "batch",
+            3,
+            640,
+            640
           ]
         },
-        "input": [
-          {
-            "data_type": "TYPE_FP32",
-            "dims": [
-              3,
-              640,
-              640
-            ],
-            "name": "images"
-          }
-        ],
-        "max_batch_size": 2,
-        "name": "yolo11n_onnx",
-        "output": [
-          {
-            "data_type": "TYPE_FP32",
-            "dims": [
-              84,
-              8400
-            ],
-            "name": "output0"
-          }
-        ],
-        "platform": "onnxruntime_onnx",
-        "version_policy": {
-          "specific": {
-            "versions": [
-              1
-            ]
-          }
+        "ir_version": 8,
+        "onnx_checker": "passed",
+        "onnxruntime_inference": "passed",
+        "opset": 17,
+        "output": {
+          "name": "output0",
+          "shape": [
+            "batch",
+            84,
+            8400
+          ]
         }
       },
       "output": {
@@ -627,14 +383,6 @@
           1.0
         ]
       },
-      "scheduling": {
-        "dynamic_batching": {
-          "max_queue_delay_microseconds": 5000,
-          "preferred_batch_sizes": [
-            2
-          ]
-        }
-      },
       "smoke_batches": [
         1,
         2
@@ -648,53 +396,12 @@
         "sha256": "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1",
         "url": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
         "weights_license": "AGPL-3.0"
-      },
-      "version_policy": {
-        "specific": [
-          1
-        ]
-      },
-      "versions": {
-        "1": {
-          "artifact": {
-            "path": "models/yolo11n_onnx/1/model.onnx",
-            "sha256": "c1ef3ec4e3eaff27304c193e4fcd296ae14dc12a171c91eeef87ce670e91efb5",
-            "size_bytes": 10584348
-          },
-          "onnx": {
-            "input": {
-              "name": "images",
-              "shape": [
-                "batch",
-                3,
-                640,
-                640
-              ]
-            },
-            "ir_version": 8,
-            "onnx_checker": "passed",
-            "onnxruntime_batches": [
-              1,
-              2
-            ],
-            "opset": 17,
-            "output": {
-              "name": "output0",
-              "shape": [
-                "batch",
-                84,
-                8400
-              ]
-            }
-          },
-          "revision": "baseline-export"
-        }
       }
     }
   },
   "requirements_lock": "scripts/model_preparation/requirements.lock",
   "requirements_sha256": "d5d40dbfa1e905f6c5acf92a797ee3872053bcb28c142806190d499f9bb30955",
-  "schema_version": 2,
+  "schema_version": 1,
   "spec_path": "models/model-spec.yaml",
-  "spec_sha256": "58585849b85b312cd1dcfd3613ec337d213f9e9d777a296c8ef30eb823a5bd2d"
+  "spec_sha256": "648a2179dc67329694035b33ca0745946b781652a8e92398e7cc318b9a8f5344"
 }

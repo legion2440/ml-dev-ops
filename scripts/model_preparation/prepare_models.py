@@ -18,9 +18,17 @@ from typing import Any
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from shared.triton_model_config import (  # noqa: E402
+    build_model_config,
+    render_pbtxt,
+)
 SPEC_PATH = REPOSITORY_ROOT / "models/model-spec.yaml"
 LOCK_PATH = REPOSITORY_ROOT / "scripts/model_preparation/requirements.lock"
 MANIFEST_PATH = REPOSITORY_ROOT / "models/model-manifest.json"
+STEP3_MANIFEST_SNAPSHOT_PATH = (
+    REPOSITORY_ROOT / "docs/evidence/step-3/model-manifest-v1.json"
+)
 PREPARATION_EVIDENCE_PATH = (
     REPOSITORY_ROOT / "docs/evidence/step-3/preparation.json"
 )
@@ -38,6 +46,11 @@ FULL_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 PACKAGE_REQUIREMENT = re.compile(r"^([A-Za-z0-9_.-]+)==([^ ]+) \\$")
 MODEL_KEYS = ("resnet50", "yolo11n")
 SERVING_MODELS = ("resnet50_onnx", "resnet50_tensorrt", "yolo11n_onnx")
+SERVING_MAPPING = {
+    "resnet50_onnx": ("resnet50", "onnx", "onnxruntime_onnx"),
+    "resnet50_tensorrt": ("resnet50", "tensorrt", "tensorrt_plan"),
+    "yolo11n_onnx": ("yolo11n", "onnx", "onnxruntime_onnx"),
+}
 
 
 class PreparationError(RuntimeError):
@@ -177,69 +190,38 @@ def download_sources(spec: dict[str, Any]) -> None:
     print("[OK] Source weights and label sources match accepted SHA-256 values.")
 
 
-def _pbtxt_dims(shape: list[int]) -> str:
-    return ", ".join(str(value) for value in shape[1:])
+def serving_version_path(serving: dict[str, Any], version: str = "1") -> str:
+    return str(serving["versions"][str(version)]["artifact_path"])
 
 
-def _tensor_block(kind: str, tensor: dict[str, Any], label_filename: str | None) -> str:
-    label_line = f'    label_filename: "{label_filename}"\n' if label_filename else ""
-    return (
-        f"{kind} [\n"
-        "  {\n"
-        f'    name: "{tensor["name"]}"\n'
-        f'    data_type: TYPE_{tensor["dtype"]}\n'
-        f"    dims: [ {_pbtxt_dims(tensor['shape'])} ]\n"
-        f"{label_line}"
-        "  }\n"
-        "]\n"
+def serving_artifact_paths(spec: dict[str, Any]) -> list[str]:
+    return [
+        str(version["artifact_path"])
+        for model in spec["models"].values()
+        for serving in model["serving"].values()
+        for version in serving["versions"].values()
+    ]
+
+
+def serving_model_config(spec: dict[str, Any], serving_name: str) -> dict[str, Any]:
+    try:
+        logical_key, serving_kind, platform = SERVING_MAPPING[serving_name]
+    except KeyError as error:
+        raise PreparationError(f"Unknown serving model: {serving_name}") from error
+    model = spec["models"][logical_key]
+    serving = model["serving"][serving_kind]
+    capability = (
+        str(spec["build"]["target"]["compute_capability"])
+        if serving_kind == "tensorrt"
+        else None
+    )
+    return build_model_config(
+        model, serving, platform=platform, compute_capability=capability
     )
 
 
 def render_config(spec: dict[str, Any], serving_name: str) -> str:
-    resnet = spec["models"]["resnet50"]
-    yolo = spec["models"]["yolo11n"]
-    if serving_name == "resnet50_onnx":
-        model = resnet
-        serving = model["serving"]["onnx"]
-        platform = "onnxruntime_onnx"
-        filename = PurePosixPath(serving["artifact_path"]).name
-        default_filename = f'default_model_filename: "{filename}"\n'
-        extra = ""
-        label = model["labels"]["filename"]
-    elif serving_name == "resnet50_tensorrt":
-        model = resnet
-        serving = model["serving"]["tensorrt"]
-        platform = "tensorrt_plan"
-        filename = PurePosixPath(serving["artifact_path"]).name
-        default_filename = ""
-        capability = spec["build"]["target"]["compute_capability"]
-        extra = (
-            "cc_model_filenames {\n"
-            f'  key: "{capability}"\n'
-            f'  value: "{filename}"\n'
-            "}\n"
-        )
-        label = model["labels"]["filename"]
-    elif serving_name == "yolo11n_onnx":
-        model = yolo
-        serving = model["serving"]["onnx"]
-        platform = "onnxruntime_onnx"
-        filename = PurePosixPath(serving["artifact_path"]).name
-        default_filename = f'default_model_filename: "{filename}"\n'
-        extra = ""
-        label = None
-    else:
-        raise PreparationError(f"Unknown serving model: {serving_name}")
-
-    return (
-        f'name: "{serving_name}"\n'
-        f'platform: "{platform}"\n'
-        f"max_batch_size: {serving['max_batch_size']}\n"
-        f"{default_filename}"
-        f"{extra}"
-        f"{_tensor_block('input', model['input'], None)}"
-        f"{_tensor_block('output', model['output'], label)}"
-    )
+    return render_pbtxt(serving_model_config(spec, serving_name))
 
 
 def _generated_label_content(
@@ -289,6 +271,7 @@ def generate_repository_text(spec: dict[str, Any]) -> None:
 
 
 def _internal_export(spec: dict[str, Any]) -> None:
+    import onnx
     import torch
     import torchvision
     from torchvision.models import resnet50
@@ -300,7 +283,8 @@ def _internal_export(spec: dict[str, Any]) -> None:
     model = resnet50(weights=None).eval().float()
     state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
     model.load_state_dict(state_dict)
-    onnx_path = REPOSITORY_ROOT / resnet["serving"]["onnx"]["artifact_path"]
+    resnet_serving = resnet["serving"]["onnx"]
+    onnx_path = REPOSITORY_ROOT / serving_version_path(resnet_serving, "1")
     onnx_path.parent.mkdir(parents=True, exist_ok=True)
     example = torch.zeros((1, *resnet["input"]["shape"][1:]), dtype=torch.float32)
     with torch.inference_mode():
@@ -319,10 +303,40 @@ def _internal_export(spec: dict[str, Any]) -> None:
             },
         )
 
+    version_two_path = REPOSITORY_ROOT / serving_version_path(resnet_serving, "2")
+    version_two = onnx.load(str(onnx_path))
+    public_output = version_two.graph.output[0].name
+    internal_output = f"{public_output}__identity_v2_input"
+    producers = [
+        (node, index)
+        for node in version_two.graph.node
+        for index, output in enumerate(node.output)
+        if output == public_output
+    ]
+    if len(producers) != 1:
+        raise PreparationError("ResNet public ONNX output must have exactly one producer")
+    if any(public_output in node.input for node in version_two.graph.node):
+        raise PreparationError("ResNet public ONNX output must be a terminal tensor")
+    producer, output_index = producers[0]
+    producer.output[output_index] = internal_output
+    version_two.graph.node.append(
+        onnx.helper.make_node(
+            "Identity",
+            inputs=[internal_output],
+            outputs=[public_output],
+            name="serving_revision_identity_output",
+        )
+    )
+    onnx.checker.check_model(version_two)
+    version_two_path.parent.mkdir(parents=True, exist_ok=True)
+    onnx.save(version_two, str(version_two_path))
+    if sha256_file(onnx_path) == sha256_file(version_two_path):
+        raise PreparationError("ResNet ONNX versions must have different artifacts")
+
     yolo = spec["models"]["yolo11n"]
     export_yolo11n(
         _source_cache_path(yolo["source"]),
-        REPOSITORY_ROOT / yolo["serving"]["onnx"]["artifact_path"],
+        REPOSITORY_ROOT / serving_version_path(yolo["serving"]["onnx"], "1"),
         opset=int(spec["build"]["onnx_opset"]),
         input_name=str(yolo["input"]["name"]),
         output_name=str(yolo["output"]["name"]),
@@ -348,12 +362,15 @@ def _internal_inspect_onnx(spec: dict[str, Any]) -> None:
     import onnxruntime as ort
 
     inspection: dict[str, Any] = {}
-    mapping = {
-        "resnet50_onnx": spec["models"]["resnet50"],
-        "yolo11n_onnx": spec["models"]["yolo11n"],
-    }
-    for serving_name, model_spec in mapping.items():
-        artifact_path = REPOSITORY_ROOT / model_spec["serving"]["onnx"]["artifact_path"]
+    sessions: dict[str, Any] = {}
+    mapping = [
+        ("resnet50_onnx", "1", spec["models"]["resnet50"]),
+        ("resnet50_onnx", "2", spec["models"]["resnet50"]),
+        ("yolo11n_onnx", "1", spec["models"]["yolo11n"]),
+    ]
+    for serving_name, version, model_spec in mapping:
+        serving = model_spec["serving"]["onnx"]
+        artifact_path = REPOSITORY_ROOT / serving_version_path(serving, version)
         model = onnx.load(str(artifact_path))
         onnx.checker.check_model(model)
         graph_input = model.graph.input[0]
@@ -367,52 +384,96 @@ def _internal_inspect_onnx(spec: dict[str, Any]) -> None:
                 f"{serving_name} graph contract {input_shape}->{output_shape} does not match "
                 f"{expected_input}->{expected_output}"
             )
-        session = ort.InferenceSession(
-            str(artifact_path), providers=["CPUExecutionProvider"]
-        )
-        if serving_name == "resnet50_onnx":
-            batch = int(model_spec["serving"]["tensorrt"]["profile"]["opt"][0])
-        else:
-            batch = int(model_spec["smoke_batches"][0])
-        input_array = np.linspace(
-            0.0,
-            1.0,
-            num=int(np.prod([batch, *model_spec["input"]["shape"][1:]])),
-            dtype=np.float32,
-        ).reshape([batch, *model_spec["input"]["shape"][1:]])
-        output_array = session.run(
-            [model_spec["output"]["name"]],
-            {model_spec["input"]["name"]: input_array},
-        )[0]
-        if list(output_array.shape) != [batch, *model_spec["output"]["shape"][1:]]:
-            raise PreparationError(f"{serving_name} ONNX Runtime output shape is incorrect")
-        if not np.isfinite(output_array).all():
-            raise PreparationError(f"{serving_name} ONNX Runtime output is not finite")
-        inspection[serving_name] = {
+        session = ort.InferenceSession(str(artifact_path), providers=["CPUExecutionProvider"])
+        sessions[f"{serving_name}:{version}"] = session
+        for batch in model_spec["smoke_batches"]:
+            input_array = np.linspace(
+                0.0,
+                1.0,
+                num=int(np.prod([batch, *model_spec["input"]["shape"][1:]])),
+                dtype=np.float32,
+            ).reshape([batch, *model_spec["input"]["shape"][1:]])
+            output_array = session.run(
+                [model_spec["output"]["name"]],
+                {model_spec["input"]["name"]: input_array},
+            )[0]
+            if list(output_array.shape) != [batch, *model_spec["output"]["shape"][1:]]:
+                raise PreparationError(
+                    f"{serving_name}:{version} ONNX Runtime output shape is incorrect"
+                )
+            if not np.isfinite(output_array).all():
+                raise PreparationError(
+                    f"{serving_name}:{version} ONNX Runtime output is not finite"
+                )
+        inspection[f"{serving_name}:{version}"] = {
             "ir_version": int(model.ir_version),
             "opset": max(int(item.version) for item in model.opset_import),
             "input": {"name": graph_input.name, "shape": input_shape},
             "output": {"name": graph_output.name, "shape": output_shape},
             "onnx_checker": "passed",
-            "onnxruntime_inference": "passed",
+            "onnxruntime_batches": list(model_spec["smoke_batches"]),
         }
-        if serving_name == "resnet50_onnx":
-            np.save(CACHE_DIRECTORY / "resnet-parity-input.npy", input_array)
-            np.save(CACHE_DIRECTORY / "resnet-parity-onnx.npy", output_array)
-            parity_contract = {
-                "engine_path": model_spec["serving"]["tensorrt"]["artifact_path"],
-                "input_name": model_spec["input"]["name"],
-                "output_name": model_spec["output"]["name"],
-                "input_shape": list(input_array.shape),
-                "output_shape": list(output_array.shape),
-                "compute_capability": spec["build"]["target"]["compute_capability"],
-                "onnx_source_sha256": sha256_file(artifact_path),
-                "tolerances": model_spec["parity"],
-            }
-            _write_text(
-                CACHE_DIRECTORY / "resnet-parity-contract.json",
-                canonical_json(parity_contract),
-            )
+
+    resnet = spec["models"]["resnet50"]
+    version_parity: dict[str, Any] = {"status": "passed", "batches": {}}
+    tolerances = resnet["version_parity"]
+    for batch in resnet["smoke_batches"]:
+        input_array = np.linspace(
+            0.0,
+            1.0,
+            num=int(np.prod([batch, *resnet["input"]["shape"][1:]])),
+            dtype=np.float32,
+        ).reshape([batch, *resnet["input"]["shape"][1:]])
+        outputs = [
+            sessions[f"resnet50_onnx:{version}"].run(
+                [resnet["output"]["name"]], {resnet["input"]["name"]: input_array}
+            )[0]
+            for version in ("1", "2")
+        ]
+        difference = np.abs(outputs[0] - outputs[1])
+        denominator = float(np.linalg.norm(outputs[0].ravel()) * np.linalg.norm(outputs[1].ravel()))
+        metrics = {
+            "max_abs_error": float(difference.max()),
+            "mean_abs_error": float(difference.mean()),
+            "cosine_similarity": float(np.dot(outputs[0].ravel(), outputs[1].ravel()) / denominator),
+            "top1_agreement": float(np.mean(np.argmax(outputs[0], axis=1) == np.argmax(outputs[1], axis=1))),
+        }
+        if (
+            metrics["max_abs_error"] > tolerances["max_abs_error"]
+            or metrics["mean_abs_error"] > tolerances["mean_abs_error"]
+            or metrics["cosine_similarity"] < tolerances["minimum_cosine_similarity"]
+            or metrics["top1_agreement"] < tolerances["minimum_top1_agreement"]
+        ):
+            raise PreparationError(f"ResNet ONNX version parity failed for batch {batch}")
+        version_parity["batches"][str(batch)] = metrics
+    version_parity["tolerances"] = tolerances
+    inspection["version_parity"] = version_parity
+
+    parity_batch = int(resnet["serving"]["tensorrt"]["profile"]["opt"][0])
+    parity_input = np.linspace(
+        0.0,
+        1.0,
+        num=int(np.prod([parity_batch, *resnet["input"]["shape"][1:]])),
+        dtype=np.float32,
+    ).reshape([parity_batch, *resnet["input"]["shape"][1:]])
+    parity_output = sessions["resnet50_onnx:1"].run(
+        [resnet["output"]["name"]], {resnet["input"]["name"]: parity_input}
+    )[0]
+    np.save(CACHE_DIRECTORY / "resnet-parity-input.npy", parity_input)
+    np.save(CACHE_DIRECTORY / "resnet-parity-onnx.npy", parity_output)
+    parity_contract = {
+        "engine_path": serving_version_path(resnet["serving"]["tensorrt"], "1"),
+        "input_name": resnet["input"]["name"],
+        "output_name": resnet["output"]["name"],
+        "input_shape": list(parity_input.shape),
+        "output_shape": list(parity_output.shape),
+        "compute_capability": spec["build"]["target"]["compute_capability"],
+        "onnx_source_sha256": sha256_file(
+            REPOSITORY_ROOT / serving_version_path(resnet["serving"]["onnx"], "1")
+        ),
+        "tolerances": resnet["parity"],
+    }
+    _write_text(CACHE_DIRECTORY / "resnet-parity-contract.json", canonical_json(parity_contract))
     _write_text(INSPECTION_PATH, canonical_json(inspection))
     print("[OK] ONNX checker, fixed-spatial regression, and synthetic inference passed.")
 
@@ -465,7 +526,9 @@ def _internal_prepare_tensorrt_onnx(spec: dict[str, Any]) -> None:
     from onnxconverter_common import float16
 
     resnet = spec["models"]["resnet50"]
-    source_path = REPOSITORY_ROOT / resnet["serving"]["onnx"]["artifact_path"]
+    source_path = REPOSITORY_ROOT / serving_version_path(
+        resnet["serving"]["onnx"], "1"
+    )
     target_path = CACHE_DIRECTORY / "resnet50-fp16.onnx"
     graph = onnx.load(str(source_path))
     converted = float16.convert_float_to_float16(
@@ -487,7 +550,7 @@ def _internal_prepare_tensorrt_onnx(spec: dict[str, Any]) -> None:
     onnx.save(converted, str(target_path))
     metadata = {
         "path": ".cache/model-preparation/resnet50-fp16.onnx",
-        "source_path": resnet["serving"]["onnx"]["artifact_path"],
+        "source_path": serving_version_path(resnet["serving"]["onnx"], "1"),
         "source_sha256": sha256_file(source_path),
         "sha256": sha256_file(target_path),
         "fp16_initializers": fp16_initializers,
@@ -712,7 +775,8 @@ def build_tensorrt(spec: dict[str, Any]) -> None:
     def shape(profile_name: str) -> str:
         return "x".join(str(value) for value in profile[profile_name])
 
-    engine_path = REPOSITORY_ROOT / resnet["serving"]["tensorrt"]["artifact_path"]
+    engine_relative_path = serving_version_path(resnet["serving"]["tensorrt"], "1")
+    engine_path = REPOSITORY_ROOT / engine_relative_path
     engine_path.parent.mkdir(parents=True, exist_ok=True)
     _run(
         [
@@ -728,7 +792,7 @@ def build_tensorrt(spec: dict[str, Any]) -> None:
             image,
             _trtexec_path(),
             "--onnx=/workspace/.cache/model-preparation/resnet50-fp16.onnx",
-            f"--saveEngine=/workspace/{resnet['serving']['tensorrt']['artifact_path']}",
+            f"--saveEngine=/workspace/{engine_relative_path}",
             f"--minShapes={input_name}:{shape('min')}",
             f"--optShapes={input_name}:{shape('opt')}",
             f"--maxShapes={input_name}:{shape('max')}",
@@ -791,30 +855,43 @@ def _manifest_model_entry(
 ) -> dict[str, Any]:
     model = spec["models"][logical_key]
     serving = model["serving"][serving_kind]
-    path = REPOSITORY_ROOT / serving["artifact_path"]
+    versions: dict[str, Any] = {}
+    for version, details in serving["versions"].items():
+        path = REPOSITORY_ROOT / details["artifact_path"]
+        version_entry: dict[str, Any] = {
+            "artifact": {
+                "path": details["artifact_path"],
+                "sha256": sha256_file(path),
+                "size_bytes": path.stat().st_size,
+            },
+            "revision": details["revision"],
+        }
+        for optional in ("derived_from", "transform"):
+            if optional in details:
+                version_entry[optional] = details[optional]
+        inspection_key = f"{serving['name']}:{version}"
+        if inspection_key in inspection:
+            version_entry["onnx"] = inspection[inspection_key]
+        versions[version] = version_entry
     entry: dict[str, Any] = {
         "logical_model_id": logical_key,
-        "source": {
-            **model["source"],
-        },
+        "source": {**model["source"]},
         "preprocessing": model["preprocessing"],
         "labels": model["labels"],
-        "artifact": {
-            "path": serving["artifact_path"],
-            "sha256": sha256_file(path),
-            "size_bytes": path.stat().st_size,
-        },
         "input": model["input"],
         "output": model["output"],
         "precision": serving["precision"],
         "max_batch_size": serving["max_batch_size"],
         "smoke_batches": model["smoke_batches"],
+        "version_policy": serving["version_policy"],
+        "scheduling": serving["scheduling"],
+        "model_config": serving_model_config(spec, serving["name"]),
+        "versions": versions,
     }
     if logical_key == "resnet50":
         entry["parity_tolerances"] = model["parity"]
-    serving_name = serving["name"]
-    if serving_name in inspection:
-        entry["onnx"] = inspection[serving_name]
+        if serving_kind == "onnx":
+            entry["version_parity_tolerances"] = model["version_parity"]
     if serving_kind == "tensorrt":
         entry["compute_precision"] = serving["compute_precision"]
         entry["io_precision"] = serving["io_precision"]
@@ -828,17 +905,16 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
         build_exporter_image(spec)
         _run_exporter(spec, "_inspect-onnx")
     inspection = json.loads(INSPECTION_PATH.read_text(encoding="utf-8"))
-    artifact_paths = [
-        spec["models"]["resnet50"]["serving"]["onnx"]["artifact_path"],
-        spec["models"]["resnet50"]["serving"]["tensorrt"]["artifact_path"],
-        spec["models"]["yolo11n"]["serving"]["onnx"]["artifact_path"],
-    ]
+    artifact_paths = serving_artifact_paths(spec)
     missing = [path for path in artifact_paths if not (REPOSITORY_ROOT / path).is_file()]
     if missing:
         raise PreparationError("Cannot create manifest; missing artifacts: " + ", ".join(missing))
     validation_path = CACHE_DIRECTORY / "tensorrt-validation.json"
-    engine_path = REPOSITORY_ROOT / artifact_paths[1]
-    onnx_path = REPOSITORY_ROOT / artifact_paths[0]
+    resnet = spec["models"]["resnet50"]
+    engine_path = REPOSITORY_ROOT / serving_version_path(
+        resnet["serving"]["tensorrt"], "1"
+    )
+    onnx_path = REPOSITORY_ROOT / serving_version_path(resnet["serving"]["onnx"], "1")
     validation: dict[str, Any] = {}
     if validation_path.is_file():
         validation = json.loads(validation_path.read_text(encoding="utf-8"))
@@ -853,7 +929,7 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
         (CACHE_DIRECTORY / "tensorrt-onnx-metadata.json").read_text(encoding="utf-8")
     )
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "spec_path": "models/model-spec.yaml",
         "spec_sha256": sha256_file(SPEC_PATH),
@@ -888,17 +964,19 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_preparation_evidence() -> None:
-    if not MANIFEST_PATH.is_file():
-        raise PreparationError("model-manifest.json is required for preparation evidence")
+    if not STEP3_MANIFEST_SNAPSHOT_PATH.is_file():
+        raise PreparationError("immutable step-3 manifest snapshot is missing")
     evidence = {
-        "manifest_path": "models/model-manifest.json",
-        "manifest_sha256": sha256_file(MANIFEST_PATH),
+        "manifest_path": "docs/evidence/step-3/model-manifest-v1.json",
+        "manifest_sha256": sha256_file(STEP3_MANIFEST_SNAPSHOT_PATH),
     }
     _write_text(PREPARATION_EVIDENCE_PATH, canonical_json(evidence))
 
 
 def manifest_staleness(spec: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    if manifest.get("schema_version") != 2:
+        errors.append("manifest schema version is stale")
     if manifest.get("spec_sha256") != sha256_file(SPEC_PATH):
         errors.append("manifest spec SHA-256 is stale")
     if manifest.get("requirements_sha256") != sha256_file(LOCK_PATH):
@@ -933,9 +1011,14 @@ def manifest_staleness(spec: dict[str, Any], manifest: dict[str, Any]) -> list[s
             "precision": serving["precision"],
             "max_batch_size": serving["max_batch_size"],
             "smoke_batches": model_spec["smoke_batches"],
+            "version_policy": serving["version_policy"],
+            "scheduling": serving["scheduling"],
+            "model_config": serving_model_config(spec, serving_name),
         }
         if logical_key == "resnet50":
             comparisons["parity_tolerances"] = model_spec["parity"]
+            if serving_kind == "onnx":
+                comparisons["version_parity_tolerances"] = model_spec["version_parity"]
         for key, expected in comparisons.items():
             if entry.get(key) != expected:
                 errors.append(f"manifest {serving_name}.{key} is stale")
@@ -945,8 +1028,23 @@ def manifest_staleness(spec: dict[str, Any], manifest: dict[str, Any]) -> list[s
             errors.append(f"manifest {serving_name} source metadata is stale")
         if entry.get("labels") != model_spec["labels"]:
             errors.append(f"manifest {serving_name} label metadata is stale")
-        if entry.get("artifact", {}).get("path") != serving["artifact_path"]:
-            errors.append(f"manifest {serving_name} artifact path is stale")
+        actual_versions = entry.get("versions", {})
+        if set(actual_versions) != set(serving["versions"]):
+            errors.append(f"manifest {serving_name} version set is stale")
+        for version, version_spec in serving["versions"].items():
+            actual_version = actual_versions.get(version, {})
+            expected_metadata = {
+                key: value
+                for key, value in version_spec.items()
+                if key != "artifact_path"
+            }
+            for key, expected in expected_metadata.items():
+                if actual_version.get(key) != expected:
+                    errors.append(
+                        f"manifest {serving_name} version {version} {key} is stale"
+                    )
+            if actual_version.get("artifact", {}).get("path") != version_spec["artifact_path"]:
+                errors.append(f"manifest {serving_name} version {version} path is stale")
         if serving_kind == "tensorrt":
             if entry.get("profile") != serving["profile"]:
                 errors.append("manifest TensorRT profile is stale")
@@ -961,19 +1059,31 @@ def manifest_staleness(spec: dict[str, Any], manifest: dict[str, Any]) -> list[s
     if tensorrt_validation.get("parity", {}).get("tolerances") != expected_tolerances:
         errors.append("manifest TensorRT artifact parity tolerances are stale")
     if tensorrt_validation.get("engine_sha256") != entries.get("resnet50_tensorrt", {}).get(
-        "artifact", {}
-    ).get("sha256"):
+        "versions", {}
+    ).get("1", {}).get("artifact", {}).get("sha256"):
         errors.append("manifest TensorRT validation engine SHA-256 is stale")
     if tensorrt_validation.get("onnx_source_sha256") != entries.get("resnet50_onnx", {}).get(
-        "artifact", {}
-    ).get("sha256"):
+        "versions", {}
+    ).get("1", {}).get("artifact", {}).get("sha256"):
         errors.append("manifest TensorRT validation ONNX SHA-256 is stale")
     for onnx_name in ("resnet50_onnx", "yolo11n_onnx"):
-        expected_onnx = entries.get(onnx_name, {}).get("onnx")
-        if validation.get("onnx", {}).get(onnx_name) != expected_onnx:
-            errors.append(f"manifest {onnx_name} validation metadata is stale")
+        for version, version_entry in entries.get(onnx_name, {}).get("versions", {}).items():
+            expected_onnx = version_entry.get("onnx")
+            key = f"{onnx_name}:{version}"
+            if validation.get("onnx", {}).get(key) != expected_onnx:
+                errors.append(f"manifest {key} validation metadata is stale")
+    expected_version_parity = entries.get("resnet50_onnx", {}).get(
+        "version_parity_tolerances"
+    )
+    version_parity = validation.get("onnx", {}).get("version_parity", {})
+    if version_parity.get("status") != "passed":
+        errors.append("manifest ResNet version parity is not passed")
+    if version_parity.get("tolerances") != expected_version_parity:
+        errors.append("manifest ResNet version parity tolerances are stale")
     tensorrt_input = manifest.get("build", {}).get("tensorrt_input", {})
-    resnet_artifact = entries.get("resnet50_onnx", {}).get("artifact", {})
+    resnet_artifact = entries.get("resnet50_onnx", {}).get("versions", {}).get(
+        "1", {}
+    ).get("artifact", {})
     if tensorrt_input.get("source_sha256") != resnet_artifact.get("sha256"):
         errors.append("manifest strongly typed TensorRT input is stale")
     return errors
@@ -1013,12 +1123,12 @@ def check_generated(spec: dict[str, Any]) -> list[str]:
             errors.append(f"cannot read model manifest: {error}")
     if not PREPARATION_EVIDENCE_PATH.is_file():
         errors.append("missing generated preparation evidence")
-    elif MANIFEST_PATH.is_file():
+    elif STEP3_MANIFEST_SNAPSHOT_PATH.is_file():
         try:
             evidence = json.loads(PREPARATION_EVIDENCE_PATH.read_text(encoding="utf-8"))
             expected = {
-                "manifest_path": "models/model-manifest.json",
-                "manifest_sha256": sha256_file(MANIFEST_PATH),
+                "manifest_path": "docs/evidence/step-3/model-manifest-v1.json",
+                "manifest_sha256": sha256_file(STEP3_MANIFEST_SNAPSHOT_PATH),
             }
             if evidence != expected:
                 errors.append("preparation evidence is stale")
@@ -1028,12 +1138,7 @@ def check_generated(spec: dict[str, Any]) -> list[str]:
 
 
 def clean_models(spec: dict[str, Any]) -> None:
-    artifacts = [
-        spec["models"]["resnet50"]["serving"]["onnx"]["artifact_path"],
-        spec["models"]["resnet50"]["serving"]["tensorrt"]["artifact_path"],
-        spec["models"]["yolo11n"]["serving"]["onnx"]["artifact_path"],
-    ]
-    for relative_path in artifacts:
+    for relative_path in serving_artifact_paths(spec):
         path = (REPOSITORY_ROOT / relative_path).resolve()
         if REPOSITORY_ROOT.resolve() not in path.parents:
             raise PreparationError(f"Refusing to clean path outside repository: {path}")
@@ -1064,6 +1169,21 @@ def prepare(spec: dict[str, Any]) -> None:
     print("[OK] Model preparation reached artifact-complete state.")
 
 
+def prepare_versions(spec: dict[str, Any]) -> None:
+    """Rebuild ONNX serving versions and refresh the manifest when artifacts exist."""
+    download_sources(spec)
+    generate_repository_text(spec)
+    export_models(spec)
+    missing = [
+        path for path in serving_artifact_paths(spec) if not (REPOSITORY_ROOT / path).is_file()
+    ]
+    if missing:
+        raise PreparationError(
+            "Serving versions were prepared, but manifest refresh needs: " + ", ".join(missing)
+        )
+    create_manifest(spec)
+
+
 def _validate_images(spec: dict[str, Any]) -> None:
     for key in ("exporter_image", "tensorrt_builder_image"):
         reference = str(spec["build"].get(key, ""))
@@ -1080,6 +1200,7 @@ def main() -> int:
         nargs="?",
         choices=(
             "prepare",
+            "prepare-versions",
             "discover",
             "download",
             "generate",
@@ -1116,6 +1237,7 @@ def main() -> int:
             parser.error("a command is required unless --check is used")
         commands = {
             "prepare": lambda: prepare(spec),
+            "prepare-versions": lambda: prepare_versions(spec),
             "discover": lambda: discover_sources(spec),
             "download": lambda: download_sources(spec),
             "generate": lambda: (download_sources(spec), generate_repository_text(spec)),

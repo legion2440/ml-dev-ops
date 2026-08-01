@@ -29,6 +29,11 @@ IMAGE_RULES = {
         re.compile(r"\d{2}\.\d{2}-py3"),
         "a full monthly py3 tag",
     ),
+    "TRITON_SDK_IMAGE": (
+        "nvcr.io/nvidia/tritonserver",
+        re.compile(r"\d{2}\.\d{2}-py3-sdk"),
+        "a full monthly py3-sdk tag",
+    ),
     "PROMETHEUS_IMAGE": (
         "prom/prometheus",
         re.compile(r"v\d+\.\d+\.\d+"),
@@ -65,7 +70,8 @@ PORT_KEYS = {
     "GRAFANA_PORT",
     "DCGM_METRICS_PORT",
 }
-EXPECTED_SERVICES = {"triton", "prometheus", "grafana", "dcgm-exporter"}
+PERSISTENT_SERVICES = {"triton", "prometheus", "grafana", "dcgm-exporter"}
+EXPECTED_SERVICES = {*PERSISTENT_SERVICES, "triton-verifier"}
 LIFECYCLE_SCRIPTS = (
     "deployment/scripts/run_environment.sh",
     "deployment/scripts/stop_environment.sh",
@@ -199,6 +205,7 @@ def _validate_images(
         "PROMETHEUS_IMAGE": services.get("prometheus", {}).get("image"),
         "GRAFANA_IMAGE": services.get("grafana", {}).get("image"),
         "DCGM_EXPORTER_IMAGE": services.get("dcgm-exporter", {}).get("image"),
+        "TRITON_SDK_IMAGE": services.get("triton-verifier", {}).get("image"),
     }
     for variable, expression in image_references.items():
         if _compose_variable(expression) != variable:
@@ -329,7 +336,7 @@ def _validate_services(
     _validate_mounts(compose, services, env, errors)
     _validate_ports(services, errors)
 
-    for service_name in EXPECTED_SERVICES:
+    for service_name in PERSISTENT_SERVICES:
         service = services[service_name]
         if "healthcheck" not in service:
             errors.append(f"{service_name} must declare a healthcheck")

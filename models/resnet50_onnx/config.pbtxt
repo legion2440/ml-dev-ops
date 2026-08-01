@@ -2,6 +2,17 @@ name: "resnet50_onnx"
 platform: "onnxruntime_onnx"
 max_batch_size: 8
 default_model_filename: "model.onnx"
+version_policy {
+  specific {
+    versions: 1
+    versions: 2
+  }
+}
+dynamic_batching {
+  preferred_batch_size: 4
+  preferred_batch_size: 8
+  max_queue_delay_microseconds: 5000
+}
 input [
   {
     name: "images"

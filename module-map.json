@@ -54,14 +54,13 @@
             "scripts/model_preparation/requirements.lock"
           ]
         },
-        {
-          "path": "docs/evidence/step-3/preparation.json",
+                {
+                    "path": "docs/evidence/step-3/preparation.json",
           "status": "generated",
           "generator": "scripts/model_preparation/prepare_models.py",
-          "sources": [
-            "models/model-spec.yaml",
-            "models/model-manifest.json"
-          ]
+                    "sources": [
+                        "docs/evidence/step-3/model-manifest-v1.json"
+                    ]
         }
       ],
       "owned_configuration": [
@@ -175,9 +174,13 @@
           "path": "deployment/scripts/run_triton.sh",
           "status": "implemented"
         },
-        {
-          "path": "deployment/triton/smoke_models.py",
-          "status": "implemented"
+                {
+                    "path": "deployment/triton/smoke_models.py",
+                    "status": "implemented"
+                },
+                {
+                    "path": "deployment/triton/verify_serving.py",
+                    "status": "implemented"
         }
       ],
       "public_interfaces": [
@@ -195,9 +198,21 @@
           "path": "deployment/triton/smoke_models.py",
           "status": "implemented"
         },
-        {
-          "path": "scripts/validate_model_evidence.py",
-          "status": "implemented"
+                {
+                    "path": "scripts/validate_model_evidence.py",
+                    "status": "implemented"
+                },
+                {
+                    "path": "scripts/validate_serving.py",
+                    "status": "implemented"
+                },
+                {
+                    "path": "scripts/validate_serving_evidence.py",
+                    "status": "implemented"
+                },
+                {
+                    "path": "tests/unit/triton_serving",
+                    "status": "implemented"
         },
         {
           "path": "tests/integration/triton",
@@ -216,8 +231,8 @@
           "status": "generated",
           "generator": "deployment/triton/smoke_models.py",
           "sources": [
-            ".env.example",
-            "models/model-manifest.json"
+                        ".env.example",
+                        "docs/evidence/step-3/model-manifest-v1.json"
           ]
         },
         {
@@ -225,9 +240,29 @@
           "status": "generated",
           "generator": "deployment/triton/smoke_models.py",
           "sources": [
-            ".env.example",
-            "models/model-manifest.json"
-          ]
+                        ".env.example",
+                        "docs/evidence/step-3/model-manifest-v1.json"
+                    ]
+                },
+                {
+                    "path": "docs/evidence/step-4/serving-runtime.json",
+                    "status": "generated",
+                    "generator": "deployment/triton/verify_serving.py",
+                    "sources": [
+                        ".env.example",
+                        "models/model-spec.yaml",
+                        "models/model-manifest.json",
+                        "deployment/triton/verify_serving.py"
+                    ]
+                },
+                {
+                    "path": "docs/evidence/step-4/repository-versions.txt",
+                    "status": "generated",
+                    "generator": "deployment/triton/verify_serving.py",
+                    "sources": [
+                        "models/model-manifest.json",
+                        "deployment/triton/verify_serving.py"
+                    ]
         }
       ],
       "owned_configuration": []
@@ -529,17 +564,17 @@
       "description": "Contains only cross-module inference schemas and data-transfer contracts.",
       "module_type": "library",
       "root": "shared",
-      "entrypoints": [
-        {
-          "path": "shared/contracts.py",
-          "status": "planned"
-        }
-      ],
-      "public_interfaces": [
-        {
-          "path": "shared/contracts.py",
-          "status": "planned"
-        }
+            "entrypoints": [
+                {
+                    "path": "shared/triton_model_config.py",
+                    "status": "implemented"
+                }
+            ],
+            "public_interfaces": [
+                {
+                    "path": "shared/triton_model_config.py",
+                    "status": "implemented"
+                }
       ],
       "tests": [
         {
@@ -570,9 +605,17 @@
       "path": "schemas/model-spec.schema.json",
       "status": "implemented"
     },
-    {
-      "path": "schemas/model-manifest.schema.json",
-      "status": "implemented"
+        {
+            "path": "schemas/model-manifest.schema.json",
+            "status": "implemented"
+        },
+        {
+            "path": "schemas/serving-evidence.schema.json",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-3/model-manifest-v1.json",
+            "status": "implemented"
     },
     {
       "path": "docs/generated/dependency-graph.md",
