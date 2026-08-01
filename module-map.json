@@ -175,10 +175,6 @@
           "status": "implemented"
         },
                 {
-                    "path": "deployment/triton/smoke_models.py",
-                    "status": "implemented"
-                },
-                {
                     "path": "deployment/triton/verify_serving.py",
                     "status": "implemented"
         }
@@ -226,24 +222,6 @@
         }
       ],
       "generated_artifacts": [
-        {
-          "path": "docs/evidence/step-3/triton-model-smoke.json",
-          "status": "generated",
-          "generator": "deployment/triton/smoke_models.py",
-          "sources": [
-                        ".env.example",
-                        "docs/evidence/step-3/model-manifest-v1.json"
-          ]
-        },
-        {
-          "path": "docs/evidence/step-3/model-repository.txt",
-          "status": "generated",
-          "generator": "deployment/triton/smoke_models.py",
-          "sources": [
-                        ".env.example",
-                        "docs/evidence/step-3/model-manifest-v1.json"
-                    ]
-                },
                 {
                     "path": "docs/evidence/step-4/serving-runtime.json",
                     "status": "generated",
@@ -615,6 +593,14 @@
         },
         {
             "path": "docs/evidence/step-3/model-manifest-v1.json",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-3/triton-model-smoke.json",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-3/model-repository.txt",
             "status": "implemented"
     },
     {

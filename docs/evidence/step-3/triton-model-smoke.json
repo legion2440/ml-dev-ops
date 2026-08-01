@@ -1,6 +1,6 @@
 {
   "captured_at_utc": "2026-07-31T19:29:34.899004Z",
-  "manifest_sha256": "af0390bc210bd709b03083bae246097d0063786a433bcd71023679abf95c25db",
+  "manifest_sha256": "a17f1259de88f872723f75035a604e00d6745704f41d6c0002226b7a0cf5aac3",
   "models": {
     "resnet50_onnx": {
       "batches": [

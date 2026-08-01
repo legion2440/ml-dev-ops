@@ -69,12 +69,17 @@ python scripts/validate_model_repository.py
 Runtime verification requires the running step 2 Triton service:
 
 ```text
-make smoke-models
-python deployment/triton/smoke_models.py --env-file .env.example
 make verify-serving
 ```
 
-The smoke performs explicit load, readiness, metadata/config checks, ResNet inference for batches 1, 4, and 8, YOLO inference for batches 1 and 2, ResNet ONNX/TensorRT parity, and explicit unload. It writes sanitized evidence under `docs/evidence/step-3`.
+Step 3 runtime evidence is an immutable historical snapshot. It can only be checked:
+
+```text
+python deployment/triton/smoke_models.py --check
+```
+
+Current runtime verification and evidence generation belong exclusively to the step
+4 SDK verifier.
 
 ## Local artifacts and disk use
 

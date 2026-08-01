@@ -28,8 +28,8 @@ will be expanded as each scope is completed.
 | Full Prometheus and Grafana dashboard | Planned for step 7 | Not implemented | Pending |
 | Inference logs and CSV | Planned | Not implemented | Pending |
 | HTTP and gRPC serving | SDK protocol matrix for every model/version | `docs/evidence/step-4/serving-runtime.json` | Metadata, binary inference, finite outputs, and numerical protocol parity passed |
-| Dynamic batching | Spec-owned schedulers and per-version statistics deltas | `docs/evidence/step-4/serving-runtime.json` | Inference deltas exceed execution deltas and batch sizes above one are observed |
-| Model version management | ResNet ONNX v1/v2, load overrides, tracked policy, and in-place reload | `docs/evidence/step-4/repository-versions.txt` | Versions 1 and 2 READY together; default selects v2; cleanup empty |
+| Dynamic batching | Spec-owned schedulers, bounded attempt history, and per-version statistics deltas | `docs/evidence/step-4/serving-runtime.json` | `attempts_used` matches 1–3 recorded attempts; inference deltas exceed execution deltas and batch sizes above one are observed |
+| Model version management | ResNet ONNX v1/v2, load overrides, tracked policy, and in-place reload | `docs/evidence/step-4/repository-versions.txt` | Versions 1 and 2 READY together; default selects v2; cleanup repository empty and every model/version readiness endpoint false |
 
 README statements alone are not accepted as runtime evidence.
 

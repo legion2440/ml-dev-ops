@@ -16,9 +16,11 @@ The profile-only `triton-verifier` service uses the pinned official SDK image, n
 no GPU, publishes no ports, and cannot write outside `docs/evidence/step-4`. It checks
 the required server extensions, HTTP/gRPC metadata and binary inference, exact
 cross-protocol results, dynamic-batching statistics, ResNet version switching, a
-reload without unload, and final cleanup.
+reload without unload, and final cleanup. Cleanup checks every model and version
+readiness endpoint in addition to the repository index; batching records and
+validates `attempts_used` against the bounded attempt history.
 
-`deployment/triton/smoke_models.py` and immutable `docs/evidence/step-3` remain the
-historical single-version proof. This verifier is not the production image client;
+`deployment/triton/smoke_models.py --check` only validates immutable
+`docs/evidence/step-3`; it has no runtime or write path. This verifier is not the production image client;
 preprocessing, postprocessing, user-facing requests, and inference logging belong to
 step 5.

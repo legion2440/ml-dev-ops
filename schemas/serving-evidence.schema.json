@@ -8,7 +8,7 @@
     "schema_version", "captured_at_utc", "manifest_path", "manifest_sha256",
     "spec_path", "spec_sha256", "images", "extensions", "protocols", "models",
     "dynamic_batching", "version_switching", "final_repository_ready_models",
-    "server_after_cleanup"
+    "model_readiness_after_cleanup", "server_after_cleanup"
   ],
   "properties": {
     "schema_version": {"const": 1},
@@ -44,6 +44,10 @@
       }
     },
     "final_repository_ready_models": {"type": "array", "maxItems": 0},
+    "model_readiness_after_cleanup": {
+      "type": "object", "minProperties": 3,
+      "additionalProperties": {"$ref": "#/$defs/readiness"}
+    },
     "server_after_cleanup": {
       "type": "object", "additionalProperties": false,
       "required": ["live", "ready"],
@@ -77,13 +81,25 @@
         {"$ref": "#/$defs/attempt"},
         {
           "type": "object",
-          "required": ["model_version", "attempts"],
+          "required": ["model_version", "attempts_used", "attempts"],
           "properties": {
             "model_version": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+            "attempts_used": {"type": "integer", "minimum": 1, "maximum": 3},
             "attempts": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/attempt"}}
           }
         }
       ]
+    },
+    "readiness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["model_ready", "versions"],
+      "properties": {
+        "model_ready": {"const": false},
+        "versions": {
+          "type": "object", "minProperties": 1,
+          "additionalProperties": {"const": false}
+        }
+      }
     }
   }
 }

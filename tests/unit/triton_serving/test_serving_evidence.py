@@ -36,6 +36,37 @@ class ServingEvidenceTests(unittest.TestCase):
         self.assertTrue(any("version 2" in error for error in errors))
         self.assertTrue(any("cleanup" in error for error in errors))
 
+    def test_ready_version_after_cleanup_is_rejected(self) -> None:
+        changed = copy.deepcopy(self.evidence)
+        readiness = changed["model_readiness_after_cleanup"]["resnet50_onnx"]
+        readiness["versions"]["2"] = True
+        self.assertTrue(
+            any(
+                "remained ready" in error
+                for error in validate_evidence(changed, self.manifest)
+            )
+        )
+
+    def test_attempt_count_and_final_attempt_are_enforced(self) -> None:
+        changed = copy.deepcopy(self.evidence)
+        item = next(iter(changed["dynamic_batching"].values()))
+        item["attempts_used"] += 1
+        self.assertTrue(
+            any(
+                "attempts_used" in error
+                for error in validate_evidence(changed, self.manifest)
+            )
+        )
+        changed = copy.deepcopy(self.evidence)
+        item = next(iter(changed["dynamic_batching"].values()))
+        item["attempts"][-1]["passed"] = False
+        self.assertTrue(
+            any(
+                "final batching attempt" in error
+                for error in validate_evidence(changed, self.manifest)
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

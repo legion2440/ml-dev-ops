@@ -75,6 +75,20 @@ def validate_evidence(evidence: dict[str, Any], manifest: dict[str, Any]) -> lis
             errors.append(f"{name} has no observed batch larger than one")
         if result.get("passed") is not True or result.get("finite_outputs") is not True:
             errors.append(f"{name} batching result is not passed")
+        attempts = result.get("attempts", [])
+        attempts_used = result.get("attempts_used")
+        if (
+            not isinstance(attempts, list)
+            or not isinstance(attempts_used, int)
+            or attempts_used != len(attempts)
+            or not 1 <= attempts_used <= 3
+        ):
+            errors.append(f"{name} attempts_used is inconsistent")
+        elif (
+            attempts[-1].get("attempt") != attempts_used
+            or attempts[-1].get("passed") is not True
+        ):
+            errors.append(f"{name} final batching attempt is inconsistent")
     switching = evidence.get("version_switching", {})
     if switching.get("sequence") != ["1", "2", "1+2"]:
         errors.append("version switching sequence is stale")
@@ -82,6 +96,19 @@ def validate_evidence(evidence: dict[str, Any], manifest: dict[str, Any]) -> lis
         errors.append("tracked policy did not select ResNet version 2")
     if evidence.get("final_repository_ready_models") != []:
         errors.append("cleanup ready set must be empty")
+    readiness = evidence.get("model_readiness_after_cleanup", {})
+    if set(readiness) != set(manifest.get("models", {})):
+        errors.append("cleanup readiness model set does not match manifest")
+    else:
+        for name, entry in manifest["models"].items():
+            recorded = readiness.get(name, {})
+            versions = recorded.get("versions", {})
+            if set(versions) != set(entry["versions"]):
+                errors.append(f"{name} cleanup readiness version set is stale")
+            if recorded.get("model_ready") is not False or any(
+                ready is not False for ready in versions.values()
+            ):
+                errors.append(f"{name} remained ready after cleanup")
     return errors
 
 

@@ -141,17 +141,16 @@ python scripts/validate_model_repository.py
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example logs triton
 ```
 
-Triton config auto-completion must remain disabled. If a model was already loaded,
-the smoke script unloads it in a `finally` path before reporting an error.
+Triton config auto-completion must remain disabled. The current verifier performs
+best-effort unload on failure and proves model/version readiness is false on success.
 
 ## Model evidence is stale
 
-After rebuilding artifacts, regenerate the manifest and then rerun live smoke:
+Step 3 evidence is immutable and must not be regenerated against the v2 manifest.
+Check the historical snapshot, then run current verification separately:
 
 ```text
 python scripts/model_preparation/prepare_models.py manifest
-python deployment/triton/smoke_models.py --env-file .env.example
-python scripts/validate_model_evidence.py
+python deployment/triton/smoke_models.py --check
+make verify-serving
 ```
-
-Client behavior, model-version switching, and benchmarks remain later scopes.

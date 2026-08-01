@@ -23,6 +23,10 @@ cleanup leaves no model READY. The production image client, dashboards, alerts, 
 benchmarks remain planned. Batching values are functional defaults, not performance
 tuning results.
 
+Cleanup evidence covers both the repository READY set and every model-level and
+version-specific readiness endpoint. Batching evidence records `attempts_used` and
+permits no more than three attempts.
+
 Model binaries are reproducible local artifacts and are ignored by Git. The model
 specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
 
@@ -119,7 +123,6 @@ make prepare-models
 With Triton running, reach runtime-verified state:
 
 ```text
-make smoke-models
 make verify-serving
 ```
 
@@ -216,9 +219,9 @@ after a successful live run:
 python deployment/scripts/capture_runtime_evidence.py
 ```
 
-Model preparation and Triton evidence is under `docs/evidence/step-3`. Refresh it
-with `prepare_models.py manifest` after an artifact rebuild and with
-`deployment/triton/smoke_models.py` after a successful live model run.
+Step 3 runtime evidence under `docs/evidence/step-3` is immutable and bound to its
+manifest v1 snapshot. `make smoke-models` is retained only as a read-only historical
+evidence check; it never contacts Triton or rewrites evidence.
 
 Step 4 evidence is under `docs/evidence/step-4` and is refreshed only by a
 successful `make verify-serving` run. The verifier uses the official SDK image and

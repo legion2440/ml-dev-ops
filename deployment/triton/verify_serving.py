@@ -106,6 +106,41 @@ def _ready_rows(http_url: str) -> list[dict[str, Any]]:
     return [row for row in rows if row.get("state") == "READY"]
 
 
+def _http_status(base_url: str, path: str) -> int:
+    request = urllib.request.Request(f"http://{base_url}{path}", method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status
+    except urllib.error.HTTPError as error:
+        return error.code
+
+
+def _cleanup_readiness(
+    http_url: str, manifest: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    return {
+        name: {
+            "model_ready": _http_status(http_url, f"/v2/models/{name}/ready") == 200,
+            "versions": {
+                version: _http_status(
+                    http_url, f"/v2/models/{name}/versions/{version}/ready"
+                )
+                == 200
+                for version in entry["versions"]
+            },
+        }
+        for name, entry in manifest["models"].items()
+    }
+
+
+def _all_models_unready(readiness: dict[str, dict[str, Any]]) -> bool:
+    return all(
+        entry["model_ready"] is False
+        and all(ready is False for ready in entry["versions"].values())
+        for entry in readiness.values()
+    )
+
+
 def _synthetic(entry: dict[str, Any], batch: int, np: Any) -> Any:
     shape = [batch, *entry["input"]["shape"][1:]]
     return np.linspace(0.0, 1.0, num=int(np.prod(shape)), dtype=np.float32).reshape(shape)
@@ -210,7 +245,12 @@ def _batching(
         )
         attempts.append(record)
         if record["passed"]:
-            return {"model_version": version, "attempts": attempts, **record}
+            return {
+                "model_version": version,
+                "attempts_used": len(attempts),
+                "attempts": attempts,
+                **record,
+            }
     raise VerificationError(f"Dynamic batching was not observed for {name} in three attempts")
 
 
@@ -320,11 +360,24 @@ def _run(http_url: str, grpc_url: str) -> None:
     cleanup_deadline = time.monotonic() + 30
     while time.monotonic() < cleanup_deadline:
         final_ready = _ready_rows(http_url)
-        if not final_ready and http.is_server_live() and http.is_server_ready():
+        cleanup_readiness = _cleanup_readiness(http_url, manifest)
+        if (
+            not final_ready
+            and _all_models_unready(cleanup_readiness)
+            and http.is_server_live()
+            and http.is_server_ready()
+        ):
             break
         time.sleep(0.25)
-    if final_ready or not http.is_server_live() or not http.is_server_ready():
-        raise VerificationError("Cleanup did not leave an empty ready repository and healthy server")
+    if (
+        final_ready
+        or not _all_models_unready(cleanup_readiness)
+        or not http.is_server_live()
+        or not http.is_server_ready()
+    ):
+        raise VerificationError(
+            "Cleanup did not leave every model/version unready and the server healthy"
+        )
 
     evidence = {
         "schema_version": 1,
@@ -346,6 +399,7 @@ def _run(http_url: str, grpc_url: str) -> None:
             "passed": True,
         },
         "final_repository_ready_models": [],
+        "model_readiness_after_cleanup": cleanup_readiness,
         "server_after_cleanup": {"live": True, "ready": True},
     }
     _write(EVIDENCE_PATH, json.dumps(evidence, indent=2, sort_keys=True) + "\n")

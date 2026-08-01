@@ -1,5 +1,5 @@
 {
-  "captured_at_utc": "2026-08-01T08:50:10.794454Z",
+  "captured_at_utc": "2026-08-01T10:05:15.501300Z",
   "dynamic_batching": {
     "resnet50_onnx": {
       "attempt": 1,
@@ -21,6 +21,7 @@
           "success_count_delta": 32
         }
       ],
+      "attempts_used": 1,
       "concurrency": 16,
       "execution_count_delta": 7,
       "finite_outputs": true,
@@ -53,6 +54,7 @@
           "success_count_delta": 32
         }
       ],
+      "attempts_used": 1,
       "concurrency": 16,
       "execution_count_delta": 20,
       "finite_outputs": true,
@@ -71,7 +73,7 @@
         {
           "attempt": 1,
           "concurrency": 4,
-          "execution_count_delta": 6,
+          "execution_count_delta": 5,
           "finite_outputs": true,
           "inference_count_delta": 8,
           "observed_batch_sizes": [
@@ -82,8 +84,9 @@
           "success_count_delta": 8
         }
       ],
+      "attempts_used": 1,
       "concurrency": 4,
-      "execution_count_delta": 6,
+      "execution_count_delta": 5,
       "finite_outputs": true,
       "inference_count_delta": 8,
       "model_version": "1",
@@ -107,6 +110,27 @@
   },
   "manifest_path": "models/model-manifest.json",
   "manifest_sha256": "68572198a245c36b40fae82029a5c7d673dbcb753bd3bbfd27f9e319db14d705",
+  "model_readiness_after_cleanup": {
+    "resnet50_onnx": {
+      "model_ready": false,
+      "versions": {
+        "1": false,
+        "2": false
+      }
+    },
+    "resnet50_tensorrt": {
+      "model_ready": false,
+      "versions": {
+        "1": false
+      }
+    },
+    "yolo11n_onnx": {
+      "model_ready": false,
+      "versions": {
+        "1": false
+      }
+    }
+  },
   "models": {
     "resnet50_onnx:1": {
       "grpc": "passed",

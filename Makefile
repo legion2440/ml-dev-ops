@@ -71,7 +71,7 @@ verify-serving:
 	$(COMPOSE) --profile verification run --rm triton-verifier
 
 smoke-models:
-	$(PYTHON) deployment/triton/smoke_models.py --env-file $(ENV_FILE)
+	$(PYTHON) deployment/triton/smoke_models.py --check
 
 clean-models:
 	$(PYTHON) scripts/model_preparation/prepare_models.py clean
