@@ -9,5 +9,5 @@ and absolute host paths are excluded.
 source of truth. Export operational history with:
 
 ```text
-python client/inference_client.py export-logs
+python client/inference_client.py export-logs --input-log logs/inference.jsonl --output-csv logs/inference.csv
 ```

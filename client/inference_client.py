@@ -198,13 +198,17 @@ def _run_inference(
             postprocessing_start = time.perf_counter()
             if task == "classification":
                 prediction_rows = classification_predictions(
-                    result.output, entry["labels"], args.top_k
+                    result.output,
+                    entry["labels"],
+                    entry["output_semantics"],
+                    args.top_k,
                 )
             else:
                 prediction_rows = detection_predictions(
                     result.output,
                     geometry,
                     entry["labels"],
+                    entry["output_semantics"],
                     args.confidence,
                     args.iou,
                     args.max_detections,
@@ -329,7 +333,12 @@ def _parser(config: dict[str, Any]) -> argparse.ArgumentParser:
     export = subparsers.add_parser("export-logs", help="Export JSONL events to CSV")
     export.set_defaults(action="export")
     export.add_argument("--input-log", default=config["defaults"]["log_path"])
-    export.add_argument("--output", default="logs/inference.csv")
+    export.add_argument(
+        "--output-csv",
+        "--output",
+        dest="output_csv",
+        default="logs/inference.csv",
+    )
     return parser
 
 
@@ -354,8 +363,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
         if args.action == "export":
-            count = export_csv(_resolve_path(args.input_log), _resolve_path(args.output))
-            print(f"Exported {count} inference events to {args.output}")
+            count = export_csv(_resolve_path(args.input_log), _resolve_path(args.output_csv))
+            print(f"Exported {count} inference events to {args.output_csv}")
             return 0
         contract = _load_json(CONTRACT_PATH)
         predictions = _run_inference(args, config, contract, args.task)

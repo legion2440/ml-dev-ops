@@ -40,12 +40,17 @@ def preprocess_classification(
     tensors: list[np.ndarray] = []
     for item in images:
         width, height = item.image.size
-        ratio = resize / min(width, height)
+        if width <= height:
+            resized_width = resize
+            resized_height = int(resize * height / width)
+        else:
+            resized_height = resize
+            resized_width = int(resize * width / height)
         resized = item.image.resize(
-            (round(width * ratio), round(height * ratio)), Image.Resampling.BILINEAR
+            (resized_width, resized_height), Image.Resampling.BILINEAR
         )
-        left = (resized.width - crop) // 2
-        top = (resized.height - crop) // 2
+        left = int(round((resized.width - crop) / 2.0))
+        top = int(round((resized.height - crop) / 2.0))
         cropped = resized.crop((left, top, left + crop, top + crop))
         tensor = _normalized_chw(cropped, preprocessing["scale"])
         tensors.append((tensor - mean) / std)

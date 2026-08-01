@@ -101,11 +101,12 @@
     },
     "detectionOutput": {
       "type": "object", "additionalProperties": false,
-      "required": ["kind", "box_format", "class_scores_start", "class_aware_nms"],
+      "required": ["kind", "box_format", "class_scores_start", "has_objectness", "class_aware_nms"],
       "properties": {
         "kind": {"const": "yolo_xywh_class_scores"},
         "box_format": {"const": "xywh"},
-        "class_scores_start": {"type": "integer", "minimum": 1},
+        "class_scores_start": {"const": 4},
+        "has_objectness": {"const": false},
         "class_aware_nms": {"const": true}
       }
     }

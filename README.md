@@ -160,7 +160,7 @@ python client/inference_client.py classify client/samples/01_dog.jpg
 python client/inference_client.py classify client/samples/ --model resnet50_tensorrt --protocol grpc --batch-size 4
 python client/inference_client.py detect client/samples/ --protocol http --batch-size 2
 python client/inference_client.py metadata --model resnet50_onnx --version 2
-python client/inference_client.py export-logs
+python client/inference_client.py export-logs --input-log logs/inference.jsonl --output-csv logs/inference.csv
 ```
 
 Models are loaded through Triton's HTTP repository API when needed and remain READY

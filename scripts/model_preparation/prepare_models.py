@@ -105,6 +105,7 @@ def render_client_contract(manifest: dict[str, Any]) -> dict[str, Any]:
                 "kind": "yolo_xywh_class_scores",
                 "box_format": "xywh",
                 "class_scores_start": 4,
+                "has_objectness": False,
                 "class_aware_nms": True,
             }
             preprocessing = {

@@ -17,9 +17,17 @@ class ResNetPostprocessingTests(unittest.TestCase):
     def test_top_k_uses_contract_labels(self) -> None:
         entry = contract("resnet50_onnx")
         logits = np.arange(len(entry["labels"]), dtype=np.float32)[None, :]
-        predictions = classification_predictions(logits, entry["labels"], 3)[0]
+        predictions = classification_predictions(
+            logits, entry["labels"], entry["output_semantics"], 3
+        )[0]
         self.assertEqual([item["rank"] for item in predictions], [1, 2, 3])
         self.assertEqual(predictions[0]["label"], entry["labels"][-1])
+
+    def test_runtime_rejects_non_logit_output_semantics(self) -> None:
+        entry = contract("resnet50_onnx")
+        logits = np.zeros((1, len(entry["labels"])), dtype=np.float32)
+        with self.assertRaisesRegex(ValueError, "output semantics"):
+            classification_predictions(logits, entry["labels"], {"kind": "scores"}, 1)
 
 
 if __name__ == "__main__":

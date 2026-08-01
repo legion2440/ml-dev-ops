@@ -2208,6 +2208,7 @@
         "box_format": "xywh",
         "class_aware_nms": true,
         "class_scores_start": 4,
+        "has_objectness": false,
         "kind": "yolo_xywh_class_scores"
       },
       "preprocessing": {

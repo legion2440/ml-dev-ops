@@ -30,11 +30,11 @@
     "classification": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["http", "grpc", "tensorRT"],
+      "required": ["http", "grpc", "tensorrt"],
       "properties": {
         "http": {"const": "passed"},
         "grpc": {"const": "passed"},
-        "tensorRT": {"const": "passed"}
+        "tensorrt": {"const": "passed"}
       }
     },
     "detection": {

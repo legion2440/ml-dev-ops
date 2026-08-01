@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -42,6 +43,7 @@ FINGERPRINT_PATHS = (
     "client/verify_runtime.py",
     "client/client-config.yaml",
     "schemas/inference-event.schema.json",
+    "schemas/client-model-contracts.schema.json",
     "schemas/client-runtime-evidence.schema.json",
     "shared/client-model-contracts.json",
     "client/samples/manifest.json",
@@ -104,6 +106,20 @@ def _validate_initial_state(
             )
 
 
+def _wait_for_server_health(transport: HttpTransport, timeout_seconds: float) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    last_health: dict[str, bool] = {}
+    while True:
+        last_health = transport.health()
+        if last_health == {"live": True, "ready": True}:
+            return
+        if time.monotonic() >= deadline:
+            raise VerificationError(
+                f"Triton did not become live and ready: {last_health}"
+            )
+        time.sleep(0.25)
+
+
 def _case_arguments(
     command: str,
     input_path: str,
@@ -161,9 +177,8 @@ def verify() -> dict[str, Any]:
     contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
     samples_manifest = json.loads(SAMPLES_MANIFEST_PATH.read_text(encoding="utf-8"))
     controller = RepositoryController("127.0.0.1:8000", 120.0)
-    health = HttpTransport("127.0.0.1:8000", 30.0).health()
-    if health != {"live": True, "ready": True}:
-        raise VerificationError(f"Triton is not live and ready: {health}")
+    health_transport = HttpTransport("127.0.0.1:8000", 30.0)
+    _wait_for_server_health(health_transport, 30.0)
     initial = controller.ready_set()
     _validate_initial_state(initial, contract)
     initially_ready_models = {model for model, _ in initial}
@@ -181,7 +196,7 @@ def verify() -> dict[str, Any]:
                 "export-logs",
                 "--input-log",
                 "docs/evidence/step-5/inference-log.jsonl",
-                "--output",
+                "--output-csv",
                 "docs/evidence/step-5/inference-log.csv",
             ],
             transcript,
@@ -197,8 +212,7 @@ def verify() -> dict[str, Any]:
         raise VerificationError(
             f"READY state was not restored: initial={sorted(initial)}, final={sorted(final)}"
         )
-    if HttpTransport("127.0.0.1:8000", 30.0).health() != {"live": True, "ready": True}:
-        raise VerificationError("Triton did not remain live and ready after cleanup")
+    _wait_for_server_health(health_transport, 30.0)
     events = read_events(JSONL_PATH)
     with CSV_PATH.open(encoding="utf-8", newline="") as stream:
         csv_rows = sum(1 for _ in csv.DictReader(stream))
@@ -216,7 +230,7 @@ def verify() -> dict[str, Any]:
         "samples_manifest_sha256": sha256(SAMPLES_MANIFEST_PATH),
         "requirements_sha256": sha256(REQUIREMENTS_PATH),
         "samples_count": len(samples_manifest["samples"]),
-        "classification": {"http": "passed", "grpc": "passed", "tensorRT": "passed"},
+        "classification": {"http": "passed", "grpc": "passed", "tensorrt": "passed"},
         "detection": {"http": "passed", "grpc": "passed", "detections": detections},
         "logging": {
             "jsonl_events": len(events),

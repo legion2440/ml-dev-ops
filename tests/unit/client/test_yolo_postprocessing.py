@@ -27,12 +27,44 @@ class YoloPostprocessingTests(unittest.TestCase):
         output[0, 3, 0] = model_box[3] - model_box[1]
         output[0, 4, 0] = 0.9
         prediction = detection_predictions(
-            output, metadata, entry["labels"], 0.25, 0.7, 10
+            output,
+            metadata,
+            entry["labels"],
+            entry["output_semantics"],
+            0.25,
+            0.7,
+            10,
         )[0][0]
         np.testing.assert_allclose(prediction["box_xyxy"], original, atol=1e-4)
         x1, y1, x2, y2 = prediction["box_xyxy"]
         self.assertTrue(0 <= x1 < x2 <= source.width)
         self.assertTrue(0 <= y1 < y2 <= source.height)
+
+    def test_runtime_rejects_detection_semantics_drift(self) -> None:
+        entry = contract("yolo11n_onnx")
+        source = loaded_image()
+        _, metadata = preprocess_detection([source], entry)
+        output = np.zeros([1, *entry["output"]["shape"][1:]], dtype=np.float32)
+        changes = {
+            "kind": "unknown",
+            "box_format": "xyxy",
+            "class_scores_start": 5,
+            "has_objectness": True,
+            "class_aware_nms": False,
+        }
+        for field, value in changes.items():
+            with self.subTest(field=field):
+                semantics = {**entry["output_semantics"], field: value}
+                with self.assertRaisesRegex(ValueError, "semantics|offset"):
+                    detection_predictions(
+                        output,
+                        metadata,
+                        entry["labels"],
+                        semantics,
+                        0.25,
+                        0.7,
+                        10,
+                    )
 
 
 if __name__ == "__main__":

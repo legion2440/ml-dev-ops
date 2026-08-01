@@ -26,6 +26,11 @@ class ClientContractTests(unittest.TestCase):
         for forbidden in ("artifact", "model.onnx", "model.plan", "source_url", "weights"):
             self.assertNotIn(forbidden, serialized)
 
+    def test_detection_contract_explicitly_has_no_objectness(self) -> None:
+        tracked = json.loads(prepare_models.CLIENT_CONTRACT_PATH.read_text(encoding="utf-8"))
+        semantics = tracked["models"]["yolo11n_onnx"]["output_semantics"]
+        self.assertIs(semantics["has_objectness"], False)
+
 
 if __name__ == "__main__":
     unittest.main()

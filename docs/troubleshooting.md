@@ -188,7 +188,7 @@ JSONL is the primary append-only history. Do not edit the CSV and expect the cli
 to consume it. Validate operational history by exporting it again:
 
 ```text
-python client/inference_client.py export-logs
+python client/inference_client.py export-logs --input-log logs/inference.jsonl --output-csv logs/inference.csv
 ```
 
 A malformed image is rejected before request-ID creation. Failures after a request

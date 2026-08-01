@@ -20,7 +20,7 @@ python client/inference_client.py classify client/samples/01_dog.jpg
 python client/inference_client.py classify client/samples/ --model resnet50_tensorrt --protocol grpc --batch-size 4
 python client/inference_client.py detect client/samples/ --protocol http --batch-size 2
 python client/inference_client.py metadata --model resnet50_onnx --version 2
-python client/inference_client.py export-logs
+python client/inference_client.py export-logs --input-log logs/inference.jsonl --output-csv logs/inference.csv
 ```
 
 If a requested model/version is not READY, the client uses the HTTP repository API
@@ -28,10 +28,13 @@ to load its tracked serving configuration and waits for readiness. `--no-auto-lo
 turns this behavior into a client-side error. A production request does not unload
 the model afterward.
 
-ResNet uses RGB resize-shortest-side, centered crop, scale, and ImageNet
-normalization from the generated contract; postprocessing is stable softmax and
-top-K label lookup. YOLO uses centered letterbox resizing, RGB scaling, inverse box
-mapping, class-aware NMS, clipping, and a bounded detection count.
+ResNet uses the generated RGB, resize-shortest-side, centered-crop, scale, and
+ImageNet normalization contract with the exact pinned torchvision resize and crop
+geometry. Its output semantics must identify logits before stable softmax and top-K
+label lookup run. YOLO uses centered letterbox resizing and contract-driven output
+semantics: `xywh` boxes, class scores beginning at index 4, no objectness field, and
+class-aware NMS. Postprocessing maps boxes back to the source image, clips them, and
+bounds the detection count.
 
 ## Logging contract
 

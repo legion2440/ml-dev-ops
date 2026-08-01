@@ -16,8 +16,13 @@ def stable_softmax(logits: np.ndarray) -> np.ndarray:
 
 
 def classification_predictions(
-    logits: np.ndarray, labels: list[str], top_k: int
+    logits: np.ndarray,
+    labels: list[str],
+    output_semantics: dict[str, Any],
+    top_k: int,
 ) -> list[list[dict[str, Any]]]:
+    if output_semantics.get("kind") != "logits":
+        raise ValueError("Unsupported classification output semantics")
     if logits.ndim != 2 or logits.shape[1] != len(labels):
         raise ValueError("Classification output does not match client contract")
     if not 1 <= top_k <= len(labels):
@@ -84,20 +89,35 @@ def detection_predictions(
     output: np.ndarray,
     metadata: list[LetterboxMetadata],
     labels: list[str],
+    output_semantics: dict[str, Any],
     confidence_threshold: float,
     iou_threshold: float,
     max_detections: int,
 ) -> list[list[dict[str, Any]]]:
-    if output.ndim != 3 or output.shape[0] != len(metadata) or output.shape[1] != len(labels) + 4:
+    if (
+        output_semantics.get("kind") != "yolo_xywh_class_scores"
+        or output_semantics.get("box_format") != "xywh"
+        or output_semantics.get("has_objectness") is not False
+        or output_semantics.get("class_aware_nms") is not True
+    ):
+        raise ValueError("Unsupported detection output semantics")
+    class_scores_start = output_semantics.get("class_scores_start")
+    if type(class_scores_start) is not int or class_scores_start != 4:
+        raise ValueError("Unsupported detection class-score offset")
+    if (
+        output.ndim != 3
+        or output.shape[0] != len(metadata)
+        or output.shape[1] != len(labels) + class_scores_start
+    ):
         raise ValueError("Detection output does not match client contract")
     results: list[list[dict[str, Any]]] = []
     for raw, geometry in zip(output, metadata, strict=True):
         candidates = raw.T
-        class_scores = candidates[:, 4:]
+        class_scores = candidates[:, class_scores_start:]
         class_ids = np.argmax(class_scores, axis=1)
         scores = class_scores[np.arange(class_scores.shape[0]), class_ids]
         selected = np.flatnonzero(scores >= confidence_threshold)
-        xywh = candidates[selected, :4]
+        xywh = candidates[selected, :class_scores_start]
         boxes = np.empty_like(xywh)
         boxes[:, 0] = xywh[:, 0] - xywh[:, 2] / 2
         boxes[:, 1] = xywh[:, 1] - xywh[:, 3] / 2
