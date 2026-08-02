@@ -89,6 +89,14 @@ The profile-only `triton-verifier` joins the same network only for `make
 verify-serving`. It is not a fifth persistent service, publishes no ports, reserves
 no GPU, and writes only step 4 evidence.
 
+The profile-only `benchmark-runner` uses the same pinned SDK image. It publishes no
+ports, reserves no GPU, mounts the repository read-only, and can write only to
+ignored `.cache/benchmarking`. A host-side command publishes a fully validated
+passing candidate afterward. That Windows-host command also owns Windows
+`GPU Engine(*)` process telemetry, `nvidia-smi` device diagnostics, and marker/ack
+boundaries because WDDM process attribution is not available inside the SDK
+container.
+
 Inter-container traffic uses these DNS names and fixed container ports. Published
 host ports bind to `127.0.0.1` only.
 

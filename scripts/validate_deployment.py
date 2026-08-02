@@ -71,7 +71,7 @@ PORT_KEYS = {
     "DCGM_METRICS_PORT",
 }
 PERSISTENT_SERVICES = {"triton", "prometheus", "grafana", "dcgm-exporter"}
-EXPECTED_SERVICES = {*PERSISTENT_SERVICES, "triton-verifier"}
+EXPECTED_SERVICES = {*PERSISTENT_SERVICES, "triton-verifier", "benchmark-runner"}
 LIFECYCLE_SCRIPTS = (
     "deployment/scripts/run_environment.sh",
     "deployment/scripts/stop_environment.sh",
@@ -225,6 +225,10 @@ def _validate_images(
             errors.append(f"{variable} must not use latest")
         elif not tag_pattern.fullmatch(tag):
             errors.append(f"{variable} must use {tag_description}")
+    if services.get("benchmark-runner", {}).get("image") != image_references[
+        "TRITON_SDK_IMAGE"
+    ]:
+        errors.append("benchmark-runner must use the same pinned TRITON_SDK_IMAGE")
 
 
 def _validate_mounts(

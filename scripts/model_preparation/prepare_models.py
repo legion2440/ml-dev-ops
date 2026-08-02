@@ -27,6 +27,9 @@ SPEC_PATH = REPOSITORY_ROOT / "models/model-spec.yaml"
 LOCK_PATH = REPOSITORY_ROOT / "scripts/model_preparation/requirements.lock"
 MANIFEST_PATH = REPOSITORY_ROOT / "models/model-manifest.json"
 CLIENT_CONTRACT_PATH = REPOSITORY_ROOT / "shared/client-model-contracts.json"
+BENCHMARK_PAIR_CONTRACT_PATH = (
+    REPOSITORY_ROOT / "shared/benchmark-model-pair.json"
+)
 STEP3_MANIFEST_SNAPSHOT_PATH = (
     REPOSITORY_ROOT / "docs/evidence/step-3/model-manifest-v1.json"
 )
@@ -142,6 +145,87 @@ def generate_client_contract() -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     _write_text(CLIENT_CONTRACT_PATH, canonical_json(render_client_contract(manifest)))
     print("[OK] Generated repository-independent client model contract.")
+
+
+def render_benchmark_pair_contract(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Project the verified ResNet optimization pair into shared contracts."""
+    baseline = manifest["models"]["resnet50_onnx"]
+    optimized = manifest["models"]["resnet50_tensorrt"]
+    common_fields = (
+        "logical_model_id",
+        "source",
+        "preprocessing",
+        "input",
+        "output",
+        "max_batch_size",
+        "scheduling",
+    )
+    for field in common_fields:
+        if baseline[field] != optimized[field]:
+            raise PreparationError(f"Benchmark pair differs in {field}")
+    baseline_instance_group = baseline["model_config"].get("instance_group", [])
+    optimized_instance_group = optimized["model_config"].get("instance_group", [])
+    if baseline_instance_group != optimized_instance_group:
+        raise PreparationError("Benchmark pair differs in instance_group")
+    parity = manifest["artifact_validation"]["tensorrt"]["parity"]
+    if parity.get("status") != "passed":
+        raise PreparationError("Benchmark pair requires passed TensorRT parity")
+    common_contract = {
+        "input": baseline["input"],
+        "output": baseline["output"],
+        "preprocessing": baseline["preprocessing"],
+        "max_batch_size": baseline["max_batch_size"],
+        "scheduling": baseline["scheduling"],
+        "instance_group": baseline_instance_group,
+    }
+    common_contract_sha256 = hashlib.sha256(
+        canonical_json(common_contract).encode("utf-8")
+    ).hexdigest()
+    build_gpu = manifest["build"]["gpu"]
+    return {
+        "schema_version": 1,
+        "source_manifest_sha256": hashlib.sha256(
+            canonical_json(manifest).encode("utf-8")
+        ).hexdigest(),
+        "pair_id": "resnet50-onnx-vs-tensorrt",
+        "logical_model_id": baseline["logical_model_id"],
+        "weights_sha256": baseline["source"]["sha256"],
+        "common_contract": common_contract,
+        "common_contract_sha256": common_contract_sha256,
+        "parity": parity,
+        "baseline": {
+            "model": "resnet50_onnx",
+            "version": "1",
+            "available_versions": sorted(baseline["versions"], key=int),
+            "runtime": "onnxruntime",
+            "compute_precision": baseline["precision"],
+            "io_precision": baseline["input"]["dtype"],
+        },
+        "optimized": {
+            "model": "resnet50_tensorrt",
+            "version": "1",
+            "available_versions": sorted(optimized["versions"], key=int),
+            "runtime": "tensorrt",
+            "compute_precision": optimized["compute_precision"],
+            "io_precision": optimized["io_precision"],
+        },
+        "declared_build_target": {
+            "gpu_name": build_gpu["name"],
+            "compute_capability": build_gpu["compute_capability"],
+            "build_driver_version": build_gpu["driver_version"],
+        },
+    }
+
+
+def generate_benchmark_pair_contract() -> None:
+    if not MANIFEST_PATH.is_file():
+        raise PreparationError("models/model-manifest.json is required")
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    _write_text(
+        BENCHMARK_PAIR_CONTRACT_PATH,
+        canonical_json(render_benchmark_pair_contract(manifest)),
+    )
+    print("[OK] Generated shared benchmark optimization-pair contract.")
 
 
 def _write_text(path: Path, content: str) -> None:
@@ -1022,6 +1106,7 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
     }
     _write_text(MANIFEST_PATH, canonical_json(manifest))
     generate_client_contract()
+    generate_benchmark_pair_contract()
     create_preparation_evidence()
     print("[OK] Wrote artifact-complete model manifest and preparation evidence.")
     return manifest
@@ -1208,6 +1293,19 @@ def check_generated(spec: dict[str, Any]) -> list[str]:
                 errors.append("stale generated client model contract")
         except (json.JSONDecodeError, OSError, TypeError) as error:
             errors.append(f"cannot validate client model contract: {error}")
+    if not BENCHMARK_PAIR_CONTRACT_PATH.is_file():
+        errors.append("missing generated shared/benchmark-model-pair.json")
+    elif MANIFEST_PATH.is_file():
+        try:
+            manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+            expected_contract = canonical_json(render_benchmark_pair_contract(manifest))
+            if (
+                BENCHMARK_PAIR_CONTRACT_PATH.read_text(encoding="utf-8")
+                != expected_contract
+            ):
+                errors.append("stale generated benchmark model-pair contract")
+        except (json.JSONDecodeError, OSError, TypeError) as error:
+            errors.append(f"cannot validate benchmark model-pair contract: {error}")
     return errors
 
 
@@ -1284,6 +1382,7 @@ def main() -> int:
             "clean",
             "manifest",
             "client-contract",
+            "benchmark-contract",
             "_export",
             "_inspect-onnx",
             "_prepare-tensorrt-onnx",
@@ -1322,6 +1421,7 @@ def main() -> int:
             "clean": lambda: clean_models(spec),
             "manifest": lambda: create_manifest(spec),
             "client-contract": generate_client_contract,
+            "benchmark-contract": generate_benchmark_pair_contract,
             "_export": lambda: _internal_export(spec),
             "_inspect-onnx": lambda: _internal_inspect_onnx(spec),
             "_prepare-tensorrt-onnx": lambda: _internal_prepare_tensorrt_onnx(spec),

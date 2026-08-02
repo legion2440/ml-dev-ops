@@ -1,0 +1,81 @@
+{
+  "schema_version": 2,
+  "seed": 20260802,
+  "protocol": "http",
+  "service_kind": "triton",
+  "load_generator": {
+    "realtime_clock_guard": true,
+    "verbose_windows": true
+  },
+  "environment_guard": {
+    "host_observer": "windows_gpu_engine_nvidia_smi",
+    "sample_interval_ms": 1000,
+    "baseline_seconds": 5,
+    "minimum_consecutive_baseline_samples": 5,
+    "maximum_sample_gap_ms": 3000,
+    "ack_timeout_seconds": 30,
+    "max_contaminated_attempts_per_slot": 3,
+    "gpu_engine_activity_threshold_percent": 0.1,
+    "benchmark_owned_processes": [
+      "vmmemWSL.exe",
+      "vmwp.exe"
+    ],
+    "forbidden_processes": [
+      "brave.exe",
+      "chrome.exe",
+      "claude.exe",
+      "code.exe",
+      "firefox.exe",
+      "msedge.exe",
+      "spotify.exe",
+      "steam.exe",
+      "steamwebhelper.exe",
+      "Taskmgr.exe"
+    ]
+  },
+  "endpoints": {
+    "http": "triton:8000",
+    "metrics": "triton:8002/metrics"
+  },
+  "measurement": {
+    "mode": "count_windows",
+    "request_count_per_window": 500,
+    "warmup_request_count": 100,
+    "reporting_percentile": 95,
+    "max_measurement_windows": 3,
+    "repetitions": 4,
+    "cooldown_seconds": 2,
+    "metrics_interval_ms": 100,
+    "command_timeout_seconds": 600,
+    "ready_timeout_seconds": 120
+  },
+  "execution_order": [
+    ["baseline", "optimized"],
+    ["optimized", "baseline"],
+    ["baseline", "optimized"],
+    ["optimized", "baseline"]
+  ],
+  "scenarios": [
+    {
+      "id": "latency",
+      "status": "formal",
+      "perf_analyzer_completion_tolerance_pct": 999,
+      "batch_size": 1,
+      "concurrency": 1,
+      "primary_metric": "mean_client_latency_ms"
+    },
+    {
+      "id": "throughput",
+      "status": "formal",
+      "perf_analyzer_completion_tolerance_pct": 999,
+      "batch_size": 8,
+      "concurrency": 4,
+      "primary_metric": "infer_per_sec"
+    }
+  ],
+  "acceptance": {
+    "minimum_median_paired_improvement_pct_exclusive": 0.0,
+    "minimum_directional_pairs": 3,
+    "strong_improvement_threshold_pct": 5.0
+  }
+}

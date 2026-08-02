@@ -1,0 +1,101 @@
+{
+  "baseline": {
+    "model": "resnet50_onnx",
+    "runtime_contract": {
+      "dynamic_batching": {
+        "default_priority_level": 0,
+        "max_queue_delay_microseconds": 5000,
+        "preferred_batch_size": [
+          4,
+          8
+        ],
+        "preserve_ordering": false,
+        "priority_levels": 0,
+        "priority_queue_policy": {}
+      },
+      "inputs": [
+        {
+          "datatype": "FP32",
+          "name": "images",
+          "shape": [
+            -1,
+            3,
+            224,
+            224
+          ]
+        }
+      ],
+      "instance_group": [
+        {
+          "count": 1,
+          "gpus": [
+            0
+          ],
+          "kind": "KIND_GPU"
+        }
+      ],
+      "max_batch_size": 8,
+      "outputs": [
+        {
+          "datatype": "FP32",
+          "name": "logits",
+          "shape": [
+            -1,
+            1000
+          ]
+        }
+      ]
+    },
+    "version": "1"
+  },
+  "common_contract_sha256": "cd7ea19161fad7e89962a0035f43f8caa9b46a2cc69734742ae840874de9caf8",
+  "optimized": {
+    "model": "resnet50_tensorrt",
+    "runtime_contract": {
+      "dynamic_batching": {
+        "default_priority_level": 0,
+        "max_queue_delay_microseconds": 5000,
+        "preferred_batch_size": [
+          4,
+          8
+        ],
+        "preserve_ordering": false,
+        "priority_levels": 0,
+        "priority_queue_policy": {}
+      },
+      "inputs": [
+        {
+          "datatype": "FP32",
+          "name": "images",
+          "shape": [
+            -1,
+            3,
+            224,
+            224
+          ]
+        }
+      ],
+      "instance_group": [
+        {
+          "count": 1,
+          "gpus": [
+            0
+          ],
+          "kind": "KIND_GPU"
+        }
+      ],
+      "max_batch_size": 8,
+      "outputs": [
+        {
+          "datatype": "FP32",
+          "name": "logits",
+          "shape": [
+            -1,
+            1000
+          ]
+        }
+      ]
+    },
+    "version": "1"
+  }
+}

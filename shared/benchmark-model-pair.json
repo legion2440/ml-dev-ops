@@ -1,0 +1,96 @@
+{
+  "baseline": {
+    "available_versions": [
+      "1",
+      "2"
+    ],
+    "compute_precision": "FP32",
+    "io_precision": "FP32",
+    "model": "resnet50_onnx",
+    "runtime": "onnxruntime",
+    "version": "1"
+  },
+  "common_contract": {
+    "input": {
+      "dtype": "FP32",
+      "name": "images",
+      "shape": [
+        -1,
+        3,
+        224,
+        224
+      ]
+    },
+    "instance_group": [],
+    "max_batch_size": 8,
+    "output": {
+      "dtype": "FP32",
+      "name": "logits",
+      "shape": [
+        -1,
+        1000
+      ]
+    },
+    "preprocessing": {
+      "center_crop": 224,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "resize": 232,
+      "scale": [
+        0.0,
+        1.0
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "scheduling": {
+      "dynamic_batching": {
+        "max_queue_delay_microseconds": 5000,
+        "preferred_batch_sizes": [
+          4,
+          8
+        ]
+      }
+    }
+  },
+  "common_contract_sha256": "cd7ea19161fad7e89962a0035f43f8caa9b46a2cc69734742ae840874de9caf8",
+  "declared_build_target": {
+    "build_driver_version": "610.88",
+    "compute_capability": "8.9",
+    "gpu_name": "NVIDIA GeForce RTX 4080 Laptop GPU"
+  },
+  "logical_model_id": "resnet50",
+  "optimized": {
+    "available_versions": [
+      "1"
+    ],
+    "compute_precision": "FP16",
+    "io_precision": "FP32",
+    "model": "resnet50_tensorrt",
+    "runtime": "tensorrt",
+    "version": "1"
+  },
+  "pair_id": "resnet50-onnx-vs-tensorrt",
+  "parity": {
+    "cosine_similarity": 0.9996493709698281,
+    "max_abs_error": 0.16452789306640625,
+    "mean_abs_error": 0.01703711971640587,
+    "status": "passed",
+    "tolerances": {
+      "max_abs_error": 0.5,
+      "mean_abs_error": 0.05,
+      "minimum_cosine_similarity": 0.999,
+      "minimum_top1_agreement": 1.0
+    },
+    "top1_agreement": 1.0
+  },
+  "schema_version": 1,
+  "source_manifest_sha256": "68572198a245c36b40fae82029a5c7d673dbcb753bd3bbfd27f9e319db14d705",
+  "weights_sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca"
+}

@@ -119,7 +119,7 @@ def _check_modules(module_map: dict[str, Any], errors: list[str]) -> set[str]:
 
 
 def _check_reference_statuses(module_map: dict[str, Any], errors: list[str]) -> set[str]:
-    generators: set[str] = set()
+    checkers: set[str] = set()
     owned_paths: dict[str, str] = {}
 
     for owner, reference in _iter_references(module_map):
@@ -139,8 +139,13 @@ def _check_reference_statuses(module_map: dict[str, Any], errors: list[str]) -> 
                 generator_path = REPOSITORY_ROOT / generator
                 if not generator_path.is_file():
                     errors.append(f"Generated path {path_value} has missing generator: {generator}")
+            checker = reference.get("checker", generator)
+            if isinstance(checker, str):
+                checker_path = REPOSITORY_ROOT / checker
+                if not checker_path.is_file():
+                    errors.append(f"Generated path {path_value} has missing checker: {checker}")
                 else:
-                    generators.add(generator)
+                    checkers.add(checker)
             for source in sources:
                 if not (REPOSITORY_ROOT / source).exists():
                     errors.append(f"Generated path {path_value} has missing source: {source}")
@@ -153,7 +158,7 @@ def _check_reference_statuses(module_map: dict[str, Any], errors: list[str]) -> 
                 )
             owned_paths[path_value] = owner
 
-    return generators
+    return checkers
 
 
 def _check_graph(
@@ -247,10 +252,10 @@ def _check_acyclic_edges(
             return
 
 
-def _check_generated_artifacts(generators: set[str], errors: list[str]) -> None:
-    for generator in sorted(generators):
+def _check_generated_artifacts(checkers: set[str], errors: list[str]) -> None:
+    for checker in sorted(checkers):
         process = subprocess.run(
-            [sys.executable, str(REPOSITORY_ROOT / generator), "--check"],
+            [sys.executable, str(REPOSITORY_ROOT / checker), "--check"],
             cwd=REPOSITORY_ROOT,
             capture_output=True,
             text=True,
@@ -258,7 +263,7 @@ def _check_generated_artifacts(generators: set[str], errors: list[str]) -> None:
         )
         if process.returncode != 0:
             detail = process.stderr.strip() or process.stdout.strip() or "unknown error"
-            errors.append(f"Generated artifact check failed for {generator}: {detail}")
+            errors.append(f"Generated artifact check failed for {checker}: {detail}")
 
 
 def main() -> int:
@@ -276,9 +281,9 @@ def main() -> int:
     _validate_schema(graph, graph_schema, DEPENDENCY_GRAPH_PATH.name, errors)
 
     module_ids = _check_modules(module_map, errors)
-    generators = _check_reference_statuses(module_map, errors)
+    checkers = _check_reference_statuses(module_map, errors)
     _check_graph(graph, module_ids, errors)
-    _check_generated_artifacts(generators, errors)
+    _check_generated_artifacts(checkers, errors)
 
     if errors:
         for error in errors:

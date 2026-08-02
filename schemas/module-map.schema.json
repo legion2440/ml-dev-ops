@@ -64,6 +64,9 @@
         "generator": {
           "$ref": "#/$defs/repositoryPath"
         },
+        "checker": {
+          "$ref": "#/$defs/repositoryPath"
+        },
         "sources": {
           "type": "array",
           "minItems": 1,

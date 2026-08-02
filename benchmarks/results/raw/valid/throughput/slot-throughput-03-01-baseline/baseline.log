@@ -1,0 +1,39 @@
+*** Measurement Settings ***
+  Batch size: 8
+  Service Kind: TRITON
+  Sending 100 warmup requests
+  Using "count_windows" mode for stabilization
+  Stabilizing using p95latency and throughput
+  Minimum number of samples in each window: 500
+  Using synchronous calls for inference
+
+Request concurrency: 4
+Request concurrency: 4
+  Pass [1] throughput: 964.762 infer/sec. p95 latency: 44830 usec
+  Pass [2] throughput: 820.589 infer/sec. p95 latency: 49942 usec
+  Pass [3] throughput: 773.036 infer/sec. p95 latency: 57135 usec
+  Client: 
+    Request count: 1669
+    Throughput: 850.681 infer/sec
+    Avg client overhead: 2.84%
+    p50 latency: 33035 usec
+    p90 latency: 45891 usec
+    p95 latency: 50083 usec
+    p99 latency: 69129 usec
+    Avg HTTP time: 36916 usec (send 2359 usec + response wait 34546 usec + receive 11 usec)
+  Server: 
+    Inference count: 13352
+    Execution count: 1669
+    Successful request count: 1669
+    Avg request latency: 24611 usec (overhead 50 usec + queue 16057 usec + compute input 605 usec + compute infer 7866 usec + compute output 31 usec)
+  Server Prometheus Metrics: 
+    Avg GPU Utilization:
+      GPU-8b397d66-cb44-ff85-0381-290e9b034fe0 : 69.7171%
+    Avg GPU Power Usage:
+      GPU-8b397d66-cb44-ff85-0381-290e9b034fe0 : 116.606 watts
+    Max GPU Memory Usage:
+      GPU-8b397d66-cb44-ff85-0381-290e9b034fe0 : 2283798528 bytes
+    Total GPU Memory:
+      GPU-8b397d66-cb44-ff85-0381-290e9b034fe0 : 12878610432 bytes
+Inferences/Second vs. Client p95 Batch Latency
+Concurrency: 4, throughput: 850.681 infer/sec, latency 50083 usec

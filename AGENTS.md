@@ -98,6 +98,9 @@ make down
 make status
 make smoke
 make capture-evidence
+make benchmark
+make validate-benchmark
+make validate-benchmark-evidence
 ```
 
 The same checks can run without Make:
@@ -107,7 +110,7 @@ python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
 python scripts/validate_runtime_evidence.py
-python -m unittest discover -s tests/unit -p "test_*.py"
+python -m unittest discover -s tests/unit -t . -p "test_*.py"
 python scripts/generate_dependency_graph.py
 python scripts/generate_dependency_graph.py --check
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
@@ -116,6 +119,9 @@ bash deployment/scripts/stop_environment.sh
 bash deployment/scripts/check_environment.sh
 python deployment/scripts/smoke_environment.py
 python deployment/scripts/capture_runtime_evidence.py
+python benchmarks/run_benchmark.py run --env-file .env.example
+python scripts/validate_benchmark.py
+python scripts/validate_benchmark_evidence.py
 ```
 
 These standard commands are reserved for later scopes and must not be documented as
@@ -125,8 +131,18 @@ working until implemented:
 make test
 make test-feature FEATURE=client
 make prepare-models
-make benchmark
 ```
+
+Step 6 benchmarking is launched from the Windows host with `make benchmark`. The
+host process owns Windows `GPU Engine(*)` attribution and `nvidia-smi` device
+diagnostics, while the SDK container owns Perf Analyzer; their boundary handshake
+uses shared-cache sequence acknowledgements.
+Every PA pass has a separate marker/ack boundary and measured-model/version Triton
+statistics snapshot. Pass decomposition is diagnostic only: it must never remove a
+pass, create a replacement, or change the paired acceptance result. Perf Analyzer
+stability, thermal/power state, clocks, P-state, and workload-owned utilization are
+not validity or PASS criteria. Only attributed foreign GPU activity may replace the
+same formal slot.
 
 Deployment has two distinct completion states:
 

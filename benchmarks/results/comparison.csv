@@ -1,0 +1,9 @@
+scenario,repetition,execution_order,primary_metric,baseline_value,optimized_value,paired_improvement_pct,directional_improvement,median_paired_improvement_pct,improved_pair_count,gate_passed
+latency,1,baseline -> optimized,mean_client_latency_ms,11.343000,9.325000,17.790708,true,19.316128,4,true
+latency,2,optimized -> baseline,mean_client_latency_ms,11.662000,9.457000,18.907563,true,19.316128,4,true
+latency,3,baseline -> optimized,mean_client_latency_ms,11.914000,9.564000,19.724694,true,19.316128,4,true
+latency,4,optimized -> baseline,mean_client_latency_ms,12.028000,9.575000,20.394080,true,19.316128,4,true
+throughput,1,baseline -> optimized,infer_per_sec,956.510000,2476.040000,158.861904,true,114.109287,4,true
+throughput,2,optimized -> baseline,infer_per_sec,945.555000,1974.110000,108.777914,true,114.109287,4,true
+throughput,3,baseline -> optimized,infer_per_sec,850.681000,1866.740000,119.440660,true,114.109287,4,true
+throughput,4,optimized -> baseline,infer_per_sec,963.708000,1866.210000,93.648906,true,114.109287,4,true

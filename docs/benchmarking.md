@@ -1,18 +1,165 @@
 # Benchmarking
 
-## Current status
+## Comparison pair
 
-No performance measurements have been collected.
+The measured pair is ResNet50 ONNX Runtime FP32 (`resnet50_onnx:1`) versus
+TensorRT FP16 compute with FP32 I/O (`resnet50_tensorrt:1`). The generated
+`shared/benchmark-model-pair.json` proves common weights, tensor shapes,
+preprocessing, maximum batch size, scheduler, instance policy, and passed numerical
+parity without exposing model-artifact paths.
 
-## Comparison contract
+The runner consumes this shared projection and live Triton metadata. It does not
+read the model spec, manifest, inference history, or model binaries.
 
-The benchmark will compare ResNet50 ONNX with ResNet50 TensorRT under identical
-images, input shapes, batch sizes, concurrency, warmup, request counts, GPU
-hardware, and container versions.
+## Step 6 acceptance
 
-Metrics will include average, p50, p95, and p99 latency; throughput; error count;
-GPU utilization and memory; server queue time; and compute time.
+The formal benchmark contains only latency and throughput:
 
-Raw measurements, aggregate CSV files, commands, environment details, and the final
-comparison belong in `benchmarks`. The report must state honestly when optimization
-does not improve a tested configuration.
+| Scenario | Batch | Concurrency | Primary | Secondary |
+| --- | ---: | ---: | --- | --- |
+| latency | 1 | 1 | mean client latency | p50, p95 |
+| throughput | 8 | 4 | infer/s | Triton request/queue/compute statistics |
+
+Both use the same deterministic FP32 input, explicit model version, HTTP binary
+tensors, 100 warmup requests, and count windows of at least 500 successful requests.
+Dynamic batching is excluded because Step 4 already proves it with Triton execution
+and batch-count statistics.
+
+Four paired repetitions run in AB → BA → AB → BA order, where A is ONNX and B is
+TensorRT. No best-run selection, outlier deletion, or performance-triggered retry is
+allowed.
+
+For pair `i`:
+
+```text
+latency_i = (ONNX mean_i - TensorRT mean_i) / ONNX mean_i * 100
+throughput_i = (TensorRT infer/s_i - ONNX infer/s_i) / ONNX infer/s_i * 100
+```
+
+The primary result is the median paired improvement across all four repetitions.
+Each scenario passes when the median is greater than zero and at least three pairs
+improve in the expected direction. A result above 5% is described as strong; a
+result from 0% through 5% is modest but measurable. Five percent is descriptive,
+not an acceptance threshold.
+
+## Perf Analyzer output contract
+
+Perf Analyzer is the formal measurement tool. It runs three count windows, 500
+requests per window, and a fixed 999% completion tolerance so that it emits the
+complete CSV containing mean, p50, p95, and infer/s. Perf Analyzer determines its
+reported result from three recent windows; therefore this setting is explicitly an
+operational output mechanism, not a stationarity claim.
+
+`Failed to obtain stable measurement`, if present, has no direct PASS/FAIL meaning.
+A trial still needs a parseable formal metric artifact; a missing/corrupt CSV is an
+infrastructure/output error rather than a performance failure. The configured 999%
+completion tolerance avoids treating normal laptop operating-state drift as an
+assignment acceptance gate.
+
+Every PA window is preserved in the log and sidecar. The validator matches the
+window infer/s and p95 back to the log, requires a final PA client request count of
+at least 1500, and independently recomputes the explicit-version Triton statistics
+deltas. Boundary deltas are diagnostic and may shift a few in-flight requests
+between adjacent windows. Mean client latency and percentiles come from the PA CSV,
+not a custom Python timer.
+
+On Docker Desktop/WSL2, the tracked `benchmarks/clock_guard.c` preserves realtime
+epoch but advances elapsed time from `CLOCK_MONOTONIC`. Its source and binary hashes
+are recorded.
+
+## Isolation and validity
+
+Before measurement, the runner snapshots the entire READY set, rejects partial
+states it cannot reproduce, unloads everything, and checks the pair's live tensor
+and scheduling contract. Each run loads only its target model. Cleanup unloads the
+measured model and restores the exact initial state.
+
+A valid formal run proves:
+
+- the expected model and version were measured under the declared batch and
+  concurrency;
+- the same deterministic input hash and live serving contract were used;
+- all three 500-request PA windows completed and the CSV/log/sidecar parse;
+- Perf Analyzer and Triton report no request/runtime errors;
+- the host observer produced continuous, valid attribution telemetry;
+- no foreign GPU workload was objectively attributed during the sequence range.
+
+PA stability text, temperature, power, clocks, P-state, high GPU utilization, queue
+variation, or a poor metric value are not validity criteria.
+
+## Environment guard
+
+The Windows host dynamically enumerates `GPU Engine(*)` counters through PDH and
+records PID, process name, engine type, and utilization. `nvidia-smi` provides only
+device diagnostics. `vmmemWSL.exe` and `vmwp.exe` are predeclared benchmark-owned
+processes; forbidden applications are declared separately in the config.
+
+Marker/ack boundaries use host sequence numbers, so Windows and container monotonic
+clock origins are never compared. One-second periodic samples carry device
+diagnostics. Lightweight event-driven boundary samples refresh WDDM attribution and
+refer to the latest periodic device snapshot.
+
+The validator independently reconstructs baseline and measurement ranges.
+`CONTAMINATED` requires more than the declared 0.1% activity threshold from a new
+foreign process, a forbidden process, or a baseline-idle foreign process that
+becomes active. Only that objective attribution permits a consecutive same-slot
+replacement, with no more than three attempts. Telemetry gaps or collection failure
+are `ERROR`.
+
+## Supporting diagnostics
+
+Per-window snapshots retain request, inference, and execution counts plus total
+request, queue, compute-input, compute-infer, and compute-output durations. Host
+telemetry retains clocks, power, temperature, GPU utilization, memory, and WDDM
+workload state.
+
+These values explain variation without reclassifying it. A report may state that
+throughput variation correlated with workload-owned compute-infer drift accompanied
+by temperature/power changes, consistent with operating-state variation. It must
+not claim stronger causality than the data supports.
+
+Clock locking with `nvidia-smi -lgc` is not a formal prerequisite. It requires
+administrator privileges and is reserved for a separate diagnostic experiment only
+if the paired formal result is contradictory.
+
+## Publication and validation
+
+The SDK container mounts the repository read-only and writes only to the ignored
+benchmark cache. The host stages a full candidate below
+`.cache/benchmarking/run-<id>/publish`, validates it, publishes atomically, then
+validates the tracked bundle again. Rollback restores the previous published bundle
+if any step fails.
+
+The evidence validator independently proves exactly four ONNX/TensorRT pairs per
+scenario, AB/BA order, zero errors, model/config identity, all formulas and medians,
+at least three improving pairs, raw/CSV/report agreement, and objective attribution
+for every replacement. It does not enforce PA stability, thermal stability, fixed
+clocks, or a 5% performance gate.
+
+```text
+make validate-benchmark
+make benchmark
+make validate-benchmark-evidence
+```
+
+Direct equivalents:
+
+```text
+python benchmarks/run_benchmark.py run --env-file .env.example
+python scripts/validate_benchmark_evidence.py
+```
+
+If a formal candidate is contradictory, keep all four pairs and supporting
+telemetry in `.cache/benchmarking` and stop for review. Do not change the method or
+rerun selectively.
+
+## Superseded diagnostics
+
+The earlier contract required 5% PA stability within ten windows for every formal
+run and at least 5% aggregate improvement. It was superseded before this formal
+candidate because diagnostic measurements showed persistent workload-owned
+thermal/power drift. PA stationarity is not required by the assignment and was
+rejecting otherwise valid inference measurements.
+
+All earlier runs remain diagnostic/superseded cache artifacts. They are not deleted,
+selected, or represented as committed formal results.

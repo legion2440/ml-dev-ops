@@ -34,6 +34,7 @@ file. Image license statements remain governed by those source pages.
 | Component | Selected image | License or terms |
 |---|---|---|
 | NVIDIA Triton Inference Server | `nvcr.io/nvidia/tritonserver:26.07-py3` | Triton source is BSD-3-Clause; the NVIDIA container and bundled components are also subject to the NVIDIA Deep Learning Container License and their component terms. |
+| NVIDIA Triton SDK and Perf Analyzer | `TRITON_SDK_IMAGE` pin in `.env.example` | NVIDIA container and component terms; Perf Analyzer is used only as the reproducible benchmark load generator. |
 | NVIDIA TensorRT | `nvcr.io/nvidia/tensorrt:26.07-py3` | NVIDIA Software License Agreement and NVIDIA AI Product-Specific Terms. |
 | NVIDIA DCGM Exporter | Pin in `.env.example` | NVIDIA and bundled component terms. |
 | Prometheus | Pin in `.env.example` | Apache-2.0. |

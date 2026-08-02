@@ -1,0 +1,384 @@
+{
+  "acceptance": {
+    "latency": {
+      "gate_passed": true,
+      "improved_pair_count": 4,
+      "median_paired_improvement_pct": 19.3161283314736,
+      "pairs": [
+        {
+          "baseline": {
+            "infer_per_sec": 84.0606,
+            "mean_client_latency_ms": 11.343,
+            "p50_latency_ms": 10.762,
+            "p95_latency_ms": 15.846
+          },
+          "directional_improvement": true,
+          "execution_order": "baseline -> optimized",
+          "optimized": {
+            "infer_per_sec": 101.899,
+            "mean_client_latency_ms": 9.325,
+            "p50_latency_ms": 9.143,
+            "p95_latency_ms": 10.314
+          },
+          "paired_improvement_pct": 17.790707925592876,
+          "repetition": 1
+        },
+        {
+          "baseline": {
+            "infer_per_sec": 81.833,
+            "mean_client_latency_ms": 11.662,
+            "p50_latency_ms": 11.014,
+            "p95_latency_ms": 16.649
+          },
+          "directional_improvement": true,
+          "execution_order": "optimized -> baseline",
+          "optimized": {
+            "infer_per_sec": 100.128,
+            "mean_client_latency_ms": 9.457,
+            "p50_latency_ms": 9.309,
+            "p95_latency_ms": 10.641
+          },
+          "paired_improvement_pct": 18.907563025210084,
+          "repetition": 2
+        },
+        {
+          "baseline": {
+            "infer_per_sec": 80.1387,
+            "mean_client_latency_ms": 11.914,
+            "p50_latency_ms": 11.194,
+            "p95_latency_ms": 16.505
+          },
+          "directional_improvement": true,
+          "execution_order": "baseline -> optimized",
+          "optimized": {
+            "infer_per_sec": 99.8623,
+            "mean_client_latency_ms": 9.564,
+            "p50_latency_ms": 9.495,
+            "p95_latency_ms": 10.684
+          },
+          "paired_improvement_pct": 19.724693637737115,
+          "repetition": 3
+        },
+        {
+          "baseline": {
+            "infer_per_sec": 79.3721,
+            "mean_client_latency_ms": 12.028,
+            "p50_latency_ms": 11.001,
+            "p95_latency_ms": 16.78
+          },
+          "directional_improvement": true,
+          "execution_order": "optimized -> baseline",
+          "optimized": {
+            "infer_per_sec": 98.7534,
+            "mean_client_latency_ms": 9.575,
+            "p50_latency_ms": 9.491,
+            "p95_latency_ms": 10.702
+          },
+          "paired_improvement_pct": 20.394080478882607,
+          "repetition": 4
+        }
+      ],
+      "primary_metric": "mean_client_latency_ms",
+      "strength": "strong_measurable_improvement"
+    },
+    "passed": true,
+    "rule": {
+      "minimum_directional_pairs": 3,
+      "minimum_median_paired_improvement_pct_exclusive": 0.0,
+      "strong_improvement_threshold_pct": 5.0
+    },
+    "throughput": {
+      "gate_passed": true,
+      "improved_pair_count": 4,
+      "median_paired_improvement_pct": 114.10928669768697,
+      "pairs": [
+        {
+          "baseline": {
+            "infer_per_sec": 956.51,
+            "mean_client_latency_ms": 32.858,
+            "p50_latency_ms": 30.824,
+            "p95_latency_ms": 42.345
+          },
+          "directional_improvement": true,
+          "execution_order": "baseline -> optimized",
+          "optimized": {
+            "infer_per_sec": 2476.04,
+            "mean_client_latency_ms": 12.355,
+            "p50_latency_ms": 11.172,
+            "p95_latency_ms": 19.781
+          },
+          "paired_improvement_pct": 158.86190421427898,
+          "repetition": 1
+        },
+        {
+          "baseline": {
+            "infer_per_sec": 945.555,
+            "mean_client_latency_ms": 33.185,
+            "p50_latency_ms": 31.42,
+            "p95_latency_ms": 46.946
+          },
+          "directional_improvement": true,
+          "execution_order": "optimized -> baseline",
+          "optimized": {
+            "infer_per_sec": 1974.11,
+            "mean_client_latency_ms": 15.722,
+            "p50_latency_ms": 15.381,
+            "p95_latency_ms": 25.173
+          },
+          "paired_improvement_pct": 108.77791350053673,
+          "repetition": 2
+        },
+        {
+          "baseline": {
+            "infer_per_sec": 850.681,
+            "mean_client_latency_ms": 36.924,
+            "p50_latency_ms": 33.035,
+            "p95_latency_ms": 50.083
+          },
+          "directional_improvement": true,
+          "execution_order": "baseline -> optimized",
+          "optimized": {
+            "infer_per_sec": 1866.74,
+            "mean_client_latency_ms": 16.567,
+            "p50_latency_ms": 17.114,
+            "p95_latency_ms": 28.05
+          },
+          "paired_improvement_pct": 119.4406598948372,
+          "repetition": 3
+        },
+        {
+          "baseline": {
+            "infer_per_sec": 963.708,
+            "mean_client_latency_ms": 32.581,
+            "p50_latency_ms": 29.961,
+            "p95_latency_ms": 40.998
+          },
+          "directional_improvement": true,
+          "execution_order": "optimized -> baseline",
+          "optimized": {
+            "infer_per_sec": 1866.21,
+            "mean_client_latency_ms": 16.575,
+            "p50_latency_ms": 16.382,
+            "p95_latency_ms": 27.758
+          },
+          "paired_improvement_pct": 93.64890610018803,
+          "repetition": 4
+        }
+      ],
+      "primary_metric": "infer_per_sec",
+      "strength": "strong_measurable_improvement"
+    }
+  },
+  "artifacts": {
+    "baseline": {
+      "path": "benchmarks/results/baseline.csv",
+      "sha256": "ed0c3db479a8b4634a3f7ee7a3b5bff368c99f09bdc3bdd36230a3b047da85e4"
+    },
+    "comparison": {
+      "path": "benchmarks/results/comparison.csv",
+      "sha256": "8a66681f015e0de2ef7f84cbfdd825b542671b55a73b3865bf2572ca7db04c16"
+    },
+    "optimized": {
+      "path": "benchmarks/results/optimized.csv",
+      "sha256": "25507f3c25d1f3274ae1398a745a8bd748633ec25f59eb8ab3fe7d97b8f775b0"
+    },
+    "raw_index": {
+      "path": "benchmarks/results/raw/index.json",
+      "sha256": "07710eed55d1e990985c3b65492a7c9280bed51d5e0f8d0c7bc56df9503e04b6"
+    },
+    "report": {
+      "path": "benchmarks/report.md",
+      "sha256": "af4afebe96e98c114cd1a834fd467b5479d598fc83de6d1f654bad23b03def7b"
+    }
+  },
+  "benchmark_config_sha256": "467dfc184589c6fc59ec43d9ced3bd87ade14e6557d0d7fb03da1d1ba0f1604d",
+  "declared_build_target": {
+    "build_driver_version": "610.88",
+    "compute_capability": "8.9",
+    "gpu_name": "NVIDIA GeForce RTX 4080 Laptop GPU"
+  },
+  "environment_guard": {
+    "actions": {
+      "path": "benchmarks/results/raw/environment-actions.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_seconds": 5,
+    "benchmark_owned_processes": [
+      "vmmemWSL.exe",
+      "vmwp.exe"
+    ],
+    "contaminated_run_count": 2,
+    "contamination_records": [
+      {
+        "guard_boundary": {
+          "baseline_end_seq": 330,
+          "baseline_start_seq": 324,
+          "guard_end_seq": 342,
+          "guard_ended_at_utc": "2026-08-02T16:12:27.686540Z",
+          "guard_ended_monotonic_ns": 116869212390800,
+          "guard_start_seq": 330,
+          "guard_started_at_utc": "2026-08-02T16:12:19.319665Z",
+          "guard_started_monotonic_ns": 116860845516000
+        },
+        "reasons": [
+          {
+            "engine_type": "Copy",
+            "first_sequence": 331,
+            "pid": 4,
+            "process_name": "System",
+            "reason": "baseline_idle_process_became_active",
+            "utilization_percent": 0.19094019568290377
+          }
+        ],
+        "role": "optimized",
+        "scenario": "throughput",
+        "slot_attempt": 1,
+        "slot_id": "slot-throughput-02-01-optimized"
+      },
+      {
+        "guard_boundary": {
+          "baseline_end_seq": 375,
+          "baseline_start_seq": 369,
+          "guard_end_seq": 394,
+          "guard_ended_at_utc": "2026-08-02T16:13:07.303408Z",
+          "guard_ended_monotonic_ns": 116908829262800,
+          "guard_start_seq": 375,
+          "guard_started_at_utc": "2026-08-02T16:12:52.309384Z",
+          "guard_started_monotonic_ns": 116893835249300
+        },
+        "reasons": [
+          {
+            "engine_type": "Copy",
+            "first_sequence": 376,
+            "pid": 4,
+            "process_name": "System",
+            "reason": "baseline_idle_process_became_active",
+            "utilization_percent": 0.44627687929024334
+          }
+        ],
+        "role": "baseline",
+        "scenario": "throughput",
+        "slot_attempt": 1,
+        "slot_id": "slot-throughput-02-02-baseline"
+      }
+    ],
+    "forbidden_processes": [
+      "brave.exe",
+      "chrome.exe",
+      "claude.exe",
+      "code.exe",
+      "firefox.exe",
+      "msedge.exe",
+      "spotify.exe",
+      "steam.exe",
+      "steamwebhelper.exe",
+      "Taskmgr.exe"
+    ],
+    "formal_slot_count": 16,
+    "gpu_engine_activity_threshold_percent": 0.1,
+    "host_observer": "windows_gpu_engine_nvidia_smi",
+    "max_contaminated_attempts_per_slot": 3,
+    "maximum_sample_gap_ms": 3000,
+    "minimum_consecutive_baseline_samples": 5,
+    "sample_interval_ms": 1000,
+    "telemetry": {
+      "path": "benchmarks/results/raw/environment-telemetry.jsonl",
+      "sha256": "33268dbcdb8760565a806e0a839cf2ef91da13c9ff41a97e5178ea1463ecdb2e"
+    },
+    "valid_run_count": 16
+  },
+  "final_ready": [],
+  "generated_at_utc": "2026-08-02T16:15:00.135455Z",
+  "initial_ready": [],
+  "input_sha256": "c0f6ed563e1f12ef3646fe2065b7d74924c5fadc2358ed98ab64d151185fdd0e",
+  "measurement": {
+    "clock_guard_source_sha256": "0ac06bc9c4f52386b5925fa7ecf61cbc3b241eefa6794e9d58500f8c3c95bd5a",
+    "errors": 0,
+    "repetitions": 4,
+    "run_count": 16,
+    "scenario_count": 2,
+    "scenarios": {
+      "latency": {
+        "baseline": {
+          "infer_per_sec_max": 86.7886,
+          "infer_per_sec_min": 77.9448,
+          "p95_latency_us_max": 17330,
+          "p95_latency_us_min": 15029,
+          "run_count": 4,
+          "window_count": 12
+        },
+        "optimized": {
+          "infer_per_sec_max": 103.152,
+          "infer_per_sec_min": 95.6047,
+          "p95_latency_us_max": 10968,
+          "p95_latency_us_min": 10160,
+          "run_count": 4,
+          "window_count": 12
+        },
+        "pa_reported_stable_run_count": 8,
+        "pa_reported_unstable_run_count": 0,
+        "perf_analyzer_completion_tolerance_pct": 999,
+        "primary_metric": "mean_client_latency_ms",
+        "run_count": 8,
+        "status": "formal",
+        "valid_run_count": 8
+      },
+      "throughput": {
+        "baseline": {
+          "infer_per_sec_max": 1031.29,
+          "infer_per_sec_min": 773.036,
+          "p95_latency_us_max": 57135,
+          "p95_latency_us_min": 33997,
+          "run_count": 4,
+          "window_count": 12
+        },
+        "optimized": {
+          "infer_per_sec_max": 2535.28,
+          "infer_per_sec_min": 1808.81,
+          "p95_latency_us_max": 29406,
+          "p95_latency_us_min": 19188,
+          "run_count": 4,
+          "window_count": 12
+        },
+        "pa_reported_stable_run_count": 8,
+        "pa_reported_unstable_run_count": 0,
+        "perf_analyzer_completion_tolerance_pct": 999,
+        "primary_metric": "infer_per_sec",
+        "run_count": 8,
+        "status": "formal",
+        "valid_run_count": 8
+      }
+    },
+    "valid_run_count": 16
+  },
+  "pair": {
+    "baseline": {
+      "model": "resnet50_onnx",
+      "version": "1"
+    },
+    "common_contract_sha256": "cd7ea19161fad7e89962a0035f43f8caa9b46a2cc69734742ae840874de9caf8",
+    "optimized": {
+      "model": "resnet50_tensorrt",
+      "version": "1"
+    },
+    "weights_sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca"
+  },
+  "pair_contract_sha256": "3daeb61c60da6ca3fd947da3fd0e2f6c27d014918c95616cca6b1e382edaf409",
+  "runtime": {
+    "gpu_memory_total_bytes": 12878610432,
+    "gpu_memory_used_bytes_before": 1559232512,
+    "gpu_memory_used_bytes_median": 1831075840,
+    "gpu_utilization_fraction_before": 0.33,
+    "gpu_utilization_fraction_median": 0.41966349999999997,
+    "gpu_uuid": "GPU-8b397d66-cb44-ff85-0381-290e9b034fe0",
+    "perf_analyzer_version": "Perf Analyzer Version 0.0.0 (commit 3a49a23)",
+    "sdk_image": "nvcr.io/nvidia/tritonserver:26.07-py3-sdk",
+    "sdk_version": "26.07",
+    "triton_image": "nvcr.io/nvidia/tritonserver:26.07-py3",
+    "triton_name": "triton",
+    "triton_version": "2.71.0"
+  },
+  "runtime_state_restored": true,
+  "schema_version": 2,
+  "source_fingerprint_sha256": "c465dc83b155c3632c47def11c268342534e45b7867b3d7421e8c097a67f4fb4"
+}

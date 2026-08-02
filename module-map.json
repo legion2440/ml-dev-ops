@@ -419,6 +419,7 @@
           "path": "docs/evidence/step-5/client-runtime.json",
           "status": "generated",
           "generator": "client/verify_runtime.py",
+          "checker": "scripts/validate_client_evidence.py",
           "sources": [
             "client/verify_runtime.py",
             "shared/client-model-contracts.json",
@@ -430,6 +431,7 @@
           "path": "docs/evidence/step-5/inference-log.jsonl",
           "status": "generated",
           "generator": "client/verify_runtime.py",
+          "checker": "scripts/validate_client_evidence.py",
           "sources": [
             "client/verify_runtime.py",
             "shared/client-model-contracts.json",
@@ -440,6 +442,7 @@
           "path": "docs/evidence/step-5/inference-log.csv",
           "status": "generated",
           "generator": "client/verify_runtime.py",
+          "checker": "scripts/validate_client_evidence.py",
           "sources": [
             "docs/evidence/step-5/inference-log.jsonl",
             "client/logging/csv_export.py"
@@ -449,6 +452,7 @@
           "path": "docs/evidence/step-5/predictions.txt",
           "status": "generated",
           "generator": "client/verify_runtime.py",
+          "checker": "scripts/validate_client_evidence.py",
           "sources": [
             "client/verify_runtime.py",
             "client/samples/manifest.json"
@@ -515,7 +519,15 @@
       "entrypoints": [
         {
           "path": "benchmarks/run_benchmark.py",
-          "status": "planned"
+          "status": "implemented"
+        },
+        {
+          "path": "benchmarks/aggregate_results.py",
+          "status": "implemented"
+        },
+        {
+          "path": "benchmarks/environment_guard.py",
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
@@ -527,7 +539,15 @@
       "tests": [
         {
           "path": "tests/unit/benchmarking",
-          "status": "planned"
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/validate_benchmark.py",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/validate_benchmark_evidence.py",
+          "status": "implemented"
         }
       ],
       "docs": [
@@ -539,25 +559,106 @@
       "generated_artifacts": [
         {
           "path": "benchmarks/results/baseline.csv",
-          "status": "planned"
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "shared/benchmark-model-pair.json",
+            "benchmarks/results/raw/index.json"
+          ]
         },
         {
           "path": "benchmarks/results/optimized.csv",
-          "status": "planned"
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "shared/benchmark-model-pair.json",
+            "benchmarks/results/raw/index.json"
+          ]
         },
         {
           "path": "benchmarks/results/comparison.csv",
-          "status": "planned"
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "shared/benchmark-model-pair.json",
+            "benchmarks/results/raw/index.json"
+          ]
         },
         {
           "path": "benchmarks/report.md",
-          "status": "planned"
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "shared/benchmark-model-pair.json",
+            "benchmarks/results/raw/index.json"
+          ]
+        },
+        {
+          "path": "benchmarks/results/raw/index.json",
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "shared/benchmark-model-pair.json"
+          ]
+        },
+        {
+          "path": "benchmarks/results/raw/environment-telemetry.jsonl",
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "benchmarks/environment_guard.py"
+          ]
+        },
+        {
+          "path": "benchmarks/results/raw/environment-actions.jsonl",
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "benchmarks/environment_guard.py"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-6/benchmark-runtime.json",
+          "status": "generated",
+          "generator": "benchmarks/run_benchmark.py",
+          "checker": "scripts/validate_benchmark_evidence.py",
+          "sources": [
+            "benchmarks/configs/benchmark.json",
+            "shared/benchmark-model-pair.json",
+            "benchmarks/results/raw/index.json"
+          ]
         }
       ],
       "owned_configuration": [
         {
-          "path": "benchmarks/configs/benchmark.yaml",
-          "status": "planned"
+          "path": "benchmarks/configs/benchmark.json",
+          "status": "implemented"
+        },
+        {
+          "path": "schemas/benchmark-config.schema.json",
+          "status": "implemented"
+        },
+        {
+          "path": "schemas/benchmark-evidence.schema.json",
+          "status": "implemented"
+        },
+        {
+          "path": "schemas/benchmark-host-telemetry.schema.json",
+          "status": "implemented"
         }
       ]
     },
@@ -640,6 +741,14 @@
                         "models/resnet50_tensorrt/imagenet1k.txt",
                         "models/yolo11n_onnx/coco80.txt"
                     ]
+                },
+                {
+                    "path": "shared/benchmark-model-pair.json",
+                    "status": "generated",
+                    "generator": "scripts/model_preparation/prepare_models.py",
+                    "sources": [
+                        "models/model-manifest.json"
+                    ]
                 }
       ],
       "tests": [
@@ -665,9 +774,22 @@
             "models/resnet50_tensorrt/imagenet1k.txt",
             "models/yolo11n_onnx/coco80.txt"
           ]
+        },
+        {
+          "path": "shared/benchmark-model-pair.json",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-manifest.json"
+          ]
         }
       ],
-      "owned_configuration": []
+      "owned_configuration": [
+        {
+          "path": "schemas/benchmark-model-pair.schema.json",
+          "status": "implemented"
+        }
+      ]
     }
   ],
   "repository_artifacts": [

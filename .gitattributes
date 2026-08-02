@@ -2,6 +2,7 @@
 
 *.py text eol=lf
 *.json text eol=lf
+*.jsonl text eol=lf
 *.md text eol=lf
 *.toml text eol=lf
 *.yml text eol=lf
@@ -10,6 +11,8 @@
 *.sh text eol=lf
 *.txt text eol=lf
 *.csv text eol=lf
+benchmarks/results/raw/**/*.log whitespace=-trailing-space
+*.c text eol=lf
 *.pbtxt text eol=lf
 *.ipynb text eol=lf
 .env.example text eol=lf

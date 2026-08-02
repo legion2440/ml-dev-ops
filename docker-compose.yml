@@ -161,6 +161,30 @@ services:
     networks:
       - backend
 
+  benchmark-runner:
+    image: ${TRITON_SDK_IMAGE:?TRITON_SDK_IMAGE is required}
+    profiles:
+      - benchmark
+    working_dir: /workspace
+    command:
+      - python
+      - benchmarks/run_benchmark.py
+      - measure
+    environment:
+      TRITON_IMAGE: ${TRITON_IMAGE:?TRITON_IMAGE is required}
+      TRITON_SDK_IMAGE: ${TRITON_SDK_IMAGE:?TRITON_SDK_IMAGE is required}
+    volumes:
+      - type: bind
+        source: .
+        target: /workspace
+        read_only: true
+      - type: bind
+        source: ./.cache/benchmarking
+        target: /workspace/.cache/benchmarking
+    restart: "no"
+    networks:
+      - backend
+
 volumes:
   prometheus-data:
   grafana-data:

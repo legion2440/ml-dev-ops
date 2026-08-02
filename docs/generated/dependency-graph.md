@@ -23,12 +23,14 @@ flowchart LR
     triton_serving -->|configuration| shared_contracts
     deployment -->|configuration| triton_serving
     deployment -->|configuration| observability
+    deployment -->|configuration| benchmarking
     inference_client -->|runtime| triton_serving
     inference_client -->|runtime| shared_contracts
     inference_client -->|runtime| inference_logging
     inference_logging -->|runtime| shared_contracts
     benchmarking -->|runtime| inference_client
-    benchmarking -->|runtime| inference_logging
+    benchmarking -->|runtime| shared_contracts
+    benchmarking -->|runtime| triton_serving
     observability -->|runtime| triton_serving
 ```
 
@@ -40,12 +42,14 @@ flowchart LR
 | triton-serving | shared-contracts | configuration | Serving metadata must match shared input and output contracts. |
 | deployment | triton-serving | configuration | Deployment configures and controls the Triton service. |
 | deployment | observability | configuration | Deployment composes the metrics and dashboard services. |
+| deployment | benchmarking | configuration | Deployment runs the benchmark tool in the pinned Triton SDK image. |
 | inference-client | triton-serving | runtime | The client calls Triton health, metadata, repository, and inference APIs. |
 | inference-client | shared-contracts | runtime | The client uses shared request and prediction contracts. |
 | inference-client | inference-logging | runtime | The client records one structured history event per inference. |
 | inference-logging | shared-contracts | runtime | Log records use shared identifiers and prediction summaries. |
 | benchmarking | inference-client | runtime | Benchmarks reuse the public Triton transport and payload boundary. |
-| benchmarking | inference-logging | runtime | Benchmark requests produce the same structured inference history. |
+| benchmarking | shared-contracts | runtime | Benchmarks consume a generated model-pair and tensor contract. |
+| benchmarking | triton-serving | runtime | Perf Analyzer calls Triton inference and metrics endpoints directly. |
 | observability | triton-serving | runtime | Observability consumes Triton metrics and availability endpoints. |
 
 ## Forbidden dependencies

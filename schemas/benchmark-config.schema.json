@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/benchmark-config.schema.json",
+  "title": "Formal ONNX versus TensorRT benchmark configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "seed", "protocol", "service_kind", "load_generator", "environment_guard", "endpoints", "measurement", "execution_order", "scenarios", "acceptance"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "seed": {"type": "integer", "minimum": 0},
+    "protocol": {"const": "http"},
+    "service_kind": {"const": "triton"},
+    "load_generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["realtime_clock_guard", "verbose_windows"],
+      "properties": {
+        "realtime_clock_guard": {"const": true},
+        "verbose_windows": {"const": true}
+      }
+    },
+    "environment_guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host_observer", "sample_interval_ms", "baseline_seconds", "minimum_consecutive_baseline_samples", "maximum_sample_gap_ms", "ack_timeout_seconds", "max_contaminated_attempts_per_slot", "gpu_engine_activity_threshold_percent", "benchmark_owned_processes", "forbidden_processes"],
+      "properties": {
+        "host_observer": {"const": "windows_gpu_engine_nvidia_smi"},
+        "sample_interval_ms": {"const": 1000},
+        "baseline_seconds": {"type": "number", "minimum": 5, "maximum": 30},
+        "minimum_consecutive_baseline_samples": {"const": 5},
+        "maximum_sample_gap_ms": {"type": "integer", "minimum": 1000, "maximum": 10000},
+        "ack_timeout_seconds": {"type": "number", "minimum": 10, "maximum": 120},
+        "max_contaminated_attempts_per_slot": {"const": 3},
+        "gpu_engine_activity_threshold_percent": {"const": 0.1},
+        "benchmark_owned_processes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[A-Za-z0-9 ._-]+\\.exe$"}
+        },
+        "forbidden_processes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[A-Za-z0-9 ._-]+\\.exe$"}
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["http", "metrics"],
+      "properties": {
+        "http": {"type": "string", "pattern": "^[A-Za-z0-9._-]+:[0-9]+$"},
+        "metrics": {"type": "string", "pattern": "^[A-Za-z0-9._-]+:[0-9]+/metrics$"}
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "request_count_per_window", "warmup_request_count", "reporting_percentile", "max_measurement_windows", "repetitions", "cooldown_seconds", "metrics_interval_ms", "command_timeout_seconds", "ready_timeout_seconds"],
+      "properties": {
+        "mode": {"const": "count_windows"},
+        "request_count_per_window": {"type": "integer", "minimum": 1},
+        "warmup_request_count": {"type": "integer", "minimum": 1},
+        "reporting_percentile": {"const": 95},
+        "max_measurement_windows": {"const": 3},
+        "repetitions": {"const": 4},
+        "cooldown_seconds": {"type": "number", "minimum": 0},
+        "metrics_interval_ms": {"type": "integer", "minimum": 50},
+        "command_timeout_seconds": {"type": "number", "minimum": 1},
+        "ready_timeout_seconds": {"type": "number", "minimum": 1}
+      }
+    },
+    "execution_order": {
+      "const": [
+        ["baseline", "optimized"],
+        ["optimized", "baseline"],
+        ["baseline", "optimized"],
+        ["optimized", "baseline"]
+      ]
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "perf_analyzer_completion_tolerance_pct", "batch_size", "concurrency", "primary_metric"],
+        "properties": {
+          "id": {"enum": ["latency", "throughput"]},
+          "status": {"const": "formal"},
+          "perf_analyzer_completion_tolerance_pct": {"const": 999},
+          "batch_size": {"type": "integer", "minimum": 1},
+          "concurrency": {"type": "integer", "minimum": 1},
+          "primary_metric": {"enum": ["mean_client_latency_ms", "infer_per_sec"]}
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_median_paired_improvement_pct_exclusive", "minimum_directional_pairs", "strong_improvement_threshold_pct"],
+      "properties": {
+        "minimum_median_paired_improvement_pct_exclusive": {"const": 0.0},
+        "minimum_directional_pairs": {"const": 3},
+        "strong_improvement_threshold_pct": {"const": 5.0}
+      }
+    }
+  }
+}

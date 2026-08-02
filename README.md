@@ -8,7 +8,7 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 5 runtime-verified: production image client and persistent inference logging.**
+**Step 6 runtime-verified: paired ONNX Runtime versus TensorRT benchmark passed.**
 
 The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
 services; GPU reservations; loopback-only ports; persistent metrics volumes;
@@ -19,9 +19,10 @@ The reference Windows 11, Docker Desktop/WSL2, and NVIDIA GPU host verifies the
 three serving models through both HTTP and gRPC. The production client accepts real
 JPG/PNG files or directories, performs contract-driven ResNet and YOLO preprocessing,
 decodes predictions, auto-loads an unavailable model, appends one JSONL event per
-Triton request, and exports the history to CSV. Dashboards, alerts, and formal
-benchmarks remain planned. Client timing is operational diagnostics, not benchmark
-evidence.
+Triton request, and exports the history to CSV. The formal benchmark now compares
+the ResNet50 ONNX and TensorRT implementations through the pinned SDK Perf Analyzer;
+dashboards and alerts remain planned. Client timing remains operational diagnostics,
+not benchmark evidence.
 
 Cleanup evidence covers both the repository READY set and every model-level and
 version-specific readiness endpoint. Batching evidence records `attempts_used` and
@@ -29,6 +30,20 @@ permits no more than three attempts.
 
 Step 5 runtime evidence covers all ten tracked sample images, ONNX versions 1 and 2,
 TensorRT, HTTP and gRPC, 11 logged requests, and exact restoration of the READY set.
+
+Step 6 measures 16 clean Perf Analyzer runs: four paired AB/BA repetitions for
+latency and throughput. PASS requires a positive median paired improvement and at
+least three of four pairs improving for each primary metric. Five percent labels a
+strong result but is not a gate. Windows-host process telemetry permits a same-slot
+replacement only for objectively attributed foreign GPU activity. PA stability,
+thermal/power drift, and clocks do not exclude a valid measurement. The earlier
+5%-stability/5%-improvement contract is retained only as superseded diagnostics in
+ignored cache.
+
+The published reference run passed 4/4 pairs in both scenarios, with median paired
+improvements of 19.32% for mean client latency and 114.11% for throughput. Two
+objectively attributed contaminated attempts remain in the evidence beside their
+same-slot replacements.
 
 Model binaries are reproducible local artifacts and are ignored by Git. The model
 specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
@@ -167,6 +182,22 @@ Models are loaded through Triton's HTTP repository API when needed and remain RE
 after a normal client request. Operational `logs/*.jsonl` and `logs/*.csv` files are
 ignored by Git. See `docs/client.md` for the CLI and event contracts.
 
+## Run the formal benchmark
+
+With prepared artifacts and healthy Triton:
+
+```text
+make benchmark
+```
+
+The Windows host records process-attributed GPU telemetry while the SDK container
+writes only to ignored `.cache/benchmarking` during measurement. The host publishes
+tracked results only after both gates and the independent raw-data validator pass.
+Each PA pass records an acknowledged WDDM sequence range and explicit-version
+Triton request/queue/compute deltas for diagnosis; those fields never alter formal
+classification. See `docs/benchmarking.md` for scenarios, boundary handshakes,
+isolation, metrics, and direct commands.
+
 Remove only the Prometheus and Grafana named volumes:
 
 ```text
@@ -218,6 +249,8 @@ python scripts/validate_serving.py --structure-only
 python scripts/validate_serving_evidence.py
 python scripts/validate_client.py
 python scripts/validate_client_evidence.py
+python scripts/validate_benchmark.py
+python scripts/validate_benchmark_evidence.py
 python -m unittest discover -s tests/unit -t . -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
@@ -259,6 +292,10 @@ Step 5 evidence is under `docs/evidence/step-5`. Refresh it only against live Tr
 with `make verify-client`; validate the tracked snapshot without a daemon with
 `make validate-client-evidence`. The verifier unloads only models it loaded and
 requires the final READY set to equal the initial set.
+
+Step 6 evidence is under `docs/evidence/step-6`. Refresh it only through `make
+benchmark`; validate it without a daemon with `make validate-benchmark-evidence`.
+Failed runs remain only in ignored cache and do not modify the last passing bundle.
 
 ## License
 

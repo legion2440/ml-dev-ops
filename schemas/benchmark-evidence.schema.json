@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/benchmark-evidence.schema.json",
+  "title": "Step 6 paired ONNX versus TensorRT benchmark evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at_utc",
+    "benchmark_config_sha256",
+    "source_fingerprint_sha256",
+    "pair_contract_sha256",
+    "input_sha256",
+    "pair",
+    "runtime",
+    "declared_build_target",
+    "measurement",
+    "environment_guard",
+    "artifacts",
+    "acceptance",
+    "initial_ready",
+    "final_ready",
+    "runtime_state_restored"
+  ],
+  "properties": {
+    "schema_version": {"const": 2},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "benchmark_config_sha256": {"$ref": "#/$defs/sha256"},
+    "source_fingerprint_sha256": {"$ref": "#/$defs/sha256"},
+    "pair_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "input_sha256": {"$ref": "#/$defs/sha256"},
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "optimized", "weights_sha256", "common_contract_sha256"],
+      "properties": {
+        "baseline": {"$ref": "#/$defs/model"},
+        "optimized": {"$ref": "#/$defs/model"},
+        "weights_sha256": {"$ref": "#/$defs/sha256"},
+        "common_contract_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "declared_build_target": {"$ref": "#/$defs/build_target"},
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_count", "repetitions", "run_count", "valid_run_count", "errors", "scenarios", "clock_guard_source_sha256"],
+      "properties": {
+        "scenario_count": {"const": 2},
+        "repetitions": {"const": 4},
+        "run_count": {"const": 16},
+        "valid_run_count": {"const": 16},
+        "errors": {"const": 0},
+        "scenarios": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["latency", "throughput"],
+          "properties": {
+            "latency": {"$ref": "#/$defs/scenario_summary"},
+            "throughput": {"$ref": "#/$defs/scenario_summary"}
+          }
+        },
+        "clock_guard_source_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "environment_guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host_observer", "sample_interval_ms", "baseline_seconds", "minimum_consecutive_baseline_samples", "maximum_sample_gap_ms", "gpu_engine_activity_threshold_percent", "benchmark_owned_processes", "forbidden_processes", "max_contaminated_attempts_per_slot", "formal_slot_count", "valid_run_count", "contaminated_run_count", "telemetry", "actions", "contamination_records"],
+      "properties": {
+        "host_observer": {"const": "windows_gpu_engine_nvidia_smi"},
+        "sample_interval_ms": {"const": 1000},
+        "baseline_seconds": {"type": "number", "minimum": 5},
+        "minimum_consecutive_baseline_samples": {"const": 5},
+        "maximum_sample_gap_ms": {"type": "integer", "minimum": 1000},
+        "gpu_engine_activity_threshold_percent": {"const": 0.1},
+        "benchmark_owned_processes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "forbidden_processes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "max_contaminated_attempts_per_slot": {"const": 3},
+        "formal_slot_count": {"const": 16},
+        "valid_run_count": {"const": 16},
+        "contaminated_run_count": {"type": "integer", "minimum": 0, "maximum": 32},
+        "telemetry": {"$ref": "#/$defs/artifact"},
+        "actions": {"$ref": "#/$defs/artifact"},
+        "contamination_records": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/contamination_record"}
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_index", "baseline", "optimized", "comparison", "report"],
+      "properties": {
+        "raw_index": {"$ref": "#/$defs/artifact"},
+        "baseline": {"$ref": "#/$defs/artifact"},
+        "optimized": {"$ref": "#/$defs/artifact"},
+        "comparison": {"$ref": "#/$defs/artifact"},
+        "report": {"$ref": "#/$defs/artifact"}
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "latency", "throughput", "passed"],
+      "properties": {
+        "rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minimum_median_paired_improvement_pct_exclusive", "minimum_directional_pairs", "strong_improvement_threshold_pct"],
+          "properties": {
+            "minimum_median_paired_improvement_pct_exclusive": {"const": 0.0},
+            "minimum_directional_pairs": {"const": 3},
+            "strong_improvement_threshold_pct": {"const": 5.0}
+          }
+        },
+        "latency": {"$ref": "#/$defs/acceptance_scenario"},
+        "throughput": {"$ref": "#/$defs/acceptance_scenario"},
+        "passed": {"const": true}
+      }
+    },
+    "initial_ready": {"type": "array", "items": {"$ref": "#/$defs/ready"}},
+    "final_ready": {"type": "array", "items": {"$ref": "#/$defs/ready"}},
+    "runtime_state_restored": {"const": true}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "version"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gpu_uuid", "gpu_utilization_fraction_before", "gpu_utilization_fraction_median", "gpu_memory_total_bytes", "gpu_memory_used_bytes_before", "gpu_memory_used_bytes_median", "triton_name", "triton_version", "triton_image", "sdk_version", "sdk_image", "perf_analyzer_version"],
+      "properties": {
+        "gpu_uuid": {"type": "string", "minLength": 1},
+        "gpu_utilization_fraction_before": {"type": "number", "minimum": 0, "maximum": 1},
+        "gpu_utilization_fraction_median": {"type": "number", "minimum": 0, "maximum": 1},
+        "gpu_memory_total_bytes": {"type": "integer", "minimum": 1},
+        "gpu_memory_used_bytes_before": {"type": "integer", "minimum": 0},
+        "gpu_memory_used_bytes_median": {"type": "integer", "minimum": 0},
+        "triton_name": {"const": "triton"},
+        "triton_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "triton_image": {"type": "string", "pattern": "^nvcr\\.io/nvidia/tritonserver:[0-9]{2}\\.[0-9]{2}-py3$"},
+        "sdk_version": {"type": "string", "pattern": "^[0-9]{2}\\.[0-9]{2}$"},
+        "sdk_image": {"type": "string", "pattern": "^nvcr\\.io/nvidia/tritonserver:[0-9]{2}\\.[0-9]{2}-py3-sdk$"},
+        "perf_analyzer_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "build_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gpu_name", "compute_capability", "build_driver_version"],
+      "properties": {
+        "gpu_name": {"type": "string", "minLength": 1},
+        "compute_capability": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+        "build_driver_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(benchmarks|docs)/[A-Za-z0-9._/-]+$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "scenario_spread": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_count", "window_count", "infer_per_sec_min", "infer_per_sec_max", "p95_latency_us_min", "p95_latency_us_max"],
+      "properties": {
+        "run_count": {"const": 4},
+        "window_count": {"const": 12},
+        "infer_per_sec_min": {"type": "number", "exclusiveMinimum": 0},
+        "infer_per_sec_max": {"type": "number", "exclusiveMinimum": 0},
+        "p95_latency_us_min": {"type": "integer", "minimum": 1},
+        "p95_latency_us_max": {"type": "integer", "minimum": 1}
+      }
+    },
+    "scenario_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "primary_metric", "perf_analyzer_completion_tolerance_pct", "run_count", "valid_run_count", "pa_reported_stable_run_count", "pa_reported_unstable_run_count", "baseline", "optimized"],
+      "properties": {
+        "status": {"const": "formal"},
+        "primary_metric": {"enum": ["mean_client_latency_ms", "infer_per_sec"]},
+        "perf_analyzer_completion_tolerance_pct": {"const": 999},
+        "run_count": {"const": 8},
+        "valid_run_count": {"const": 8},
+        "pa_reported_stable_run_count": {"type": "integer", "minimum": 0, "maximum": 8},
+        "pa_reported_unstable_run_count": {"type": "integer", "minimum": 0, "maximum": 8},
+        "baseline": {"$ref": "#/$defs/scenario_spread"},
+        "optimized": {"$ref": "#/$defs/scenario_spread"}
+      }
+    },
+    "primary_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mean_client_latency_ms", "p50_latency_ms", "p95_latency_ms", "infer_per_sec"],
+      "properties": {
+        "mean_client_latency_ms": {"type": "number", "exclusiveMinimum": 0},
+        "p50_latency_ms": {"type": "number", "exclusiveMinimum": 0},
+        "p95_latency_ms": {"type": "number", "exclusiveMinimum": 0},
+        "infer_per_sec": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "paired_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repetition", "execution_order", "baseline", "optimized", "paired_improvement_pct", "directional_improvement"],
+      "properties": {
+        "repetition": {"type": "integer", "minimum": 1, "maximum": 4},
+        "execution_order": {"enum": ["baseline -> optimized", "optimized -> baseline"]},
+        "baseline": {"$ref": "#/$defs/primary_measurement"},
+        "optimized": {"$ref": "#/$defs/primary_measurement"},
+        "paired_improvement_pct": {"type": "number"},
+        "directional_improvement": {"type": "boolean"}
+      }
+    },
+    "acceptance_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_metric", "median_paired_improvement_pct", "improved_pair_count", "strength", "gate_passed", "pairs"],
+      "properties": {
+        "primary_metric": {"enum": ["mean_client_latency_ms", "infer_per_sec"]},
+        "median_paired_improvement_pct": {"type": "number", "exclusiveMinimum": 0},
+        "improved_pair_count": {"type": "integer", "minimum": 3, "maximum": 4},
+        "strength": {"enum": ["strong_measurable_improvement", "measurable_but_modest_improvement"]},
+        "gate_passed": {"const": true},
+        "pairs": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/paired_result"}}
+      }
+    },
+    "ready": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "version"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+      }
+    },
+    "guard_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline_start_seq", "baseline_end_seq", "guard_start_seq", "guard_end_seq", "guard_started_at_utc", "guard_ended_at_utc", "guard_started_monotonic_ns", "guard_ended_monotonic_ns"],
+      "properties": {
+        "baseline_start_seq": {"type": "integer", "minimum": 1},
+        "baseline_end_seq": {"type": "integer", "minimum": 1},
+        "guard_start_seq": {"type": "integer", "minimum": 1},
+        "guard_end_seq": {"type": "integer", "minimum": 1},
+        "guard_started_at_utc": {"type": "string", "format": "date-time"},
+        "guard_ended_at_utc": {"type": "string", "format": "date-time"},
+        "guard_started_monotonic_ns": {"type": "integer", "minimum": 1},
+        "guard_ended_monotonic_ns": {"type": "integer", "minimum": 1}
+      }
+    },
+    "guard_reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pid", "process_name", "engine_type", "utilization_percent", "reason", "first_sequence"],
+      "properties": {
+        "pid": {"type": "integer", "minimum": 1},
+        "process_name": {"type": "string", "minLength": 1},
+        "engine_type": {"type": "string", "minLength": 1},
+        "utilization_percent": {"type": "number", "exclusiveMinimum": 0.1},
+        "reason": {"enum": ["forbidden_process_activity", "new_gpu_process_activity", "baseline_idle_process_became_active"]},
+        "first_sequence": {"type": "integer", "minimum": 1}
+      }
+    },
+    "contamination_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot_id", "slot_attempt", "scenario", "role", "guard_boundary", "reasons"],
+      "properties": {
+        "slot_id": {"type": "string", "minLength": 1},
+        "slot_attempt": {"type": "integer", "minimum": 1, "maximum": 2},
+        "scenario": {"enum": ["latency", "throughput"]},
+        "role": {"enum": ["baseline", "optimized"]},
+        "guard_boundary": {"$ref": "#/$defs/guard_boundary"},
+        "reasons": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/guard_reason"}}
+      }
+    }
+  }
+}

@@ -207,3 +207,41 @@ python scripts/validate_client_evidence.py
 
 The verifier refuses a partially READY model state it cannot reproduce exactly and
 unloads only models that it loaded itself.
+
+## Benchmark candidate is not published
+
+Inspect the newest ignored directory under `.cache/benchmarking`. Missing or corrupt
+Perf Analyzer output, nonzero errors, invalid telemetry, a non-positive paired
+median, or fewer than three improving pairs intentionally leave the previous tracked
+evidence untouched. PA stability text and the 5% descriptive boundary do not decide
+PASS. Do not copy a failed candidate into `benchmarks/results` manually, select
+favorable repetitions, or tune model configs as part of the measurement run.
+
+`CONTAMINATED` is available only when Windows `GPU Engine(*)` counters attribute
+more than 0.1% activity to a new foreign PID/process, a predeclared forbidden
+process, or a baseline-idle foreign process inside the acknowledged host sequence
+window. Workload-owned processes are declared separately. The same formal slot is
+retried, up to three contaminated attempts.
+A telemetry gap is `ERROR`; a utilization spike without process attribution remains
+a valid clean measurement and is not retried. Raw valid and contaminated trials are
+both published only when the complete candidate passes.
+
+If the SDK cannot reach Triton, confirm both containers join the Compose `backend`
+network and use `triton:8000` and `triton:8002/metrics`; host port overrides do not
+change these internal endpoints. Validate the static and last published bundles with:
+
+```text
+python scripts/validate_benchmark.py
+python scripts/validate_benchmark_evidence.py
+```
+
+The runner restores the complete initial READY set in `finally`. If restoration
+fails, repair the server state explicitly before rerunning; no partial candidate is
+published.
+
+On Docker Desktop/WSL2, repeated `Timer not set correctly` messages indicate that
+the VM adjusted realtime backward during a request. The benchmark's tracked clock
+guard is compiled in the pinned SDK image and makes realtime advance from the
+monotonic clock while retaining its original epoch. Do not disable or replace it for
+one model role; static and evidence validators require the same guarded command for
+the complete pair.

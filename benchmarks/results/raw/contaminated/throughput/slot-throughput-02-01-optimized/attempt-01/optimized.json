@@ -1,0 +1,1449 @@
+{
+  "batch_size": 8,
+  "classification": "CONTAMINATED",
+  "client_request_count": 1910,
+  "clock_guard_sha256": "8c9c64030abbeded23546d59d48ee7ef080e6f105fd18ff942b761436df93b58",
+  "command": [
+    "perf_analyzer",
+    "-v",
+    "--service-kind",
+    "triton",
+    "-m",
+    "resnet50_tensorrt",
+    "-x",
+    "1",
+    "-u",
+    "triton:8000",
+    "-i",
+    "http",
+    "-b",
+    "8",
+    "--concurrency-range",
+    "4",
+    "--measurement-mode",
+    "count_windows",
+    "--measurement-request-count",
+    "500",
+    "--warmup-request-count",
+    "100",
+    "--stability-percentage",
+    "999",
+    "--percentile",
+    "95",
+    "--max-trials",
+    "3",
+    "--input-data",
+    "<run>/input",
+    "--input-tensor-format",
+    "binary",
+    "--output-tensor-format",
+    "binary",
+    "--collect-metrics",
+    "--verbose-csv",
+    "--metrics-url",
+    "triton:8002/metrics",
+    "--metrics-interval",
+    "100",
+    "-f",
+    "<run>/work/slot-throughput-02-01-optimized-attempt-01/result.csv"
+  ],
+  "concurrency": 4,
+  "container_perf_ended_at_utc": "2026-08-02T16:12:27.791675Z",
+  "container_perf_started_at_utc": "2026-08-02T16:12:19.210102Z",
+  "csv_path": "benchmarks/results/raw/contaminated/throughput/slot-throughput-02-01-optimized/attempt-01/optimized.csv",
+  "errors": 0,
+  "exit_code": 0,
+  "guard_baseline_active_processes": [
+    {
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "pid": 53528,
+      "process_name": "chatgpt"
+    }
+  ],
+  "guard_baseline_engines": [
+    {
+      "engine_type": "3D",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "engine_type": "3D",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "Copy",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "LegacyOverlay",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "OFA_0",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "Security",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "VR",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "VideoDecode",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    },
+    {
+      "engine_type": "VideoEncode",
+      "pid": 54076,
+      "process_name": "docker desktop"
+    }
+  ],
+  "guard_baseline_processes": [
+    {
+      "pid": 4,
+      "process_name": "system"
+    },
+    {
+      "pid": 2304,
+      "process_name": "csrss"
+    },
+    {
+      "pid": 3064,
+      "process_name": "dwm"
+    },
+    {
+      "pid": 4576,
+      "process_name": "shellhost"
+    },
+    {
+      "pid": 7036,
+      "process_name": "armourycrate.service"
+    },
+    {
+      "pid": 16140,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "pid": 16804,
+      "process_name": "svchost"
+    },
+    {
+      "pid": 16816,
+      "process_name": "crossdeviceresume"
+    },
+    {
+      "pid": 18076,
+      "process_name": "tabtip"
+    },
+    {
+      "pid": 18412,
+      "process_name": "explorer"
+    },
+    {
+      "pid": 20532,
+      "process_name": "searchhost"
+    },
+    {
+      "pid": 20680,
+      "process_name": "startmenuexperiencehost"
+    },
+    {
+      "pid": 21204,
+      "process_name": "armourycrate.usersessionhelper"
+    },
+    {
+      "pid": 22644,
+      "process_name": "phoneexperiencehost"
+    },
+    {
+      "pid": 23452,
+      "process_name": "shellexperiencehost"
+    },
+    {
+      "pid": 25112,
+      "process_name": "msedgewebview2"
+    },
+    {
+      "pid": 26960,
+      "process_name": "textinputhost"
+    },
+    {
+      "pid": 35568,
+      "process_name": "asus_framework"
+    },
+    {
+      "pid": 36724,
+      "process_name": "radeonsoftware"
+    },
+    {
+      "pid": 36856,
+      "process_name": "microsoftsecurityapp"
+    },
+    {
+      "pid": 38800,
+      "process_name": "amdrssrcext"
+    },
+    {
+      "pid": 39840,
+      "process_name": "vmwp"
+    },
+    {
+      "pid": 48820,
+      "process_name": "taskmgr"
+    },
+    {
+      "pid": 53172,
+      "process_name": "chxsmartscreen"
+    },
+    {
+      "pid": 53528,
+      "process_name": "chatgpt"
+    },
+    {
+      "pid": 54076,
+      "process_name": "docker desktop"
+    }
+  ],
+  "guard_boundary": {
+    "baseline_end_seq": 330,
+    "baseline_start_seq": 324,
+    "guard_end_seq": 342,
+    "guard_ended_at_utc": "2026-08-02T16:12:27.686540Z",
+    "guard_ended_monotonic_ns": 116869212390800,
+    "guard_start_seq": 330,
+    "guard_started_at_utc": "2026-08-02T16:12:19.319665Z",
+    "guard_started_monotonic_ns": 116860845516000
+  },
+  "guard_classification": "CONTAMINATED",
+  "guard_reasons": [
+    {
+      "engine_type": "Copy",
+      "first_sequence": 331,
+      "pid": 4,
+      "process_name": "System",
+      "reason": "baseline_idle_process_became_active",
+      "utilization_percent": 0.19094019568290377
+    }
+  ],
+  "input_sha256": "c0f6ed563e1f12ef3646fe2065b7d74924c5fadc2358ed98ab64d151185fdd0e",
+  "log_path": "benchmarks/results/raw/contaminated/throughput/slot-throughput-02-01-optimized/attempt-01/optimized.log",
+  "measurement_completed": true,
+  "measurement_windows": [
+    {
+      "attempt": 1,
+      "infer_per_sec": 2040.06,
+      "p95_latency_us": 24627
+    },
+    {
+      "attempt": 2,
+      "infer_per_sec": 1969.77,
+      "p95_latency_us": 24373
+    },
+    {
+      "attempt": 3,
+      "infer_per_sec": 1979.79,
+      "p95_latency_us": 25746
+    }
+  ],
+  "measurement_windows_used": 3,
+  "model": "resnet50_tensorrt",
+  "order_position": 1,
+  "pa_reported_stable": true,
+  "pass_diagnostics": [
+    {
+      "attempt": 1,
+      "guard_boundary": {
+        "guard_end_seq": 335,
+        "guard_ended_at_utc": "2026-08-02T16:12:23.560853Z",
+        "guard_ended_monotonic_ns": 116865086705400,
+        "guard_start_seq": 330,
+        "guard_started_at_utc": "2026-08-02T16:12:19.319665Z",
+        "guard_started_monotonic_ns": 116860845516000
+      },
+      "includes_initial_warmup": true,
+      "infer_per_sec": 2040.06,
+      "p95_latency_us": 24627,
+      "triton_statistics": {
+        "after": {
+          "compute_infer_duration_ns": 1787053006,
+          "compute_input_duration_ns": 768755504,
+          "compute_output_duration_ns": 861668723,
+          "execution_count": 995,
+          "inference_count": 7960,
+          "model": "resnet50_tensorrt",
+          "observed_at_utc": "2026-08-02T16:12:23.587373Z",
+          "queue_duration_ns": 1346149044,
+          "request_count": 995,
+          "request_duration_ns": 4806929801,
+          "version": "1"
+        },
+        "before": {
+          "compute_infer_duration_ns": 0,
+          "compute_input_duration_ns": 0,
+          "compute_output_duration_ns": 0,
+          "execution_count": 0,
+          "inference_count": 0,
+          "model": "resnet50_tensorrt",
+          "observed_at_utc": "2026-08-02T16:12:19.212452Z",
+          "queue_duration_ns": 0,
+          "request_count": 0,
+          "request_duration_ns": 0,
+          "version": "1"
+        },
+        "delta": {
+          "compute_infer_duration_ns": 1787053006,
+          "compute_input_duration_ns": 768755504,
+          "compute_output_duration_ns": 861668723,
+          "execution_count": 995,
+          "inference_count": 7960,
+          "per_request_us": {
+            "compute_infer": 1796.033172,
+            "compute_input": 772.618597,
+            "compute_output": 865.998717,
+            "queue": 1352.913612,
+            "request": 4831.085227
+          },
+          "queue_duration_ns": 1346149044,
+          "request_count": 995,
+          "request_duration_ns": 4806929801
+        }
+      }
+    },
+    {
+      "attempt": 2,
+      "guard_boundary": {
+        "guard_end_seq": 338,
+        "guard_ended_at_utc": "2026-08-02T16:12:25.556315Z",
+        "guard_ended_monotonic_ns": 116867082169500,
+        "guard_start_seq": 335,
+        "guard_started_at_utc": "2026-08-02T16:12:23.560853Z",
+        "guard_started_monotonic_ns": 116865086705400
+      },
+      "includes_initial_warmup": false,
+      "infer_per_sec": 1969.77,
+      "p95_latency_us": 24373,
+      "triton_statistics": {
+        "after": {
+          "compute_infer_duration_ns": 2563589149,
+          "compute_input_duration_ns": 1159769324,
+          "compute_output_duration_ns": 1166347507,
+          "execution_count": 1513,
+          "inference_count": 12104,
+          "model": "resnet50_tensorrt",
+          "observed_at_utc": "2026-08-02T16:12:25.659734Z",
+          "queue_duration_ns": 1820671929,
+          "request_count": 1513,
+          "request_duration_ns": 6774087406,
+          "version": "1"
+        },
+        "before": {
+          "compute_infer_duration_ns": 1787053006,
+          "compute_input_duration_ns": 768755504,
+          "compute_output_duration_ns": 861668723,
+          "execution_count": 995,
+          "inference_count": 7960,
+          "model": "resnet50_tensorrt",
+          "observed_at_utc": "2026-08-02T16:12:23.587373Z",
+          "queue_duration_ns": 1346149044,
+          "request_count": 995,
+          "request_duration_ns": 4806929801,
+          "version": "1"
+        },
+        "delta": {
+          "compute_infer_duration_ns": 776536143,
+          "compute_input_duration_ns": 391013820,
+          "compute_output_duration_ns": 304678784,
+          "execution_count": 518,
+          "inference_count": 4144,
+          "per_request_us": {
+            "compute_infer": 1499.104523,
+            "compute_input": 754.852934,
+            "compute_output": 588.182981,
+            "queue": 916.067346,
+            "request": 3797.601554
+          },
+          "queue_duration_ns": 474522885,
+          "request_count": 518,
+          "request_duration_ns": 1967157605
+        }
+      }
+    },
+    {
+      "attempt": 3,
+      "guard_boundary": {
+        "guard_end_seq": 341,
+        "guard_ended_at_utc": "2026-08-02T16:12:27.545089Z",
+        "guard_ended_monotonic_ns": 116869070939900,
+        "guard_start_seq": 338,
+        "guard_started_at_utc": "2026-08-02T16:12:25.556315Z",
+        "guard_started_monotonic_ns": 116867082169500
+      },
+      "includes_initial_warmup": false,
+      "infer_per_sec": 1979.79,
+      "p95_latency_us": 25746,
+      "triton_statistics": {
+        "after": {
+          "compute_infer_duration_ns": 3325091776,
+          "compute_input_duration_ns": 1541570622,
+          "compute_output_duration_ns": 1479752251,
+          "execution_count": 2024,
+          "inference_count": 16192,
+          "model": "resnet50_tensorrt",
+          "observed_at_utc": "2026-08-02T16:12:27.701375Z",
+          "queue_duration_ns": 2313884400,
+          "request_count": 2024,
+          "request_duration_ns": 8746647592,
+          "version": "1"
+        },
+        "before": {
+          "compute_infer_duration_ns": 2563589149,
+          "compute_input_duration_ns": 1159769324,
+          "compute_output_duration_ns": 1166347507,
+          "execution_count": 1513,
+          "inference_count": 12104,
+          "model": "resnet50_tensorrt",
+          "observed_at_utc": "2026-08-02T16:12:25.659734Z",
+          "queue_duration_ns": 1820671929,
+          "request_count": 1513,
+          "request_duration_ns": 6774087406,
+          "version": "1"
+        },
+        "delta": {
+          "compute_infer_duration_ns": 761502627,
+          "compute_input_duration_ns": 381801298,
+          "compute_output_duration_ns": 313404744,
+          "execution_count": 511,
+          "inference_count": 4088,
+          "per_request_us": {
+            "compute_infer": 1490.220405,
+            "compute_input": 747.164967,
+            "compute_output": 613.316524,
+            "queue": 965.190746,
+            "request": 3860.196059
+          },
+          "queue_duration_ns": 493212471,
+          "request_count": 511,
+          "request_duration_ns": 1972560186
+        }
+      }
+    }
+  ],
+  "perf_analyzer_completion_tolerance_pct": 999,
+  "protocol": "http",
+  "repetition": 2,
+  "role": "optimized",
+  "scenario": "throughput",
+  "scenario_status": "formal",
+  "schema_version": 1,
+  "slot_attempt": 1,
+  "slot_id": "slot-throughput-02-01-optimized",
+  "trial_id": "slot-throughput-02-01-optimized-attempt-01",
+  "version": "1"
+}
