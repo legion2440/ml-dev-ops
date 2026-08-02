@@ -65,6 +65,14 @@ consecutive and capped at three attempts per slot. Thermal drift, power/clock
 changes, high workload-owned utilization, or an unfavorable result never justify a
 replacement. Telemetry gaps and infrastructure/runtime corruption are errors.
 
+For the published candidate, this predeclared formal rule classified `System`
+(PID 4) `Copy` activity above 0.1% that was absent from the guard baseline as
+external/host contamination. This is a conservative classification of Windows host
+activity, not proof that any specific user process caused it. The two contaminated
+replacements are retained for auditability but are not required to establish the
+optimization conclusion; their measured performance was directionally consistent
+with the published result.
+
 Every PA window has a marker/ack boundary and explicit-version Triton statistics
 snapshots. Queue, compute input/infer/output, total request duration, device clocks,
 power, temperature, and WDDM state remain supporting diagnostics. They explain
@@ -111,6 +119,6 @@ workload-owned thermal/power drift. Perf Analyzer statistical stability is not a
 assignment requirement and was producing false failure of otherwise valid inference
 measurements.
 
-Earlier cached runs are retained as diagnostic/superseded evidence. They are not
-published or described as formal Step 6 results, and no measured values are removed
-or promoted selectively.
+Superseded diagnostic runs are intentionally excluded from committed Step 6 evidence
+and may exist only in the local ignored benchmark cache. The published formal bundle
+is self-contained.

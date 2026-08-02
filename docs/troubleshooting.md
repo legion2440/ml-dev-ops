@@ -226,6 +226,13 @@ A telemetry gap is `ERROR`; a utilization spike without process attribution rema
 a valid clean measurement and is not retried. Raw valid and contaminated trials are
 both published only when the complete candidate passes.
 
+In the published candidate, the predeclared rule classified `System` (PID 4) `Copy`
+activity above 0.1% that was absent from the guard baseline as external/host
+contamination. Treat this as a conservative classification of Windows host activity,
+not proof of a specific user process. The excluded attempts were directionally
+consistent with the published TensorRT gain and did not determine the benchmark
+outcome.
+
 If the SDK cannot reach Triton, confirm both containers join the Compose `backend`
 network and use `triton:8000` and `triton:8002/metrics`; host port overrides do not
 change these internal endpoints. Validate the static and last published bundles with:

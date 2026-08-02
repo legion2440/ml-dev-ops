@@ -106,6 +106,11 @@ becomes active. Only that objective attribution permits a consecutive same-slot
 replacement, with no more than three attempts. Telemetry gaps or collection failure
 are `ERROR`.
 
+For the published candidate, this predeclared formal rule classified `System`
+(PID 4) `Copy` activity above 0.1% that was absent from the guard baseline as
+external/host contamination. This is a conservative classification of Windows host
+activity, not proof that any specific user process caused it.
+
 ## Supporting diagnostics
 
 Per-window snapshots retain request, inference, and execution counts plus total
@@ -136,6 +141,10 @@ at least three improving pairs, raw/CSV/report agreement, and objective attribut
 for every replacement. It does not enforce PA stability, thermal stability, fixed
 clocks, or a 5% performance gate.
 
+The two contaminated replacements are retained for auditability but are not required
+to establish the optimization conclusion; their measured performance was
+directionally consistent with the published result.
+
 ```text
 make validate-benchmark
 make benchmark
@@ -161,5 +170,6 @@ candidate because diagnostic measurements showed persistent workload-owned
 thermal/power drift. PA stationarity is not required by the assignment and was
 rejecting otherwise valid inference measurements.
 
-All earlier runs remain diagnostic/superseded cache artifacts. They are not deleted,
-selected, or represented as committed formal results.
+Superseded diagnostic runs are intentionally excluded from committed Step 6 evidence
+and may exist only in the local ignored benchmark cache. The published formal bundle
+is self-contained.

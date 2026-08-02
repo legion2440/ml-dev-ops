@@ -37,13 +37,16 @@ least three of four pairs improving for each primary metric. Five percent labels
 strong result but is not a gate. Windows-host process telemetry permits a same-slot
 replacement only for objectively attributed foreign GPU activity. PA stability,
 thermal/power drift, and clocks do not exclude a valid measurement. The earlier
-5%-stability/5%-improvement contract is retained only as superseded diagnostics in
-ignored cache.
+5%-stability/5%-improvement contract is superseded. Superseded diagnostic runs are
+intentionally excluded from committed Step 6 evidence and may exist only in the
+local ignored benchmark cache. The published formal bundle is self-contained.
 
 The published reference run passed 4/4 pairs in both scenarios, with median paired
 improvements of 19.32% for mean client latency and 114.11% for throughput. Two
 objectively attributed contaminated attempts remain in the evidence beside their
-same-slot replacements.
+same-slot replacements. Those attempts were classified conservatively from Windows
+host activity and were directionally consistent with the published TensorRT gain;
+they were not required to establish the optimization conclusion.
 
 Model binaries are reproducible local artifacts and are ignored by Git. The model
 specification, configs, labels, manifest, and sanitized runtime evidence are tracked.

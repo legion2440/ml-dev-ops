@@ -545,9 +545,20 @@ def render_report(
             "temperature or power variation are described as operating-state variation, "
             "not asserted as a stronger causal finding.",
             "",
+            "For the published candidate, the predeclared formal rule classified "
+            "System (PID 4) Copy activity above 0.1% that was absent from the guard "
+            "baseline as external/host contamination. This is a conservative "
+            "classification of Windows host activity, not proof that any specific user "
+            "process caused it.",
+            "",
+            "The two contaminated replacements are retained for auditability but are "
+            "not required to establish the optimization conclusion; their measured "
+            "performance was directionally consistent with the published result.",
+            "",
             "The earlier 5% Perf Analyzer stability and 5% improvement contract is "
-            "superseded. Its cached runs remain diagnostic evidence and are not formal "
-            "Step 6 results.",
+            "superseded. Superseded diagnostic runs are intentionally excluded from "
+            "committed Step 6 evidence and may exist only in the local ignored benchmark "
+            "cache. The published formal bundle is self-contained.",
         ]
     )
     return "\n".join(lines) + "\n"
