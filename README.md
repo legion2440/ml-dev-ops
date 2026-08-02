@@ -8,7 +8,7 @@ dashboards, GPU monitoring, alerting, and model version management.
 
 ## Current status
 
-**Step 6 runtime-verified: paired ONNX Runtime versus TensorRT benchmark passed.**
+**Step 7 runtime-verified: Prometheus, Grafana dashboard, GPU monitoring, and alert rules passed.**
 
 The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
 services; GPU reservations; loopback-only ports; persistent metrics volumes;
@@ -21,8 +21,9 @@ JPG/PNG files or directories, performs contract-driven ResNet and YOLO preproces
 decodes predictions, auto-loads an unavailable model, appends one JSONL event per
 Triton request, and exports the history to CSV. The formal benchmark now compares
 the ResNet50 ONNX and TensorRT implementations through the pinned SDK Perf Analyzer;
-dashboards and alerts remain planned. Client timing remains operational diagnostics,
-not benchmark evidence.
+the provisioned Grafana dashboard visualizes live Triton and DCGM data, and
+Prometheus loads the two project alert rules. Client timing remains operational
+diagnostics, not benchmark evidence.
 
 Cleanup evidence covers both the repository READY set and every model-level and
 version-specific readiness endpoint. Batching evidence records `attempts_used` and
@@ -47,6 +48,13 @@ objectively attributed contaminated attempts remain in the evidence beside their
 same-slot replacements. Those attempts were classified conservatively from Windows
 host activity and were directionally consistent with the published TensorRT gain;
 they were not required to establish the optimization conclusion.
+
+Step 7 verifies the complete Triton -> Prometheus -> Grafana chain through Grafana's
+provisioned datasource proxy. A 35-second classification workload crossed two scrape
+intervals, all five dashboard queries returned numeric data, both alert definitions
+were loaded, GPU identity matched `nvidia-smi`, and the initial empty READY set was
+restored. GPU utilization may validly be zero; a positive `max_over_time` observation
+is retained only as supporting evidence, not an acceptance gate.
 
 Model binaries are reproducible local artifacts and are ignored by Git. The model
 specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
@@ -222,8 +230,19 @@ Default ports are bound to loopback:
 | Grafana | `http://127.0.0.1:3000` |
 | DCGM metrics | `http://127.0.0.1:9400/metrics` |
 
-Grafana's Prometheus datasource is provisioned automatically. The dashboard file is
-planned for step 7.
+Grafana's Prometheus datasource and the `ML DevOps Inference` dashboard are
+provisioned automatically. To generate a short controlled workload, verify the
+complete monitoring chain, and then inspect the dashboard:
+
+```text
+make up
+make verify-monitoring
+```
+
+Open `http://127.0.0.1:3000/d/ml-dev-ops-inference/ml-dev-ops-inference` and use the
+credentials selected by `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD`. The
+verifier writes only a temporary ignored log, waits at least two scrape intervals,
+and restores the exact initial READY set.
 
 ## Validation
 
@@ -254,6 +273,7 @@ python scripts/validate_client.py
 python scripts/validate_client_evidence.py
 python scripts/validate_benchmark.py
 python scripts/validate_benchmark_evidence.py
+python scripts/validate_monitoring.py
 python -m unittest discover -s tests/unit -t . -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
@@ -299,6 +319,10 @@ requires the final READY set to equal the initial set.
 Step 6 evidence is under `docs/evidence/step-6`. Refresh it only through `make
 benchmark`; validate it without a daemon with `make validate-benchmark-evidence`.
 Failed runs remain only in ignored cache and do not modify the last passing bundle.
+
+Step 7 evidence is under `docs/evidence/step-7`. Refresh both compact JSON files only
+against the live four-service stack with `make verify-monitoring`; validate the
+tracked snapshot without contacting any service with `make validate-monitoring`.
 
 ## License
 

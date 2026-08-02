@@ -25,7 +25,7 @@ will be expanded as each scope is completed.
 | Runtime model serving | Explicit load, metadata/config, batch inference, parity, and unload | `docs/evidence/step-3/triton-model-smoke.json` | All three models runtime-verified on 2026-07-31 |
 | Runtime repository state | Three version-1 models ready during verification | `docs/evidence/step-3/model-repository.txt` | Sanitized repository index captured before explicit unload |
 | ONNX and TensorRT benchmark | Four paired AB/BA repetitions for latency and throughput using pinned Perf Analyzer | `benchmarks/report.md`, `benchmarks/results`, and `docs/evidence/step-6/benchmark-runtime.json` | 16/16 valid slots; latency median improvement 19.32%, throughput 114.11%, both 4/4 directional; two attributed contaminated attempts retained with same-slot replacements |
-| Full Prometheus and Grafana dashboard | Planned for step 7 | Not implemented | Pending |
+| Full Prometheus and Grafana dashboard | Five provisioned panels for inference throughput, request rate, average latency, GPU utilization, and failures plus two alert rules | `monitoring/grafana/dashboards/ml-dev-ops.json`, `monitoring/prometheus/alerts.yml` | `docs/evidence/step-7` proves Triton/DCGM targets up, five successful queries through the Grafana datasource proxy, matching GPU identity, loaded rules, and READY restoration |
 | Production image client | Contract-driven ResNet/YOLO preprocessing and postprocessing, bounded batches, auto-load, explicit versions | `client/inference_client.py` | `docs/evidence/step-5/predictions.txt` records real-image HTTP, gRPC, ONNX v1/v2, and TensorRT results |
 | Sample image provenance | Ten real CC0/public-domain-marked JPG images with source, attribution, hash, and dimensions | `client/samples/manifest.json` | `python scripts/validate_client.py` decodes and verifies the complete inventory |
 | Inference logs and CSV | One schema-validated JSONL event per request plus deterministic CSV export | `docs/evidence/step-5/inference-log.jsonl` and `inference-log.csv` | 11 successful events/rows; final predictions retained without raw tensors or host paths |
@@ -38,10 +38,12 @@ README statements alone are not accepted as runtime evidence.
 
 The recorded runtime evidence was produced on Windows 11 with Docker Desktop/WSL2,
 NVIDIA driver 610.88, and compute capability 8.9. Steps 2–4 were captured on
-2026-07-31, step 5 on 2026-08-01, and step 6 on 2026-08-02. These files prove the reference runs, not a
-substitute for rerunning verification after environment changes.
+2026-07-31, step 5 on 2026-08-01, step 6 on 2026-08-02, and step 7 on
+2026-08-03 local time. These files prove the reference runs, not a substitute for
+rerunning verification after environment changes.
 Validate the committed evidence with `python scripts/validate_runtime_evidence.py`
 `python scripts/validate_model_evidence.py`, and
 `python scripts/validate_serving_evidence.py`, and
 `python scripts/validate_client_evidence.py`, and
-`python scripts/validate_benchmark_evidence.py`.
+`python scripts/validate_benchmark_evidence.py`, and
+`python scripts/validate_monitoring.py`.

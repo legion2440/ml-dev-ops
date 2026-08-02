@@ -1,4 +1,9 @@
 # Grafana
 
-Step 2 provisions the Prometheus datasource and a file-based dashboard provider.
-The `dashboards/ml-dev-ops.json` dashboard remains planned for step 7.
+The Prometheus datasource has stable UID `prometheus`. The existing file provider
+loads `dashboards/ml-dev-ops.json` as the `ML DevOps Inference` dashboard with UID
+`ml-dev-ops-inference`.
+
+The runtime verifier executes every panel expression through Grafana's datasource
+proxy. This proves the Grafana-to-Prometheus data path without relying on a browser
+screenshot.

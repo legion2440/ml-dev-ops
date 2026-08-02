@@ -114,7 +114,7 @@ host ports bind to `127.0.0.1` only.
 - `models` is mounted into Triton at `/models` read-only.
 - Prometheus data uses the `prometheus-data` named volume.
 - Grafana data uses the `grafana-data` named volume.
-- Prometheus configuration is a read-only bind mount.
+- Prometheus configuration and alert rules are read-only bind mounts.
 - Grafana provisioning and dashboard directories are read-only bind mounts.
 - Triton logs only to stdout and stderr.
 
@@ -194,6 +194,7 @@ python scripts/validate_deployment.py
 python scripts/validate_runtime_evidence.py
 python scripts/validate_serving.py --structure-only
 python scripts/validate_serving_evidence.py
+python scripts/validate_monitoring.py
 python -m unittest discover -s tests/unit -p "test_*.py"
 python scripts/generate_dependency_graph.py --check
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
@@ -208,6 +209,9 @@ Runtime-verified additionally requires:
 - Prometheus targets up;
 - provisioned Grafana datasource;
 - real DCGM GPU metrics;
+- provisioned Step 7 dashboard with data returned through the Grafana datasource;
+- both Prometheus alert rules loaded;
+- exact READY state restoration after the short monitoring workload;
 - no model in ready state before the dedicated model smoke.
 
 The 2026-07-31 reference run passed every runtime requirement with an NVIDIA

@@ -1,0 +1,100 @@
+{
+  "artifact_sha256": {
+    "docker-compose.yml": "79f98bbcf351463ac210723ec180f2f42a533c26466e6454de3d2a4a2a5fdfa6",
+    "monitoring/grafana/dashboards/ml-dev-ops.json": "ec6a6c8a567f8acdebb705f185e7567f8b7716943e82d6ddb6598e8680dc5cdb",
+    "monitoring/grafana/provisioning/dashboards/provider.yml": "f4d81223300d18acdad4060b52165ea4fcb8fc3ce34443000c8d588b2c770fea",
+    "monitoring/grafana/provisioning/datasources/prometheus.yml": "82575740a6dae5edd1f277a42ed702672f2a6205039d10a89ba069e37e5088c3",
+    "monitoring/prometheus/alerts.yml": "be35aca134222e17da7ff24d413f06642be04fe09a9c2216bc0eeecbf6e216bc",
+    "monitoring/prometheus/prometheus.yml": "706a16f70c664c5bd304b5639027cbe808720c968d5c39ce5d8912ed94a520db",
+    "monitoring/verify_runtime.py": "6e028e722940fc8a62c197507cda87b1f79cd1c13892be91f8f60f2a3ee58210",
+    "scripts/validate_monitoring.py": "ef79829a941f9b4aafa3f574d0da7205a4dfbef2b3c7d61359dec43ad57a0cf4"
+  },
+  "generated_at_utc": "2026-08-02T19:50:02.493023Z",
+  "gpu": {
+    "identity": {
+      "model_name": "NVIDIA GeForce RTX 4080 Laptop GPU",
+      "pci_bus_id": "00000000:01:00.0",
+      "uuid": "GPU-8b397d66-cb44-ff85-0381-290e9b034fe0"
+    },
+    "metric": "DCGM_FI_DEV_GPU_UTIL",
+    "numeric_series_present": true,
+    "observed_value": 25.0,
+    "positive_max_over_time_is_acceptance_gate": false,
+    "positive_max_over_time_observed": true,
+    "unit": "percent_0_to_100"
+  },
+  "grafana": {
+    "dashboard": {
+      "panels": [
+        "Average Request Latency",
+        "Failed Requests",
+        "GPU Utilization",
+        "Inference Throughput",
+        "Request Rate"
+      ],
+      "queries_match_repository": true,
+      "title": "ML DevOps Inference",
+      "uid": "ml-dev-ops-inference"
+    },
+    "datasource": {
+      "health": "OK",
+      "uid": "prometheus",
+      "url": "http://prometheus:9090"
+    },
+    "health": "ok",
+    "version": "13.1.1"
+  },
+  "passed": true,
+  "prometheus": {
+    "alerts": [
+      {
+        "expression": "(sum by (model, version) (rate(nv_inference_request_duration_us[1m])) / sum by (model, version) (rate(nv_inference_request_success[1m])) / 1000) > 100 and on (model, version) (sum by (model, version) (rate(nv_inference_request_success[1m])) > 0)",
+        "name": "HighInferenceLatency",
+        "state": "inactive"
+      },
+      {
+        "expression": "sum by (model, version) (increase(nv_inference_request_failure[5m])) > 0",
+        "name": "InferenceRequestFailures",
+        "state": "inactive"
+      }
+    ],
+    "health": "healthy",
+    "targets": [
+      {
+        "health": "up",
+        "job": "dcgm-exporter",
+        "scrape_url": "http://dcgm-exporter:9400/metrics"
+      },
+      {
+        "health": "up",
+        "job": "triton",
+        "scrape_url": "http://triton:8002/metrics"
+      }
+    ]
+  },
+  "query_evidence": {
+    "path": "docs/evidence/step-7/prometheus-queries.json",
+    "sha256": "95554a3f35ddf9d0dae32a66d6766fbafec3bf5ef4261c33a3864cd51821f38f"
+  },
+  "ready_state": {
+    "final": [],
+    "initial": [],
+    "restored": true
+  },
+  "runtime": {
+    "env_file": ".env.example",
+    "minimum_scrape_intervals_observed": 2,
+    "scrape_interval_seconds": 15.0,
+    "workload": {
+      "client": "client/inference_client.py classify",
+      "duration_seconds": 35.097,
+      "inference_requests": 116,
+      "invocations": 58,
+      "minimum_duration_seconds": 35.0,
+      "model": "resnet50_onnx",
+      "temporary_log": ".cache/monitoring/inference-log.jsonl",
+      "version": "1"
+    }
+  },
+  "schema_version": 1
+}

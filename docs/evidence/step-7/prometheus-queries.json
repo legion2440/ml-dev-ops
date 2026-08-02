@@ -1,0 +1,143 @@
+{
+  "access": {
+    "datasource_uid": "prometheus",
+    "kind": "grafana_datasource_proxy",
+    "path": "/api/datasources/proxy/uid/prometheus/api/v1/query"
+  },
+  "generated_at_utc": "2026-08-02T19:50:02.493023Z",
+  "gpu_max_over_time_observation": {
+    "acceptance_gate": false,
+    "expression": "max by (UUID, gpu, modelName, pci_bus_id) (max_over_time(DCGM_FI_DEV_GPU_UTIL[2m]))",
+    "positive_observed": true,
+    "samples": [
+      {
+        "metric": {
+          "UUID": "GPU-8b397d66-cb44-ff85-0381-290e9b034fe0",
+          "gpu": "0",
+          "modelName": "NVIDIA GeForce RTX 4080 Laptop GPU",
+          "pci_bus_id": "00000000:01:00.0"
+        },
+        "timestamp": 1785700202.226,
+        "value": 38.0
+      }
+    ]
+  },
+  "passed": true,
+  "queries": [
+    {
+      "expression": "sum by (model, version) (rate(nv_inference_request_duration_us[1m])) / sum by (model, version) (rate(nv_inference_request_success[1m])) / 1000",
+      "id": "average_request_latency",
+      "panel_title": "Average Request Latency",
+      "result_type": "vector",
+      "samples": [
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "1"
+          },
+          "timestamp": 1785700202.195,
+          "value": 79.00328416841822
+        }
+      ]
+    },
+    {
+      "expression": "sum by (model, version) (rate(nv_inference_request_failure[1m]))",
+      "id": "failed_requests",
+      "panel_title": "Failed Requests",
+      "result_type": "vector",
+      "samples": [
+        {
+          "metric": {
+            "model": "resnet50_tensorrt",
+            "version": "1"
+          },
+          "timestamp": 1785700202.215,
+          "value": 0.0
+        },
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "1"
+          },
+          "timestamp": 1785700202.215,
+          "value": 0.0
+        },
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "2"
+          },
+          "timestamp": 1785700202.215,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "expression": "max by (UUID, gpu, modelName, pci_bus_id) (DCGM_FI_DEV_GPU_UTIL)",
+      "id": "gpu_utilization",
+      "panel_title": "GPU Utilization",
+      "result_type": "vector",
+      "samples": [
+        {
+          "metric": {
+            "UUID": "GPU-8b397d66-cb44-ff85-0381-290e9b034fe0",
+            "gpu": "0",
+            "modelName": "NVIDIA GeForce RTX 4080 Laptop GPU",
+            "pci_bus_id": "00000000:01:00.0"
+          },
+          "timestamp": 1785700202.205,
+          "value": 25.0
+        }
+      ]
+    },
+    {
+      "expression": "sum by (model, version) (rate(nv_inference_count[1m]))",
+      "id": "inference_throughput",
+      "panel_title": "Inference Throughput",
+      "result_type": "vector",
+      "samples": [
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "2"
+          },
+          "timestamp": 1785700202.174,
+          "value": 0.0
+        },
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "1"
+          },
+          "timestamp": 1785700202.174,
+          "value": 9.827317998301279
+        }
+      ]
+    },
+    {
+      "expression": "sum by (model, version) (rate(nv_inference_request_success[1m]))",
+      "id": "request_rate",
+      "panel_title": "Request Rate",
+      "result_type": "vector",
+      "samples": [
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "2"
+          },
+          "timestamp": 1785700202.185,
+          "value": 0.0
+        },
+        {
+          "metric": {
+            "model": "resnet50_onnx",
+            "version": "1"
+          },
+          "timestamp": 1785700202.185,
+          "value": 1.9551258333624206
+        }
+      ]
+    }
+  ],
+  "schema_version": 1
+}

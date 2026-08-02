@@ -63,6 +63,10 @@ services:
         source: ./monitoring/prometheus/prometheus.yml
         target: /etc/prometheus/prometheus.yml
         read_only: true
+      - type: bind
+        source: ./monitoring/prometheus/alerts.yml
+        target: /etc/prometheus/alerts.yml
+        read_only: true
       - type: volume
         source: prometheus-data
         target: /prometheus

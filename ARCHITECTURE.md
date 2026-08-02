@@ -2,14 +2,15 @@
 
 ## Status
 
-Architecture contracts through step 6 are implemented. ResNet50 ONNX has two
+Architecture contracts through step 7 are implemented. ResNet50 ONNX has two
 contract-compatible serving revisions; all three serving models have explicit
 version policies and dynamic batching. HTTP/gRPC inference, statistics-based
 batching, version switching, in-place reload, and final unload are runtime-verified.
 The real-image production client, generated client contract, persistent request
 logging, and CSV export are runtime-verified. The isolated, four-repetition paired
-ONNX Runtime versus TensorRT benchmark is runtime-verified. Dashboards and alerts
-remain planned.
+ONNX Runtime versus TensorRT benchmark is runtime-verified. Prometheus targets,
+Grafana datasource queries, the five-panel inference dashboard, DCGM GPU identity,
+and both alert rules are runtime-verified.
 
 ## System context
 
@@ -123,12 +124,13 @@ flowchart LR
 - Responsibility: collect Triton, GPU, and availability metrics; provision dashboards;
   and evaluate alert rules.
 - Inputs: Triton metrics, DCGM metrics, and container health.
-- Outputs: step 2 provides Prometheus targets and a provisioned Grafana datasource;
-  dashboards and alert states remain planned.
-- Public entrypoint: `monitoring/prometheus/prometheus.yml` (`implemented`).
+- Outputs: Prometheus target/rule state, provisioned Grafana datasource and dashboard,
+  and compact Step 7 runtime/query evidence.
+- Public entrypoints: `monitoring/prometheus/prometheus.yml` and
+  `monitoring/verify_runtime.py` (`implemented`).
 - Root: `monitoring`.
-- Tests: configuration validation and runtime target discovery are implemented.
-  Dashboard JSON and alert-rule tests remain planned.
+- Tests: scrape/rule configuration, PromQL semantics, dashboard provisioning,
+  datasource identity, GPU scaling, runtime query data, and READY restoration.
 
 ### Shared contracts
 

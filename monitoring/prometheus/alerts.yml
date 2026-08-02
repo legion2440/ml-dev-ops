@@ -1,0 +1,38 @@
+groups:
+  - name: ml-dev-ops-inference
+    rules:
+      - alert: HighInferenceLatency
+        expr: |
+          (
+            sum by (model, version) (
+              rate(nv_inference_request_duration_us[1m])
+            )
+            /
+            sum by (model, version) (
+              rate(nv_inference_request_success[1m])
+            )
+            / 1000
+          ) > 100
+          and on (model, version)
+          (
+            sum by (model, version) (
+              rate(nv_inference_request_success[1m])
+            ) > 0
+          )
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Triton inference latency is above the project threshold
+          description: Average request latency has exceeded 100 ms for two minutes while requests are active.
+
+      - alert: InferenceRequestFailures
+        expr: |
+          sum by (model, version) (
+            increase(nv_inference_request_failure[5m])
+          ) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: Triton reported failed inference requests
+          description: At least one inference request failed during the last five minutes.

@@ -81,6 +81,48 @@ Check that the datasource provisioning file is mounted read-only and inspect
 Grafana logs. The expected datasource UID is `prometheus`, with URL
 `http://prometheus:9090`.
 
+## Step 7 dashboard is absent or has no data
+
+The provisioned dashboard UID is `ml-dev-ops-inference`; the provider reads
+`/var/lib/grafana/dashboards`. Do not edit the provider or use a numeric datasource
+ID. Confirm the dashboard and datasource through Grafana's API, then run the
+configuration validator:
+
+```text
+python scripts/validate_monitoring.py --config-only
+```
+
+If the dashboard exists but Triton panels are empty, generate inference across at
+least two 15-second scrape intervals. Idle latency is intentionally empty because
+the query does not clamp its request denominator. GPU utilization may validly be
+`0%`; the required contract is a finite series with UUID/model/PCI identity.
+
+Refresh the complete Step 7 evidence only against the live stack:
+
+```text
+make verify-monitoring
+python scripts/validate_monitoring.py
+```
+
+The verifier uses the ports actually published by Compose, writes its temporary log
+under ignored `.cache/monitoring`, and restores the initial READY set even on
+failure. It never calls `verify-client` or rewrites Step 5 evidence.
+
+## Prometheus alert rules are absent
+
+Prometheus mounts `/etc/prometheus/alerts.yml` read-only. Recreate the Prometheus
+service after changing the Compose mount, then check the active configuration and
+rules:
+
+```text
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example up -d --force-recreate prometheus
+docker compose --project-directory . --file docker-compose.yml --env-file .env.example exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
+```
+
+Under Git Bash, set `MSYS_NO_PATHCONV=1` for the second command if `/etc/...` is
+rewritten as a Windows path. Alertmanager is not required; inactive rules are valid
+runtime evidence when their definitions and expressions are loaded.
+
 ## DCGM metrics are absent
 
 Inspect DCGM Exporter logs, confirm NVIDIA runtime availability, and query

@@ -671,6 +671,14 @@
         {
           "path": "monitoring/prometheus/prometheus.yml",
           "status": "implemented"
+        },
+        {
+          "path": "monitoring/verify_runtime.py",
+          "status": "implemented"
+        },
+        {
+          "path": "scripts/validate_monitoring.py",
+          "status": "implemented"
         }
       ],
       "public_interfaces": [
@@ -681,8 +689,8 @@
       ],
       "tests": [
         {
-          "path": "tests/integration/monitoring",
-          "status": "planned"
+          "path": "tests/unit/monitoring",
+          "status": "implemented"
         }
       ],
       "docs": [
@@ -691,7 +699,31 @@
           "status": "implemented"
         }
       ],
-      "generated_artifacts": [],
+      "generated_artifacts": [
+        {
+          "path": "docs/evidence/step-7/monitoring-runtime.json",
+          "status": "generated",
+          "generator": "monitoring/verify_runtime.py",
+          "checker": "scripts/validate_monitoring.py",
+          "sources": [
+            "docker-compose.yml",
+            "monitoring/prometheus/prometheus.yml",
+            "monitoring/prometheus/alerts.yml",
+            "monitoring/grafana/provisioning/datasources/prometheus.yml",
+            "monitoring/grafana/provisioning/dashboards/provider.yml",
+            "monitoring/grafana/dashboards/ml-dev-ops.json"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-7/prometheus-queries.json",
+          "status": "generated",
+          "generator": "monitoring/verify_runtime.py",
+          "checker": "scripts/validate_monitoring.py",
+          "sources": [
+            "monitoring/grafana/dashboards/ml-dev-ops.json"
+          ]
+        }
+      ],
       "owned_configuration": [
         {
           "path": "monitoring/prometheus/prometheus.yml",
@@ -699,7 +731,7 @@
         },
         {
           "path": "monitoring/prometheus/alerts.yml",
-          "status": "planned"
+          "status": "implemented"
         },
         {
           "path": "monitoring/grafana/provisioning/datasources/prometheus.yml",
@@ -711,7 +743,7 @@
         },
         {
           "path": "monitoring/grafana/dashboards/ml-dev-ops.json",
-          "status": "planned"
+          "status": "implemented"
         }
       ]
     },
