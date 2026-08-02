@@ -378,7 +378,333 @@
     "triton_name": "triton",
     "triton_version": "2.71.0"
   },
+  "runtime_compatibility_projection": {
+    "aggregation": {
+      "directional_count": "strict_improvement_per_pair",
+      "latency_paired_improvement_pct": "(baseline_mean_client_latency_ms-optimized_mean_client_latency_ms)/baseline_mean_client_latency_ms*100",
+      "primary_summary": "median_of_four_paired_improvements",
+      "strength_threshold_is_descriptive": true,
+      "throughput_paired_improvement_pct": "(optimized_infer_per_sec-baseline_infer_per_sec)/baseline_infer_per_sec*100"
+    },
+    "deployment": {
+      "backend_network": {
+        "driver": "bridge"
+      },
+      "benchmark_runner": {
+        "command": [
+          "python",
+          "benchmarks/run_benchmark.py",
+          "measure"
+        ],
+        "environment": {
+          "TRITON_IMAGE": "${TRITON_IMAGE:?TRITON_IMAGE is required}",
+          "TRITON_SDK_IMAGE": "${TRITON_SDK_IMAGE:?TRITON_SDK_IMAGE is required}"
+        },
+        "image": "${TRITON_SDK_IMAGE:?TRITON_SDK_IMAGE is required}",
+        "networks": [
+          "backend"
+        ],
+        "profiles": [
+          "benchmark"
+        ],
+        "volumes": [
+          {
+            "read_only": true,
+            "source": ".",
+            "target": "/workspace",
+            "type": "bind"
+          },
+          {
+            "source": "./.cache/benchmarking",
+            "target": "/workspace/.cache/benchmarking",
+            "type": "bind"
+          }
+        ],
+        "working_dir": "/workspace"
+      },
+      "images": {
+        "sdk": "nvcr.io/nvidia/tritonserver:26.07-py3-sdk",
+        "triton": "nvcr.io/nvidia/tritonserver:26.07-py3"
+      },
+      "triton": {
+        "build": {
+          "args": {
+            "TRITON_IMAGE": "${TRITON_IMAGE:?TRITON_IMAGE is required}"
+          },
+          "context": ".",
+          "dockerfile": "deployment/docker/Dockerfile"
+        },
+        "command": [
+          "--model-repository=/models",
+          "--model-control-mode=explicit",
+          "--disable-auto-complete-config",
+          "--allow-http=true",
+          "--http-port=8000",
+          "--allow-grpc=true",
+          "--grpc-port=8001",
+          "--allow-metrics=true",
+          "--metrics-port=8002"
+        ],
+        "gpu_reservation": {
+          "resources": {
+            "reservations": {
+              "devices": [
+                {
+                  "capabilities": [
+                    "gpu"
+                  ],
+                  "count": "all",
+                  "driver": "nvidia"
+                }
+              ]
+            }
+          }
+        },
+        "image": "ml-dev-ops/triton:step2",
+        "model_repository_mount": [
+          {
+            "read_only": true,
+            "source": "${MODEL_REPOSITORY_PATH:?MODEL_REPOSITORY_PATH is required}",
+            "target": "/models",
+            "type": "bind"
+          }
+        ],
+        "networks": [
+          "backend"
+        ]
+      }
+    },
+    "environment_guard_rules": {
+      "classification": [
+        "forbidden_process_activity",
+        "new_gpu_process_activity",
+        "baseline_idle_process_became_active"
+      ],
+      "performance_never_triggers_replacement": true,
+      "replacement": "consecutive_same_slot_only_after_CONTAMINATED",
+      "system_pid_4_is_conservative_external_host_classification": true,
+      "telemetry_gap_or_collection_failure": "ERROR"
+    },
+    "methodology": {
+      "acceptance": {
+        "minimum_directional_pairs": 3,
+        "minimum_median_paired_improvement_pct_exclusive": 0.0,
+        "strong_improvement_threshold_pct": 5.0
+      },
+      "endpoints": {
+        "http": "triton:8000",
+        "metrics": "triton:8002/metrics"
+      },
+      "environment_guard": {
+        "ack_timeout_seconds": 30,
+        "baseline_seconds": 5,
+        "benchmark_owned_processes": [
+          "vmmemWSL.exe",
+          "vmwp.exe"
+        ],
+        "forbidden_processes": [
+          "brave.exe",
+          "chrome.exe",
+          "claude.exe",
+          "code.exe",
+          "firefox.exe",
+          "msedge.exe",
+          "spotify.exe",
+          "steam.exe",
+          "steamwebhelper.exe",
+          "Taskmgr.exe"
+        ],
+        "gpu_engine_activity_threshold_percent": 0.1,
+        "host_observer": "windows_gpu_engine_nvidia_smi",
+        "max_contaminated_attempts_per_slot": 3,
+        "maximum_sample_gap_ms": 3000,
+        "minimum_consecutive_baseline_samples": 5,
+        "sample_interval_ms": 1000
+      },
+      "execution_order": [
+        [
+          "baseline",
+          "optimized"
+        ],
+        [
+          "optimized",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "optimized"
+        ],
+        [
+          "optimized",
+          "baseline"
+        ]
+      ],
+      "load_generator": {
+        "realtime_clock_guard": true,
+        "verbose_windows": true
+      },
+      "measurement": {
+        "command_timeout_seconds": 600,
+        "cooldown_seconds": 2,
+        "max_measurement_windows": 3,
+        "metrics_interval_ms": 100,
+        "mode": "count_windows",
+        "ready_timeout_seconds": 120,
+        "repetitions": 4,
+        "reporting_percentile": 95,
+        "request_count_per_window": 500,
+        "warmup_request_count": 100
+      },
+      "protocol": "http",
+      "scenarios": [
+        {
+          "batch_size": 1,
+          "concurrency": 1,
+          "id": "latency",
+          "perf_analyzer_completion_tolerance_pct": 999,
+          "primary_metric": "mean_client_latency_ms",
+          "status": "formal"
+        },
+        {
+          "batch_size": 8,
+          "concurrency": 4,
+          "id": "throughput",
+          "perf_analyzer_completion_tolerance_pct": 999,
+          "primary_metric": "infer_per_sec",
+          "status": "formal"
+        }
+      ],
+      "schema_version": 2,
+      "seed": 20260802,
+      "service_kind": "triton"
+    },
+    "model_pair": {
+      "baseline": {
+        "available_versions": [
+          "1",
+          "2"
+        ],
+        "compute_precision": "FP32",
+        "io_precision": "FP32",
+        "model": "resnet50_onnx",
+        "runtime": "onnxruntime",
+        "version": "1"
+      },
+      "common_contract": {
+        "input": {
+          "dtype": "FP32",
+          "name": "images",
+          "shape": [
+            -1,
+            3,
+            224,
+            224
+          ]
+        },
+        "instance_group": [],
+        "max_batch_size": 8,
+        "output": {
+          "dtype": "FP32",
+          "name": "logits",
+          "shape": [
+            -1,
+            1000
+          ]
+        },
+        "preprocessing": {
+          "center_crop": 224,
+          "mean": [
+            0.485,
+            0.456,
+            0.406
+          ],
+          "resize": 232,
+          "scale": [
+            0.0,
+            1.0
+          ],
+          "std": [
+            0.229,
+            0.224,
+            0.225
+          ]
+        },
+        "scheduling": {
+          "dynamic_batching": {
+            "max_queue_delay_microseconds": 5000,
+            "preferred_batch_sizes": [
+              4,
+              8
+            ]
+          }
+        }
+      },
+      "common_contract_sha256": "cd7ea19161fad7e89962a0035f43f8caa9b46a2cc69734742ae840874de9caf8",
+      "declared_build_target": {
+        "build_driver_version": "610.88",
+        "compute_capability": "8.9",
+        "gpu_name": "NVIDIA GeForce RTX 4080 Laptop GPU"
+      },
+      "logical_model_id": "resnet50",
+      "optimized": {
+        "available_versions": [
+          "1"
+        ],
+        "compute_precision": "FP16",
+        "io_precision": "FP32",
+        "model": "resnet50_tensorrt",
+        "runtime": "tensorrt",
+        "version": "1"
+      },
+      "pair_id": "resnet50-onnx-vs-tensorrt",
+      "parity": {
+        "cosine_similarity": 0.9996493709698281,
+        "max_abs_error": 0.16452789306640625,
+        "mean_abs_error": 0.01703711971640587,
+        "status": "passed",
+        "tolerances": {
+          "max_abs_error": 0.5,
+          "mean_abs_error": 0.05,
+          "minimum_cosine_similarity": 0.999,
+          "minimum_top1_agreement": 1.0
+        },
+        "top1_agreement": 1.0
+      },
+      "schema_version": 1,
+      "weights_sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca"
+    },
+    "perf_analyzer_command_semantics": {
+      "binary_input_and_output": true,
+      "collect_metrics": true,
+      "explicit_model_version": true,
+      "measurement_mode": "count_windows",
+      "minimum_final_client_request_count": 1500,
+      "pa_stability_text_is_non_gating": true,
+      "request_count_per_window": 500,
+      "verbose_csv": true,
+      "window_count": 3
+    },
+    "schema_version": 1
+  },
+  "runtime_compatibility_projection_sha256": "6c04d3c585bdba97af623b99154727572795f6e5ce89539de97d618e410e22c3",
+  "runtime_source_fingerprint_sha256": "82e10584916355dfd2332055dc785a093b95d5265d37b62c9b7388fc274f4f62",
+  "runtime_source_hashes": {
+    ".env.example": "ee6dfc94c2d5878d4153e4ae465b2e9af4f4140244dc9b5be378b5daaa93c90b",
+    "benchmarks/aggregate_results.py": "7f6bdf9baaa7cb9aa8ef7a7971dfdc551c6dfc16524a7be1c5c56409ce9a0d92",
+    "benchmarks/clock_guard.c": "0ac06bc9c4f52386b5925fa7ecf61cbc3b241eefa6794e9d58500f8c3c95bd5a",
+    "benchmarks/configs/benchmark.json": "467dfc184589c6fc59ec43d9ced3bd87ade14e6557d0d7fb03da1d1ba0f1604d",
+    "benchmarks/environment_guard.py": "bbb8f08299a8f0e354191fe33a2bd660b6ac2f9dafee9941022013654faac68f",
+    "benchmarks/run_benchmark.py": "56b83b697cc9faf18d6263c5bdc7b1fb3439576b8455ae5936ed90ae9e917a4e",
+    "docker-compose.yml": "29801e4627169b192e47c976debdfc3a539d19e69bce98c6c2046e10c979d017",
+    "schemas/benchmark-config.schema.json": "a3ba17c7c94381c267cf56ac65d5bf88de501677a9e57e72c0b8bbeed7589467",
+    "schemas/benchmark-evidence.schema.json": "8f38c510e8a26cec30d3c630c87b07a83261ca5ed4daa09a491355068cb5e697",
+    "schemas/benchmark-host-telemetry.schema.json": "d20e4fb52fc63006ff6be308161a571435fc9587d40f38b1fa4a3ee854252e5d",
+    "schemas/benchmark-model-pair.schema.json": "69a4e8558a380549bffb001bf39aa85ee4bc7b6c78ea44c181e16e6570e2d72e",
+    "scripts/validate_benchmark.py": "ba489a9f710296bc575e81ccc820d167aa855068f8b94faa2bbc4bb21f187f4a",
+    "scripts/validate_benchmark_evidence.py": "68a199736608a0bc1235a88988e3b95a288322041c02e2eb98bd43135eb2d68c",
+    "shared/benchmark-model-pair.json": "3daeb61c60da6ca3fd947da3fd0e2f6c27d014918c95616cca6b1e382edaf409"
+  },
+  "runtime_source_manifest_sha256": "baf31f4b899cf095bb3b77d745482a3683a7c6d258caa01460c815db0248e5cc",
   "runtime_state_restored": true,
-  "schema_version": 2,
-  "source_fingerprint_sha256": "91c7882c99a2fe78967a50fe40aec6ca1bac9dad59507e66fb4c4859d4b8ffaa"
+  "schema_version": 3
 }

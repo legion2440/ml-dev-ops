@@ -274,6 +274,8 @@ python scripts/validate_client_evidence.py
 python scripts/validate_benchmark.py
 python scripts/validate_benchmark_evidence.py
 python scripts/validate_monitoring.py
+python scripts/validate_repository_hygiene.py
+python scripts/generate_dependency_graph.py --check
 python -m unittest discover -s tests/unit -t . -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
@@ -296,12 +298,18 @@ python scripts/generate_dependency_graph.py --check
 The Compose and Python YAML checks remain mandatory. A successful GPU smoke test is
 required before the deployment is considered runtime-verified.
 
-The committed runtime snapshot is under `docs/evidence/step-2`. Refresh it only
-after a successful live run:
+The committed Step 2 snapshot is under `docs/evidence/step-2`. Its
+`runtime-integrity.json` separates the exact source manifest captured for the run
+from the current four-service compatibility projection. Refresh it only after a
+successful live run:
 
 ```text
 python deployment/scripts/capture_runtime_evidence.py
 ```
+
+`python scripts/validate_runtime_evidence.py --check` validates historical
+integrity plus current compatibility. `--historical-only` validates the immutable
+snapshot alone. Both modes are read-only.
 
 Step 3 runtime evidence under `docs/evidence/step-3` is immutable and bound to its
 manifest v1 snapshot. `make smoke-models` is retained only as a read-only historical
@@ -319,6 +327,11 @@ requires the final READY set to equal the initial set.
 Step 6 evidence is under `docs/evidence/step-6`. Refresh it only through `make
 benchmark`; validate it without a daemon with `make validate-benchmark-evidence`.
 Failed runs remain only in ignored cache and do not modify the last passing bundle.
+The stored `runtime_source_fingerprint_sha256` and per-file source manifest describe
+the source state used by the run. The separately hashed semantic projection is the
+only current-compatibility gate; unrelated repository evolution is reported as
+non-gating provenance drift. Use `--historical-only` to audit the run without the
+current compatibility check.
 
 Step 7 evidence is under `docs/evidence/step-7`. Refresh both compact JSON files only
 against the live four-service stack with `make verify-monitoring`; validate the

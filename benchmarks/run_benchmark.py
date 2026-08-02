@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
@@ -48,7 +49,7 @@ PAIR_CONTRACT_PATH = REPOSITORY_ROOT / "shared/benchmark-model-pair.json"
 CLIENT_CONTRACT_PATH = REPOSITORY_ROOT / "shared/client-model-contracts.json"
 CACHE_ROOT = REPOSITORY_ROOT / ".cache/benchmarking"
 LATEST_CANDIDATE_PATH = CACHE_ROOT / "latest-passed.json"
-SOURCE_FINGERPRINT_PATHS = (
+RUNTIME_SOURCE_PATHS = (
     "benchmarks/run_benchmark.py",
     "benchmarks/aggregate_results.py",
     "benchmarks/clock_guard.c",
@@ -64,6 +65,8 @@ SOURCE_FINGERPRINT_PATHS = (
     "docker-compose.yml",
     ".env.example",
 )
+# Backward-compatible name for callers that only need the tracked source set.
+SOURCE_FINGERPRINT_PATHS = RUNTIME_SOURCE_PATHS
 GPU_METRIC = re.compile(
     r'^nv_gpu_(?P<name>utilization|memory_total_bytes|memory_used_bytes)'
     r'\{gpu_uuid="(?P<uuid>[^"]+)"\}\s+(?P<value>[-+0-9.eE]+)$'
@@ -117,13 +120,165 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def source_fingerprint() -> str:
+def runtime_source_hashes(root: Path = REPOSITORY_ROOT) -> dict[str, str]:
+    """Return the benchmark source manifest captured with a runtime candidate."""
+    return {
+        relative: hashlib.sha256((root / relative).read_bytes()).hexdigest()
+        for relative in RUNTIME_SOURCE_PATHS
+    }
+
+
+def source_fingerprint(root: Path = REPOSITORY_ROOT) -> str:
+    """Hash exact benchmark source bytes; retained as a historical run identity."""
     digest = hashlib.sha256()
-    for relative in SOURCE_FINGERPRINT_PATHS:
+    for relative in RUNTIME_SOURCE_PATHS:
         digest.update(relative.encode("utf-8") + b"\0")
-        digest.update((REPOSITORY_ROOT / relative).read_bytes())
+        digest.update((root / relative).read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def canonical_sha256(value: Any) -> str:
+    payload = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _load_env_values(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, value = line.split("=", 1)
+        values[key] = value
+    return values
+
+
+def benchmark_compatibility_projection(
+    root: Path = REPOSITORY_ROOT,
+) -> dict[str, Any]:
+    """Project only semantics that can change interpretation of a measurement."""
+    config = _json(root / "benchmarks/configs/benchmark.json")
+    pair = _json(root / "shared/benchmark-model-pair.json")
+    compose = yaml.safe_load((root / "docker-compose.yml").read_text(encoding="utf-8"))
+    if not isinstance(compose, dict) or not isinstance(compose.get("services"), dict):
+        raise BenchmarkError("docker-compose.yml must contain a services object")
+    services = compose["services"]
+    triton = services.get("triton")
+    runner = services.get("benchmark-runner")
+    if not isinstance(triton, dict) or not isinstance(runner, dict):
+        raise BenchmarkError("benchmark Compose services are missing")
+    env = _load_env_values(root / ".env.example")
+    triton_command_prefixes = (
+        "--model-repository=",
+        "--model-control-mode=",
+        "--disable-auto-complete-config",
+        "--allow-http=",
+        "--http-port=",
+        "--allow-grpc=",
+        "--grpc-port=",
+        "--allow-metrics=",
+        "--metrics-port=",
+    )
+    triton_projection = {
+        "build": triton.get("build"),
+        "image": triton.get("image"),
+        "command": [
+            item
+            for item in triton.get("command", [])
+            if isinstance(item, str) and item.startswith(triton_command_prefixes)
+        ],
+        "model_repository_mount": [
+            item
+            for item in triton.get("volumes", [])
+            if isinstance(item, dict) and item.get("target") == "/models"
+        ],
+        "gpu_reservation": triton.get("deploy"),
+        "networks": triton.get("networks"),
+    }
+    runner_projection = {
+        field: runner.get(field)
+        for field in (
+            "image",
+            "profiles",
+            "working_dir",
+            "command",
+            "environment",
+            "volumes",
+            "networks",
+        )
+    }
+    pair_projection = {
+        field: pair[field]
+        for field in (
+            "schema_version",
+            "pair_id",
+            "logical_model_id",
+            "baseline",
+            "optimized",
+            "common_contract",
+            "common_contract_sha256",
+            "weights_sha256",
+            "parity",
+            "declared_build_target",
+        )
+    }
+    return {
+        "schema_version": 1,
+        "methodology": config,
+        "model_pair": pair_projection,
+        "aggregation": {
+            "latency_paired_improvement_pct": (
+                "(baseline_mean_client_latency_ms-optimized_mean_client_latency_ms)"
+                "/baseline_mean_client_latency_ms*100"
+            ),
+            "throughput_paired_improvement_pct": (
+                "(optimized_infer_per_sec-baseline_infer_per_sec)"
+                "/baseline_infer_per_sec*100"
+            ),
+            "primary_summary": "median_of_four_paired_improvements",
+            "directional_count": "strict_improvement_per_pair",
+            "strength_threshold_is_descriptive": True,
+        },
+        "perf_analyzer_command_semantics": {
+            "explicit_model_version": True,
+            "binary_input_and_output": True,
+            "verbose_csv": True,
+            "collect_metrics": True,
+            "measurement_mode": config["measurement"]["mode"],
+            "request_count_per_window": config["measurement"][
+                "request_count_per_window"
+            ],
+            "window_count": config["measurement"]["max_measurement_windows"],
+            "minimum_final_client_request_count": (
+                config["measurement"]["request_count_per_window"]
+                * config["measurement"]["max_measurement_windows"]
+            ),
+            "pa_stability_text_is_non_gating": True,
+        },
+        "environment_guard_rules": {
+            "classification": [
+                "forbidden_process_activity",
+                "new_gpu_process_activity",
+                "baseline_idle_process_became_active",
+            ],
+            "system_pid_4_is_conservative_external_host_classification": True,
+            "telemetry_gap_or_collection_failure": "ERROR",
+            "replacement": "consecutive_same_slot_only_after_CONTAMINATED",
+            "performance_never_triggers_replacement": True,
+        },
+        "deployment": {
+            "images": {
+                "triton": env.get("TRITON_IMAGE"),
+                "sdk": env.get("TRITON_SDK_IMAGE"),
+            },
+            "triton": triton_projection,
+            "benchmark_runner": runner_projection,
+            "backend_network": compose.get("networks", {}).get("backend"),
+        },
+    }
 
 
 def _http_json(url: str) -> dict[str, Any]:
@@ -996,11 +1151,19 @@ def _create_evidence(
             ],
         }
 
+    source_hashes = runtime_source_hashes()
+    compatibility_projection = benchmark_compatibility_projection()
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "benchmark_config_sha256": sha256(CONFIG_PATH),
-        "source_fingerprint_sha256": source_fingerprint(),
+        "runtime_source_fingerprint_sha256": source_fingerprint(),
+        "runtime_source_hashes": source_hashes,
+        "runtime_source_manifest_sha256": canonical_sha256(source_hashes),
+        "runtime_compatibility_projection": compatibility_projection,
+        "runtime_compatibility_projection_sha256": canonical_sha256(
+            compatibility_projection
+        ),
         "pair_contract_sha256": sha256(PAIR_CONTRACT_PATH),
         "input_sha256": input_sha256,
         "pair": {
@@ -1414,17 +1577,25 @@ def main() -> int:
         default=Path(".env") if Path(".env").is_file() else Path(".env.example"),
         help="Compose environment file used by the Windows host orchestrator",
     )
-    parser.add_argument(
+    validation_modes = parser.add_mutually_exclusive_group()
+    validation_modes.add_argument(
         "--check",
         action="store_true",
         help="validate the currently published evidence without running Triton",
     )
+    validation_modes.add_argument(
+        "--historical-only",
+        action="store_true",
+        help="validate only historical evidence integrity without running Triton",
+    )
     args = parser.parse_args()
     try:
-        if args.check:
+        if args.check or args.historical_only:
             from scripts.validate_benchmark_evidence import validate
 
-            errors = validate(REPOSITORY_ROOT)
+            errors = validate(
+                REPOSITORY_ROOT, historical_only=args.historical_only
+            )
             if errors:
                 raise BenchmarkError("; ".join(errors))
             return 0

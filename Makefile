@@ -3,7 +3,7 @@ BASH ?= bash
 ENV_FILE ?= $(if $(wildcard .env),.env,.env.example)
 COMPOSE = docker compose --project-directory . --file docker-compose.yml --env-file $(ENV_FILE)
 
-.PHONY: validate validate-deployment validate-evidence validate-models validate-model-structure validate-model-evidence validate-serving validate-serving-artifacts validate-serving-evidence validate-client validate-client-evidence validate-benchmark validate-benchmark-evidence validate-monitoring architecture check-architecture compose-config up down status smoke smoke-models prepare-models prepare-serving-versions verify-serving verify-client verify-monitoring benchmark client-health export-logs clean-models capture-evidence
+.PHONY: validate validate-deployment validate-evidence validate-models validate-model-structure validate-model-evidence validate-serving validate-serving-artifacts validate-serving-evidence validate-client validate-client-evidence validate-benchmark validate-benchmark-evidence validate-monitoring validate-hygiene architecture check-architecture compose-config up down status smoke smoke-models prepare-models prepare-serving-versions verify-serving verify-client verify-monitoring benchmark client-health export-logs clean-models capture-evidence
 
 validate:
 	$(PYTHON) scripts/validate_structure.py
@@ -19,6 +19,8 @@ validate:
 	$(PYTHON) scripts/validate_benchmark.py
 	$(PYTHON) scripts/validate_benchmark_evidence.py
 	$(PYTHON) scripts/validate_monitoring.py
+	$(PYTHON) scripts/validate_repository_hygiene.py
+	$(PYTHON) scripts/generate_dependency_graph.py --check
 	$(PYTHON) -m unittest discover -s tests/unit -t . -p "test_*.py"
 
 validate-deployment:
@@ -59,6 +61,9 @@ validate-benchmark-evidence:
 
 validate-monitoring:
 	$(PYTHON) scripts/validate_monitoring.py
+
+validate-hygiene:
+	$(PYTHON) scripts/validate_repository_hygiene.py
 
 architecture:
 	$(PYTHON) scripts/generate_dependency_graph.py

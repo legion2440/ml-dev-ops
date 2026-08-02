@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import copy
+import json
 import unittest
+from unittest.mock import patch
 
 from scripts import validate_deployment
 from scripts import validate_runtime_evidence
@@ -45,15 +48,25 @@ class ImagePinValidationTests(unittest.TestCase):
         self.assertTrue(any("PROMETHEUS_IMAGE" in error for error in errors))
 
     def test_runtime_evidence_detects_changed_canonical_pin(self) -> None:
-        changed = {
-            **self.env,
-            "TRITON_IMAGE": "nvcr.io/nvidia/tritonserver:99.99-py3",
-        }
-        errors: list[str] = []
+        integrity = json.loads(
+            (
+                validate_runtime_evidence.REPOSITORY_ROOT
+                / validate_runtime_evidence.EVIDENCE_RELATIVE
+                / validate_runtime_evidence.INTEGRITY_NAME
+            ).read_text(encoding="utf-8")
+        )
+        changed = copy.deepcopy(integrity["runtime_compatibility_projection"])
+        changed["images"]["triton"] = "ml-dev-ops/triton:changed"
+        with patch.object(
+            validate_runtime_evidence,
+            "compatibility_projection",
+            return_value=changed,
+        ):
+            errors = validate_runtime_evidence.validate_current_compatibility(
+                integrity
+            )
 
-        validate_runtime_evidence._validate_environment(changed, errors)
-
-        self.assertTrue(any("stale" in error for error in errors))
+        self.assertTrue(any("incompatible" in error for error in errors))
 
 
 if __name__ == "__main__":

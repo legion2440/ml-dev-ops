@@ -131,6 +131,20 @@ class BenchmarkConfigTests(unittest.TestCase):
             self.assertEqual(main(), 0)
         orchestrate.assert_not_called()
 
+    def test_historical_only_mode_never_starts_a_candidate(self) -> None:
+        with (
+            patch.object(sys, "argv", ["run_benchmark.py", "--historical-only"]),
+            patch(
+                "scripts.validate_benchmark_evidence.validate", return_value=[]
+            ) as validate,
+            patch("benchmarks.run_benchmark.orchestrate") as orchestrate,
+        ):
+            self.assertEqual(main(), 0)
+        validate.assert_called_once_with(
+            CONFIG_PATH.parents[2], historical_only=True
+        )
+        orchestrate.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

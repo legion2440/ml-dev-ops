@@ -192,11 +192,18 @@ python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
 python scripts/validate_runtime_evidence.py
+python scripts/validate_model_repository.py --structure-only
+python scripts/validate_model_evidence.py
 python scripts/validate_serving.py --structure-only
 python scripts/validate_serving_evidence.py
+python scripts/validate_client.py
+python scripts/validate_client_evidence.py
+python scripts/validate_benchmark.py
+python scripts/validate_benchmark_evidence.py
 python scripts/validate_monitoring.py
-python -m unittest discover -s tests/unit -p "test_*.py"
+python scripts/validate_repository_hygiene.py
 python scripts/generate_dependency_graph.py --check
+python -m unittest discover -s tests/unit -t . -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
 
@@ -225,11 +232,13 @@ Capture a sanitized snapshot after a successful runtime check:
 python deployment/scripts/capture_runtime_evidence.py
 ```
 
-The command writes `smoke.json`, `compose-ps.txt`, and `environment.txt` under
-`docs/evidence/step-2`. The snapshot contains no secrets, container IDs, hostnames,
-or workspace paths. `scripts/validate_runtime_evidence.py` checks the recorded
-services and smoke results and detects image evidence stale relative to
-`.env.example` without requiring Docker.
+The command writes `smoke.json`, `compose-ps.txt`, `environment.txt`, and
+`runtime-integrity.json` under `docs/evidence/step-2`. The snapshot contains no
+secrets, container IDs, hostnames, or workspace paths. The integrity file preserves
+the historical source state from `de079e1` and a semantic four-service projection.
+`scripts/validate_runtime_evidence.py --check` checks the saved runtime plus current
+compatibility without requiring Docker; `--historical-only` checks only the immutable
+runtime. Both modes are read-only, and unrelated source drift is informational.
 
 ## Recovery and cleanup
 

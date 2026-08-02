@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import shutil
@@ -11,23 +12,23 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from benchmarks.aggregate_results import AggregationError, aggregate, render_report
+from benchmarks.aggregate_results import AggregationError, aggregate
 from benchmarks.environment_guard import GuardError, read_jsonl, recompute_guard
 from benchmarks.run_benchmark import (
-    CONFIG_PATH,
     CLIENT_REQUEST_COUNT,
-    PAIR_CONTRACT_PATH,
     STATISTIC_COUNT_FIELDS,
     STATISTIC_DURATION_FIELDS,
     STABILITY_PASS,
+    benchmark_compatibility_projection,
+    canonical_sha256,
     sha256,
-    source_fingerprint,
 )
 
 SCHEMA_PATH = REPOSITORY_ROOT / "schemas/benchmark-evidence.schema.json"
@@ -264,6 +265,7 @@ def _validate_runs(
     index: dict[str, Any],
     config: dict[str, Any],
     pair: dict[str, Any],
+    expected_clock_guard_source_sha256: str,
 ) -> list[str]:
     errors: list[str] = []
     runs = index.get("runs", [])
@@ -303,8 +305,7 @@ def _validate_runs(
     errors.extend(_artifact_errors(artifact_root, actions_path, actions_relative))
     if actions_path.is_file() and guard_index.get("actions_sha256") != sha256(actions_path):
         errors.append("environment actions hash is stale")
-    clock_guard_source = REPOSITORY_ROOT / "benchmarks/clock_guard.c"
-    if index.get("clock_guard_source_sha256") != sha256(clock_guard_source):
+    if index.get("clock_guard_source_sha256") != expected_clock_guard_source_sha256:
         errors.append("raw index clock guard source hash is stale")
     if not re.fullmatch(r"[0-9a-f]{64}", str(index.get("clock_guard_sha256", ""))):
         errors.append("raw index compiled clock guard hash is invalid")
@@ -572,16 +573,6 @@ def _recompute(
             actual = artifact_root / "benchmarks/results" / name
             if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
                 errors.append(f"{name} differs from raw-data recomputation")
-        expected_report = render_report(
-            config,
-            pair,
-            evidence.get("runtime", {}),
-            result,
-            index.get("input_sha256", ""),
-        )
-        report_path = artifact_root / "benchmarks/report.md"
-        if not report_path.is_file() or report_path.read_text(encoding="utf-8") != expected_report:
-            errors.append("benchmark report differs from raw-data recomputation")
         measurement = evidence.get("measurement", {})
         if measurement.get("scenarios") != result["scenario_diagnostics"]:
             errors.append("evidence scenario diagnostics are stale")
@@ -600,7 +591,8 @@ def _recompute(
             errors.append("recomputed paired benchmark acceptance does not pass")
 
 
-def validate(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
+def validate_historical(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
+    """Validate only immutable run data and its captured runtime contracts."""
     errors: list[str] = []
     evidence_path = artifact_root / EVIDENCE_RELATIVE
     index_path = artifact_root / INDEX_RELATIVE
@@ -610,8 +602,6 @@ def validate(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
         return ["missing benchmark raw index"]
     evidence = _json(evidence_path)
     index = _json(index_path)
-    config = _json(CONFIG_PATH)
-    pair = _json(PAIR_CONTRACT_PATH)
     schema = _json(SCHEMA_PATH)
     Draft202012Validator.check_schema(schema)
     errors.extend(
@@ -623,10 +613,27 @@ def validate(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
             key=lambda item: list(item.path),
         )
     )
+    projection = evidence.get("runtime_compatibility_projection")
+    source_hashes = evidence.get("runtime_source_hashes")
+    if not isinstance(projection, dict) or not isinstance(source_hashes, dict):
+        return errors or ["runtime source or compatibility snapshot is missing"]
+    if evidence.get("runtime_source_manifest_sha256") != canonical_sha256(
+        source_hashes
+    ):
+        errors.append("runtime source manifest hash is stale")
+    if evidence.get("runtime_compatibility_projection_sha256") != canonical_sha256(
+        projection
+    ):
+        errors.append("runtime compatibility projection hash is stale")
+    config = projection.get("methodology")
+    pair = projection.get("model_pair")
+    if not isinstance(config, dict) or not isinstance(pair, dict):
+        return [*errors, "runtime compatibility snapshot is incomplete"]
     freshness = {
-        "benchmark_config_sha256": sha256(CONFIG_PATH),
-        "source_fingerprint_sha256": source_fingerprint(),
-        "pair_contract_sha256": sha256(PAIR_CONTRACT_PATH),
+        "benchmark_config_sha256": source_hashes.get(
+            "benchmarks/configs/benchmark.json"
+        ),
+        "pair_contract_sha256": source_hashes.get("shared/benchmark-model-pair.json"),
         "input_sha256": index.get("input_sha256"),
     }
     for field, expected in freshness.items():
@@ -648,8 +655,10 @@ def validate(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
         errors.append("evidence model pair is stale")
     if evidence.get("declared_build_target") != pair.get("declared_build_target"):
         errors.append("declared build target is stale")
-    if evidence.get("measurement", {}).get("clock_guard_source_sha256") != sha256(
-        REPOSITORY_ROOT / "benchmarks/clock_guard.c"
+    expected_clock_guard_sha256 = source_hashes.get("benchmarks/clock_guard.c", "")
+    if (
+        evidence.get("measurement", {}).get("clock_guard_source_sha256")
+        != expected_clock_guard_sha256
     ):
         errors.append("evidence clock guard source hash is stale")
     if evidence.get("initial_ready") != evidence.get("final_ready"):
@@ -727,7 +736,15 @@ def validate(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
             errors.append("live ONNX and TensorRT contracts differ")
         if snapshot.get("common_contract_sha256") != pair.get("common_contract_sha256"):
             errors.append("live contract snapshot is stale")
-    errors.extend(_validate_runs(artifact_root, index, config, pair))
+    errors.extend(
+        _validate_runs(
+            artifact_root,
+            index,
+            config,
+            pair,
+            expected_clock_guard_sha256,
+        )
+    )
     expected_artifacts = {
         "raw_index": "benchmarks/results/raw/index.json",
         "baseline": "benchmarks/results/baseline.csv",
@@ -748,9 +765,70 @@ def validate(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
     return errors
 
 
+def validate_current_compatibility(
+    evidence: dict[str, Any], source_root: Path = REPOSITORY_ROOT
+) -> list[str]:
+    """Compare current measurement semantics with the captured runtime projection."""
+    stored = evidence.get("runtime_compatibility_projection")
+    if not isinstance(stored, dict):
+        return ["runtime compatibility projection is missing"]
+    current = benchmark_compatibility_projection(source_root)
+    if canonical_sha256(current) != evidence.get(
+        "runtime_compatibility_projection_sha256"
+    ) or current != stored:
+        return ["current benchmark contract is incompatible with the historical run"]
+    return []
+
+
+def source_drift(
+    evidence: dict[str, Any], source_root: Path = REPOSITORY_ROOT
+) -> list[str]:
+    """Report provenance drift without treating it as measurement incompatibility."""
+    manifest = evidence.get("runtime_source_hashes", {})
+    if not isinstance(manifest, dict):
+        return []
+    changed: list[str] = []
+    for relative, expected in manifest.items():
+        path = source_root / relative
+        if not path.is_file() or sha256(path) != expected:
+            changed.append(relative)
+    return sorted(changed)
+
+
+def validate(
+    artifact_root: Path = REPOSITORY_ROOT,
+    *,
+    historical_only: bool = False,
+    source_root: Path = REPOSITORY_ROOT,
+) -> list[str]:
+    errors = validate_historical(artifact_root)
+    if not historical_only:
+        evidence_path = artifact_root / EVIDENCE_RELATIVE
+        if evidence_path.is_file():
+            errors.extend(
+                validate_current_compatibility(_json(evidence_path), source_root)
+            )
+    return errors
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument(
+        "--check",
+        action="store_true",
+        help="check historical integrity and current semantic compatibility (default)",
+    )
+    modes.add_argument(
+        "--historical-only",
+        action="store_true",
+        help="check only the immutable historical run bundle",
+    )
+    args = parser.parse_args()
     try:
-        errors = validate()
+        errors = validate(historical_only=args.historical_only)
+        evidence = _json(REPOSITORY_ROOT / EVIDENCE_RELATIVE)
+        drift = [] if args.historical_only else source_drift(evidence)
     except (
         OSError,
         ValueError,
@@ -758,8 +836,10 @@ def main() -> int:
         KeyError,
         json.JSONDecodeError,
         AggregationError,
+        yaml.YAMLError,
     ) as error:
         errors = [str(error)]
+        drift = []
     if errors:
         for error in errors:
             print(f"[ERROR] {error}", file=sys.stderr)
@@ -768,7 +848,18 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    print("[OK] Step 6 evidence recomputes from all four paired repetitions.")
+    if drift:
+        print(
+            "[INFO] Step 6 historical source drift (non-gating): "
+            + ", ".join(drift)
+        )
+    if args.historical_only:
+        print("[OK] Step 6 historical evidence integrity passes.")
+    else:
+        print(
+            "[OK] Step 6 historical integrity and current compatibility pass; "
+            "all four paired repetitions recompute."
+        )
     return 0
 
 

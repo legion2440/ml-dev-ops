@@ -8,7 +8,11 @@
     "schema_version",
     "generated_at_utc",
     "benchmark_config_sha256",
-    "source_fingerprint_sha256",
+    "runtime_source_fingerprint_sha256",
+    "runtime_source_hashes",
+    "runtime_source_manifest_sha256",
+    "runtime_compatibility_projection",
+    "runtime_compatibility_projection_sha256",
     "pair_contract_sha256",
     "input_sha256",
     "pair",
@@ -23,10 +27,19 @@
     "runtime_state_restored"
   ],
   "properties": {
-    "schema_version": {"const": 2},
+    "schema_version": {"const": 3},
     "generated_at_utc": {"type": "string", "format": "date-time"},
     "benchmark_config_sha256": {"$ref": "#/$defs/sha256"},
-    "source_fingerprint_sha256": {"$ref": "#/$defs/sha256"},
+    "runtime_source_fingerprint_sha256": {"$ref": "#/$defs/sha256"},
+    "runtime_source_hashes": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[A-Za-z0-9._/-]+$"},
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "runtime_source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "runtime_compatibility_projection": {"type": "object"},
+    "runtime_compatibility_projection_sha256": {"$ref": "#/$defs/sha256"},
     "pair_contract_sha256": {"$ref": "#/$defs/sha256"},
     "input_sha256": {"$ref": "#/$defs/sha256"},
     "pair": {

@@ -14,7 +14,10 @@ class GeneratedBenchmarkPairTests(unittest.TestCase):
     def test_pair_is_rendered_from_current_manifest(self) -> None:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         actual = json.loads(PAIR_CONTRACT_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(actual, render_benchmark_pair_contract(manifest))
+        first = render_benchmark_pair_contract(manifest)
+        second = render_benchmark_pair_contract(manifest)
+        self.assertEqual(first, second)
+        self.assertEqual(actual, first)
 
     def test_pair_exposes_lineage_without_repository_artifact_paths(self) -> None:
         pair = json.loads(PAIR_CONTRACT_PATH.read_text(encoding="utf-8"))

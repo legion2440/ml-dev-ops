@@ -136,10 +136,18 @@ validates the tracked bundle again. Rollback restores the previous published bun
 if any step fails.
 
 The evidence validator independently proves exactly four ONNX/TensorRT pairs per
-scenario, AB/BA order, zero errors, model/config identity, all formulas and medians,
-at least three improving pairs, raw/CSV/report agreement, and objective attribution
-for every replacement. It does not enforce PA stability, thermal stability, fixed
-clocks, or a 5% performance gate.
+scenario, AB/BA order, zero errors, captured model/config identity, all formulas and
+medians, at least three improving pairs, raw/CSV arithmetic, published artifact
+hashes, and objective attribution for every replacement. It does not enforce PA
+stability, thermal stability, fixed clocks, or a 5% performance gate.
+
+Historical integrity and current compatibility are separate. The evidence retains
+the exact runtime source fingerprint `82e10584916355dfd2332055dc785a093b95d5265d37b62c9b7388fc274f4f62`
+plus the runtime per-file hashes. Current compatibility compares only the captured
+methodology, scenario and acceptance contract, model pair, aggregation and Perf
+Analyzer semantics, environment-guard rules, and the benchmark-relevant Compose
+projection. Monitoring mounts, report wording, validator implementation, and check
+control flow are source drift but do not change the meaning of the measurement.
 
 The two contaminated replacements are retained for auditability but are not required
 to establish the optimization conclusion; their measured performance was
@@ -155,8 +163,13 @@ Direct equivalents:
 
 ```text
 python benchmarks/run_benchmark.py run --env-file .env.example
-python scripts/validate_benchmark_evidence.py
+python scripts/validate_benchmark_evidence.py --check
+python scripts/validate_benchmark_evidence.py --historical-only
 ```
+
+Both validation modes are strictly read-only. `--check` fails when either historical
+integrity or current compatibility fails; `--historical-only` ignores current source
+compatibility and validates the saved run bundle alone.
 
 If a formal candidate is contradictory, keep all four pairs and supporting
 telemetry in `.cache/benchmarking` and stop for review. Do not change the method or

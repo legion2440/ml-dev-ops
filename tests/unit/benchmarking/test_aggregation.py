@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from benchmarks.aggregate_results import RAW_COLUMNS, aggregate, parse_raw_csv
-from benchmarks.run_benchmark import CONFIG_PATH
+from benchmarks.aggregate_results import RAW_COLUMNS, aggregate, parse_raw_csv, render_report
+from benchmarks.run_benchmark import CONFIG_PATH, PAIR_CONTRACT_PATH, REPOSITORY_ROOT
 
 
 def write_raw(path: Path, infer_per_sec: float, p95_us: float) -> None:
@@ -147,6 +147,20 @@ class AggregationTests(unittest.TestCase):
             )
             self.assertEqual(result["environment_guard"]["valid_formal_runs"], 16)
             self.assertEqual(result["environment_guard"]["contaminated_runs"], 1)
+            evidence = json.loads(
+                (
+                    REPOSITORY_ROOT
+                    / "docs/evidence/step-6/benchmark-runtime.json"
+                ).read_text(encoding="utf-8")
+            )
+            pair = json.loads(PAIR_CONTRACT_PATH.read_text(encoding="utf-8"))
+            report = render_report(
+                config, pair, evidence["runtime"], result, "0" * 64
+            )
+            self.assertEqual(
+                report,
+                render_report(config, pair, evidence["runtime"], result, "0" * 64),
+            )
             comparison = (
                 root / "benchmarks/results/comparison.csv"
             ).read_text(encoding="utf-8")

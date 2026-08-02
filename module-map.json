@@ -99,10 +99,6 @@
         {
           "path": "scripts/validate_model_repository.py",
           "status": "implemented"
-        },
-        {
-          "path": "tests/integration/model_repository",
-          "status": "planned"
         }
       ],
       "docs": [
@@ -209,10 +205,6 @@
                 {
                     "path": "tests/unit/triton_serving",
                     "status": "implemented"
-        },
-        {
-          "path": "tests/integration/triton",
-          "status": "planned"
         }
       ],
       "docs": [
@@ -276,6 +268,10 @@
         {
           "path": "deployment/scripts/compose_common.sh",
           "status": "implemented"
+        },
+        {
+          "path": "deployment/runtime_evidence.py",
+          "status": "implemented"
         }
       ],
       "tests": [
@@ -296,8 +292,8 @@
           "status": "implemented"
         },
         {
-          "path": "tests/integration/deployment",
-          "status": "planned"
+          "path": "tests/unit/test_runtime_evidence_integrity.py",
+          "status": "implemented"
         }
       ],
       "docs": [
@@ -334,6 +330,19 @@
           "sources": [
             ".env.example",
             "docker-compose.yml",
+            "deployment/scripts/smoke_environment.py"
+          ]
+        },
+        {
+          "path": "docs/evidence/step-2/runtime-integrity.json",
+          "status": "generated",
+          "generator": "deployment/scripts/capture_runtime_evidence.py",
+          "checker": "scripts/validate_runtime_evidence.py",
+          "sources": [
+            ".env.example",
+            "docker-compose.yml",
+            "deployment/runtime_evidence.py",
+            "deployment/scripts/capture_runtime_evidence.py",
             "deployment/scripts/smoke_environment.py"
           ]
         }
@@ -402,10 +411,6 @@
         {
           "path": "scripts/validate_client_evidence.py",
           "status": "implemented"
-        },
-        {
-          "path": "tests/integration/client",
-          "status": "planned"
         }
       ],
       "docs": [
@@ -783,12 +788,7 @@
                     ]
                 }
       ],
-      "tests": [
-        {
-          "path": "tests/unit/shared_contracts",
-          "status": "planned"
-        }
-      ],
+      "tests": [],
       "docs": [
         {
           "path": "ARCHITECTURE.md",
@@ -834,7 +834,15 @@
       "status": "implemented"
     },
     {
+      "path": "scripts/validate_repository_hygiene.py",
+      "status": "implemented"
+    },
+    {
       "path": "schemas/model-spec.schema.json",
+      "status": "implemented"
+    },
+    {
+      "path": "schemas/runtime-integrity.schema.json",
       "status": "implemented"
     },
         {

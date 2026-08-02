@@ -1,7 +1,6 @@
 # Audit evidence
 
-This matrix maps audit requirements to concrete implementation and evidence. It
-will be expanded as each scope is completed.
+This matrix maps the completed audit scope to concrete implementation and evidence.
 
 | Audit item | Implementation | File or command | Evidence |
 | --- | --- | --- | --- |
@@ -15,9 +14,10 @@ will be expanded as each scope is completed.
 | Triton infrastructure | Explicit control, disabled config auto-completion, and read-only repository | `deployment/scripts/run_triton.sh` | Live, ready, metrics, and no models loaded before model smoke |
 | Minimum observability | Prometheus targets and Grafana datasource provisioning | `monitoring` | Triton/DCGM targets up and datasource provisioned |
 | GPU telemetry | Pinned paired DCGM Exporter service | `docker-compose.yml` | Real `DCGM_` metrics; RTX 4080 Laptop visible in Triton |
-| Infrastructure smoke | Host-side health, targets, datasource, and empty-repository checks | `docs/evidence/step-2/smoke.json` | All 10 checks passed on 2026-07-31 |
+| Infrastructure smoke | Host-side health, targets, datasource, and no-loaded-model checks | `docs/evidence/step-2/smoke.json` | All 10 checks passed on 2026-07-31 |
 | Runtime service state | Sanitized service, image, health, and port snapshot | `docs/evidence/step-2/compose-ps.txt` | Four running and healthy services; loopback-only ports |
 | Runtime environment | Sanitized Docker, Triton image digest, and GPU facts | `docs/evidence/step-2/environment.txt` | Machine-checked reference environment |
+| Step 2 evidence integrity | Historical source manifest from `de079e1`, artifact hashes, and semantic deployment projection | `docs/evidence/step-2/runtime-integrity.json`; `python scripts/validate_runtime_evidence.py --check` | Historical integrity and current four-service compatibility pass independently; source drift is non-gating |
 | Model source provenance | Accepted URLs, SHA-256, licenses, package lock, and image digests | `models/model-spec.yaml` | Step 3 evidence references its immutable manifest v1 snapshot |
 | Two CV workloads | ResNet50 classification and YOLO11n detection | `models/model-manifest.json` | Two ONNX graphs pass checker and synthetic ONNX Runtime inference |
 | TensorRT optimization | Strongly typed FP16 ResNet with FP32 I/O; spec-derived capability mapping with no default plan fallback | `models/resnet50_tensorrt/config.pbtxt` and unit regression | Engine deserialization, exporter-level parity, and live explicit load passed |
@@ -25,6 +25,7 @@ will be expanded as each scope is completed.
 | Runtime model serving | Explicit load, metadata/config, batch inference, parity, and unload | `docs/evidence/step-3/triton-model-smoke.json` | All three models runtime-verified on 2026-07-31 |
 | Runtime repository state | Three version-1 models ready during verification | `docs/evidence/step-3/model-repository.txt` | Sanitized repository index captured before explicit unload |
 | ONNX and TensorRT benchmark | Four paired AB/BA repetitions for latency and throughput using pinned Perf Analyzer | `benchmarks/report.md`, `benchmarks/results`, and `docs/evidence/step-6/benchmark-runtime.json` | 16/16 valid slots; latency median improvement 19.32%, throughput 114.11%, both 4/4 directional; two attributed contaminated attempts retained with same-slot replacements |
+| Step 6 evidence integrity | Runtime fingerprint `82e105…`, per-file runtime source hashes, and narrow benchmark semantic projection | `python scripts/validate_benchmark_evidence.py --check`; `--historical-only` | Historical measurement integrity is immutable; critical contract drift fails compatibility while Grafana/Prometheus and validator evolution remain provenance-only |
 | Full Prometheus and Grafana dashboard | Five provisioned panels for inference throughput, request rate, average latency, GPU utilization, and failures plus two alert rules | `monitoring/grafana/dashboards/ml-dev-ops.json`, `monitoring/prometheus/alerts.yml` | `docs/evidence/step-7` proves Triton/DCGM targets up, five successful queries through the Grafana datasource proxy, matching GPU identity, loaded rules, and READY restoration |
 | Production image client | Contract-driven ResNet/YOLO preprocessing and postprocessing, bounded batches, auto-load, explicit versions | `client/inference_client.py` | `docs/evidence/step-5/predictions.txt` records real-image HTTP, gRPC, ONNX v1/v2, and TensorRT results |
 | Sample image provenance | Ten real CC0/public-domain-marked JPG images with source, attribution, hash, and dimensions | `client/samples/manifest.json` | `python scripts/validate_client.py` decodes and verifies the complete inventory |
@@ -33,6 +34,8 @@ will be expanded as each scope is completed.
 | HTTP and gRPC serving | SDK protocol matrix for every model/version | `docs/evidence/step-4/serving-runtime.json` | Metadata, binary inference, finite outputs, and numerical protocol parity passed |
 | Dynamic batching | Spec-owned schedulers, bounded attempt history, and per-version statistics deltas | `docs/evidence/step-4/serving-runtime.json` | `attempts_used` matches 1–3 recorded attempts; inference deltas exceed execution deltas and batch sizes above one are observed |
 | Model version management | ResNet ONNX v1/v2, load overrides, tracked policy, and in-place reload | `docs/evidence/step-4/repository-versions.txt` | Versions 1 and 2 READY together; default selects v2; cleanup repository empty and every model/version readiness endpoint false |
+| Final repository hygiene | Tracked-file audit for caches, model binaries, runtime junk, host paths, and secret-like evidence | `python scripts/validate_repository_hygiene.py` | Static hygiene gate passes and is included in `make validate` |
+| Deterministic/read-only generation | Repeatable contracts, configs, report rendering, dependency docs, and immutable check modes | `python -m unittest discover -s tests/unit -t . -p "test_*.py"` | Regression suite covers deterministic rendering, tamper/staleness, and read-only evidence checks |
 
 README statements alone are not accepted as runtime evidence.
 
@@ -41,9 +44,14 @@ NVIDIA driver 610.88, and compute capability 8.9. Steps 2–4 were captured on
 2026-07-31, step 5 on 2026-08-01, step 6 on 2026-08-02, and step 7 on
 2026-08-03 local time. These files prove the reference runs, not a substitute for
 rerunning verification after environment changes.
-Validate the committed evidence with `python scripts/validate_runtime_evidence.py`
-`python scripts/validate_model_evidence.py`, and
-`python scripts/validate_serving_evidence.py`, and
-`python scripts/validate_client_evidence.py`, and
-`python scripts/validate_benchmark_evidence.py`, and
-`python scripts/validate_monitoring.py`.
+Validate the committed evidence with:
+
+```text
+python scripts/validate_runtime_evidence.py --check
+python scripts/validate_model_evidence.py
+python scripts/validate_serving_evidence.py
+python scripts/validate_client_evidence.py
+python scripts/validate_benchmark_evidence.py --check
+python scripts/validate_monitoring.py
+python scripts/validate_repository_hygiene.py
+```

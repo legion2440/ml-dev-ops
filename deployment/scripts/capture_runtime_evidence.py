@@ -11,6 +11,17 @@ from pathlib import Path
 from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from deployment.runtime_evidence import (  # noqa: E402
+    canonical_sha256,
+    compatibility_projection,
+    evidence_artifact_hashes,
+    runtime_source_fingerprint,
+    runtime_source_hashes,
+)
+
 COMPOSE_FILE = REPOSITORY_ROOT / "docker-compose.yml"
 ENV_FILE = REPOSITORY_ROOT / ".env.example"
 SMOKE_SCRIPT = REPOSITORY_ROOT / "deployment/scripts/smoke_environment.py"
@@ -196,9 +207,27 @@ def _write_atomic(path: Path, content: str) -> None:
     temporary.replace(path)
 
 
-def _validate_evidence() -> int:
+def _capture_integrity() -> str:
+    source_hashes = runtime_source_hashes()
+    projection = compatibility_projection()
+    value = {
+        "schema_version": 1,
+        "runtime_source_revision": _run(["git", "rev-parse", "HEAD"]),
+        "runtime_source_fingerprint_sha256": runtime_source_fingerprint(),
+        "runtime_source_hashes": source_hashes,
+        "runtime_source_manifest_sha256": canonical_sha256(source_hashes),
+        "runtime_evidence_hashes": evidence_artifact_hashes(),
+        "runtime_compatibility_projection": projection,
+        "runtime_compatibility_projection_sha256": canonical_sha256(projection),
+    }
+    return json.dumps(value, indent=2, sort_keys=True) + "\n"
+
+
+def _validate_evidence(*, historical_only: bool = False) -> int:
+    command = [sys.executable, str(EVIDENCE_VALIDATOR)]
+    command.append("--historical-only" if historical_only else "--check")
     return subprocess.run(
-        [sys.executable, str(EVIDENCE_VALIDATOR)],
+        command,
         cwd=REPOSITORY_ROOT,
         check=False,
     ).returncode
@@ -206,14 +235,20 @@ def _validate_evidence() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument(
         "--check",
         action="store_true",
         help="Validate the committed snapshot without contacting Docker.",
     )
+    modes.add_argument(
+        "--historical-only",
+        action="store_true",
+        help="Validate only the immutable snapshot without contacting Docker.",
+    )
     args = parser.parse_args()
-    if args.check:
-        return _validate_evidence()
+    if args.check or args.historical_only:
+        return _validate_evidence(historical_only=args.historical_only)
 
     try:
         env = _load_env()
@@ -224,6 +259,7 @@ def main() -> int:
         _write_atomic(EVIDENCE_DIRECTORY / "smoke.json", smoke)
         _write_atomic(EVIDENCE_DIRECTORY / "compose-ps.txt", compose_ps)
         _write_atomic(EVIDENCE_DIRECTORY / "environment.txt", environment)
+        _write_atomic(EVIDENCE_DIRECTORY / "runtime-integrity.json", _capture_integrity())
         validation_returncode = _validate_evidence()
         if validation_returncode != 0:
             return validation_returncode

@@ -16,7 +16,9 @@ class ConfigRenderingTests(unittest.TestCase):
         for name in prepare_models.SERVING_MODELS:
             config = prepare_models.serving_model_config(self.spec, name)
             tracked = (prepare_models.REPOSITORY_ROOT / "models" / name / "config.pbtxt").read_text(encoding="utf-8")
-            self.assertEqual(tracked, render_pbtxt(config))
+            first = render_pbtxt(config)
+            self.assertEqual(first, render_pbtxt(config))
+            self.assertEqual(tracked, first)
             versions = config["version_policy"]["specific"]["versions"]
             runtime = json.loads(render_load_config_json(config, versions)["parameters"]["config"])
             self.assertEqual(runtime, config)

@@ -27,8 +27,8 @@ python scripts/generate_dependency_graph.py
 
 If Make is unavailable, use the direct Python commands documented in `README.md`.
 
-An `implemented` path must exist. A `generated` path must exist and its generator
-must pass `--check`. A `planned` path may be absent.
+An `implemented` path must exist. A `generated` path must exist and its checker must
+pass `--check`. The current module map contains no speculative paths.
 
 ## Docker daemon unavailable
 

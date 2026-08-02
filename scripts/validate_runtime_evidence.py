@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
+import hashlib
 import json
 import re
 import sys
@@ -11,14 +13,21 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from jsonschema import Draft202012Validator
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE_DIRECTORY = REPOSITORY_ROOT / "docs/evidence/step-2"
-SMOKE_PATH = EVIDENCE_DIRECTORY / "smoke.json"
-COMPOSE_PS_PATH = EVIDENCE_DIRECTORY / "compose-ps.txt"
-ENVIRONMENT_PATH = EVIDENCE_DIRECTORY / "environment.txt"
-ENV_EXAMPLE_PATH = REPOSITORY_ROOT / ".env.example"
-COMPOSE_PATH = REPOSITORY_ROOT / "docker-compose.yml"
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from deployment.runtime_evidence import (  # noqa: E402
+    canonical_sha256,
+    compatibility_projection,
+    evidence_artifact_hashes,
+)
+
+EVIDENCE_RELATIVE = Path("docs/evidence/step-2")
+INTEGRITY_NAME = "runtime-integrity.json"
+INTEGRITY_SCHEMA_PATH = REPOSITORY_ROOT / "schemas/runtime-integrity.schema.json"
 EXPECTED_SERVICES = {"triton", "prometheus", "grafana", "dcgm-exporter"}
 EXPECTED_SMOKE_CHECKS = {
     "containers",
@@ -32,7 +41,6 @@ EXPECTED_SMOKE_CHECKS = {
     "grafana_datasource",
     "dcgm_metrics",
 }
-COMPOSE_VARIABLE = re.compile(r"^\$\{([A-Z][A-Z0-9_]*):\?[^}]+\}$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 VERSION = re.compile(r"^\d+\.\d+\.\d+(?:[-+._][A-Za-z0-9.-]+)?$")
 WINDOWS_ABSOLUTE_PATH = re.compile(r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/]")
@@ -61,13 +69,6 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _load_compose() -> dict[str, Any]:
-    value = yaml.safe_load(COMPOSE_PATH.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise TypeError("docker-compose.yml must contain a YAML object")
-    return value
-
-
 def _validate_smoke(smoke: dict[str, Any], errors: list[str]) -> None:
     if smoke.get("ok") is not True:
         errors.append("smoke.json must record ok=true")
@@ -89,19 +90,12 @@ def _validate_smoke(smoke: dict[str, Any], errors: list[str]) -> None:
             errors.append(f"smoke.json check is not successful: {name}")
 
 
-def _resolve_image(expression: Any, env: dict[str, str]) -> str:
-    if not isinstance(expression, str):
-        return ""
-    match = COMPOSE_VARIABLE.fullmatch(expression)
-    return env.get(match.group(1), "") if match else expression
-
-
 def _validate_compose_ps(
-    env: dict[str, str],
-    compose: dict[str, Any],
+    path: Path,
+    expected_images: dict[str, Any],
     errors: list[str],
 ) -> None:
-    with COMPOSE_PS_PATH.open(encoding="utf-8", newline="") as evidence_file:
+    with path.open(encoding="utf-8", newline="") as evidence_file:
         reader = csv.DictReader(evidence_file, delimiter="\t")
         rows = list(reader)
         expected_fields = ["service", "image", "state", "health", "published_ports"]
@@ -113,12 +107,6 @@ def _validate_compose_ps(
     if len(services) != len(set(services)) or set(services) != EXPECTED_SERVICES:
         errors.append("compose-ps.txt must contain exactly the four step 2 services")
 
-    compose_services = compose.get("services", {})
-    expected_images = {
-        service: _resolve_image(config.get("image"), env)
-        for service, config in compose_services.items()
-        if isinstance(config, dict)
-    }
     for row in rows:
         service = row["service"]
         if row["image"] != expected_images.get(service):
@@ -130,8 +118,10 @@ def _validate_compose_ps(
             errors.append(f"compose-ps.txt has invalid loopback publishers for {service}")
 
 
-def _validate_environment(env: dict[str, str], errors: list[str]) -> None:
-    values = _load_env(ENVIRONMENT_PATH)
+def _validate_environment(
+    path: Path, expected_triton_source_image: str, errors: list[str]
+) -> None:
+    values = _load_env(path)
     required = {
         "captured_at_utc",
         "compose_project",
@@ -160,8 +150,8 @@ def _validate_environment(env: dict[str, str], errors: list[str]) -> None:
         errors.append("environment.txt has an unexpected Compose project")
     if values["compose_env_file"] != ".env.example":
         errors.append("environment.txt must record .env.example")
-    if values["triton_source_image"] != env.get("TRITON_IMAGE"):
-        errors.append("environment.txt Triton image is stale relative to .env.example")
+    if values["triton_source_image"] != expected_triton_source_image:
+        errors.append("environment.txt Triton image differs from the runtime snapshot")
     if not DIGEST.fullmatch(values["triton_source_digest"]):
         errors.append("environment.txt has an invalid Triton digest")
     for key in ("docker_server_version", "docker_compose_version", "triton_server_version"):
@@ -205,8 +195,9 @@ def _validate_environment(env: dict[str, str], errors: list[str]) -> None:
         errors.append("environment.txt contains a sensitive field name")
 
 
-def _validate_sanitization(errors: list[str]) -> None:
-    for path in (SMOKE_PATH, COMPOSE_PS_PATH, ENVIRONMENT_PATH):
+def _validate_sanitization(evidence_directory: Path, errors: list[str]) -> None:
+    for name in ("smoke.json", "compose-ps.txt", "environment.txt", INTEGRITY_NAME):
+        path = evidence_directory / name
         content = path.read_text(encoding="utf-8")
         if WINDOWS_ABSOLUTE_PATH.search(content) or UNC_PATH.search(content) or "/mnt/" in content:
             errors.append(f"{path.name} contains a host-specific path")
@@ -214,16 +205,115 @@ def _validate_sanitization(errors: list[str]) -> None:
             errors.append(f"{path.name} must use LF line endings")
 
 
-def main() -> int:
+def validate_historical(artifact_root: Path = REPOSITORY_ROOT) -> list[str]:
+    """Validate only the captured Step 2 runtime and its historical manifest."""
     errors: list[str] = []
+    evidence_directory = artifact_root / EVIDENCE_RELATIVE
+    integrity = _load_json(evidence_directory / INTEGRITY_NAME)
+    schema = _load_json(INTEGRITY_SCHEMA_PATH)
+    Draft202012Validator.check_schema(schema)
+    errors.extend(
+        f"runtime-integrity.{'.'.join(str(part) for part in error.path) or '$'}: "
+        f"{error.message}"
+        for error in sorted(
+            Draft202012Validator(schema).iter_errors(integrity),
+            key=lambda item: list(item.path),
+        )
+    )
+    source_manifest = integrity.get("runtime_source_hashes")
+    projection = integrity.get("runtime_compatibility_projection")
+    if not isinstance(source_manifest, dict) or not isinstance(projection, dict):
+        return errors or ["runtime integrity snapshot is incomplete"]
+    if integrity.get("runtime_source_manifest_sha256") != canonical_sha256(
+        source_manifest
+    ):
+        errors.append("runtime source manifest hash is stale")
+    if integrity.get("runtime_compatibility_projection_sha256") != canonical_sha256(
+        projection
+    ):
+        errors.append("runtime compatibility projection hash is stale")
+    expected_artifacts = integrity.get("runtime_evidence_hashes")
+    if expected_artifacts != evidence_artifact_hashes(artifact_root):
+        errors.append("Step 2 runtime artifact hashes are stale")
+    smoke = _load_json(evidence_directory / "smoke.json")
+    _validate_smoke(smoke, errors)
+    images = projection.get("images", {})
+    _validate_compose_ps(evidence_directory / "compose-ps.txt", images, errors)
+    expected_triton_image = projection.get("triton_runtime", {}).get("source_image")
+    if not isinstance(expected_triton_image, str):
+        errors.append("runtime projection has no Triton source image")
+    else:
+        _validate_environment(
+            evidence_directory / "environment.txt", expected_triton_image, errors
+        )
+    _validate_sanitization(evidence_directory, errors)
+    return errors
+
+
+def validate_current_compatibility(
+    integrity: dict[str, Any], source_root: Path = REPOSITORY_ROOT
+) -> list[str]:
+    current = compatibility_projection(source_root)
+    if current != integrity.get("runtime_compatibility_projection") or canonical_sha256(
+        current
+    ) != integrity.get("runtime_compatibility_projection_sha256"):
+        return ["current deployment contract is incompatible with the Step 2 run"]
+    return []
+
+
+def source_drift(
+    integrity: dict[str, Any], source_root: Path = REPOSITORY_ROOT
+) -> list[str]:
+    manifest = integrity.get("runtime_source_hashes", {})
+    if not isinstance(manifest, dict):
+        return []
+    changed: list[str] = []
+    for relative, expected in manifest.items():
+        path = source_root / relative
+        if (
+            not path.is_file()
+            or hashlib.sha256(path.read_bytes()).hexdigest() != expected
+        ):
+            changed.append(relative)
+    return sorted(changed)
+
+
+def validate(
+    artifact_root: Path = REPOSITORY_ROOT,
+    *,
+    historical_only: bool = False,
+    source_root: Path = REPOSITORY_ROOT,
+) -> list[str]:
+    errors = validate_historical(artifact_root)
+    if not historical_only:
+        integrity_path = artifact_root / EVIDENCE_RELATIVE / INTEGRITY_NAME
+        if integrity_path.is_file():
+            errors.extend(
+                validate_current_compatibility(_load_json(integrity_path), source_root)
+            )
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument(
+        "--check",
+        action="store_true",
+        help="check historical integrity and current semantic compatibility (default)",
+    )
+    modes.add_argument(
+        "--historical-only",
+        action="store_true",
+        help="check only the immutable historical runtime snapshot",
+    )
+    args = parser.parse_args()
     try:
-        env = _load_env(ENV_EXAMPLE_PATH)
-        compose = _load_compose()
-        smoke = _load_json(SMOKE_PATH)
-        _validate_smoke(smoke, errors)
-        _validate_compose_ps(env, compose, errors)
-        _validate_environment(env, errors)
-        _validate_sanitization(errors)
+        errors = validate(historical_only=args.historical_only)
+        integrity = _load_json(
+            REPOSITORY_ROOT / EVIDENCE_RELATIVE / INTEGRITY_NAME
+        )
+        drift = [] if args.historical_only else source_drift(integrity)
     except (
         OSError,
         UnicodeDecodeError,
@@ -232,8 +322,8 @@ def main() -> int:
         json.JSONDecodeError,
         yaml.YAMLError,
     ) as error:
-        print(f"[FAIL] Cannot load runtime evidence: {error}", file=sys.stderr)
-        return 1
+        errors = [f"Cannot load runtime evidence: {error}"]
+        drift = []
 
     if errors:
         for error in errors:
@@ -241,7 +331,18 @@ def main() -> int:
         print(f"[FAIL] Runtime evidence validation found {len(errors)} issue(s).", file=sys.stderr)
         return 1
 
-    print("[OK] Runtime evidence records 10 successful checks and four healthy services.")
+    if drift:
+        print(
+            "[INFO] Step 2 historical source drift (non-gating): "
+            + ", ".join(drift)
+        )
+    if args.historical_only:
+        print("[OK] Step 2 historical runtime integrity passes.")
+    else:
+        print(
+            "[OK] Step 2 historical integrity and current compatibility pass; "
+            "10 checks and four healthy services remain proven."
+        )
     return 0
 
 

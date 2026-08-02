@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/runtime-integrity.schema.json",
+  "title": "Step 2 historical runtime integrity and compatibility snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_source_revision",
+    "runtime_source_fingerprint_sha256",
+    "runtime_source_hashes",
+    "runtime_source_manifest_sha256",
+    "runtime_evidence_hashes",
+    "runtime_compatibility_projection",
+    "runtime_compatibility_projection_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "runtime_source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "runtime_source_fingerprint_sha256": {"$ref": "#/$defs/sha256"},
+    "runtime_source_hashes": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[A-Za-z0-9._/-]+$"},
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
+    },
+    "runtime_source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "runtime_evidence_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["smoke.json", "compose-ps.txt", "environment.txt"],
+      "properties": {
+        "smoke.json": {"$ref": "#/$defs/sha256"},
+        "compose-ps.txt": {"$ref": "#/$defs/sha256"},
+        "environment.txt": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "runtime_compatibility_projection": {"type": "object"},
+    "runtime_compatibility_projection_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

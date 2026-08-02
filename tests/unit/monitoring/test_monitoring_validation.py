@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import copy
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from monitoring import verify_runtime
 from scripts import validate_monitoring
@@ -112,6 +116,22 @@ class MonitoringRuntimeContractTests(unittest.TestCase):
         }
 
         self.assertFalse(verify_runtime._required_query_data_available(values))
+
+    def test_tampered_query_evidence_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prometheus-queries.json"
+            value = json.loads(
+                validate_monitoring.QUERY_EVIDENCE_PATH.read_text(encoding="utf-8")
+            )
+            value["queries"][0]["samples"][0]["value"] = 999999
+            path.write_text(
+                json.dumps(value, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            with patch.object(validate_monitoring, "QUERY_EVIDENCE_PATH", path):
+                errors = validate_monitoring.validate_evidence()
+        self.assertTrue(any("query evidence reference is stale" in error for error in errors))
 
 
 if __name__ == "__main__":

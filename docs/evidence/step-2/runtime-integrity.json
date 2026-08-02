@@ -1,0 +1,246 @@
+{
+  "runtime_compatibility_projection": {
+    "acceptance": {
+      "all_services_healthy": true,
+      "gpu_visible": true,
+      "persistent_services": [
+        "triton",
+        "prometheus",
+        "grafana",
+        "dcgm-exporter"
+      ],
+      "published_ports_loopback_only": true,
+      "successful_checks": [
+        "containers",
+        "triton_liveness",
+        "triton_readiness",
+        "triton_no_ready_models",
+        "triton_metrics",
+        "prometheus_health",
+        "prometheus_targets",
+        "grafana_health",
+        "grafana_datasource",
+        "dcgm_metrics"
+      ]
+    },
+    "dcgm_gpu_reservation": {
+      "resources": {
+        "reservations": {
+          "devices": [
+            {
+              "capabilities": [
+                "gpu"
+              ],
+              "count": "all",
+              "driver": "nvidia"
+            }
+          ]
+        }
+      }
+    },
+    "grafana_datasource": [
+      {
+        "access": "proxy",
+        "isDefault": true,
+        "name": "Prometheus",
+        "type": "prometheus",
+        "url": "http://prometheus:9090"
+      }
+    ],
+    "healthchecks": {
+      "dcgm-exporter": {
+        "interval": "30s",
+        "retries": 3,
+        "start_period": "20s",
+        "test": [
+          "CMD",
+          "/usr/bin/dcgm-exporter",
+          "--version"
+        ],
+        "timeout": "10s"
+      },
+      "grafana": {
+        "interval": "10s",
+        "retries": 12,
+        "start_period": "20s",
+        "test": [
+          "CMD-SHELL",
+          "wget --quiet --spider http://127.0.0.1:3000/api/health"
+        ],
+        "timeout": "5s"
+      },
+      "prometheus": {
+        "interval": "10s",
+        "retries": 12,
+        "start_period": "10s",
+        "test": [
+          "CMD-SHELL",
+          "wget --quiet --spider http://127.0.0.1:9090/-/healthy"
+        ],
+        "timeout": "5s"
+      },
+      "triton": {
+        "interval": "10s",
+        "retries": 12,
+        "start_period": "20s",
+        "test": [
+          "CMD-SHELL",
+          "curl --fail --silent http://127.0.0.1:8000/v2/health/live > /dev/null"
+        ],
+        "timeout": "5s"
+      }
+    },
+    "images": {
+      "dcgm-exporter": "nvcr.io/nvidia/k8s/dcgm-exporter:4.6.0-4.8.3-distroless",
+      "grafana": "grafana/grafana:13.1.1",
+      "prometheus": "prom/prometheus:v3.11.1",
+      "triton": "ml-dev-ops/triton:step2"
+    },
+    "network": {
+      "driver": "bridge"
+    },
+    "ports": {
+      "dcgm-exporter": [
+        {
+          "host": "127.0.0.1",
+          "published": "9400",
+          "target": 9400
+        }
+      ],
+      "grafana": [
+        {
+          "host": "127.0.0.1",
+          "published": "3000",
+          "target": 3000
+        }
+      ],
+      "prometheus": [
+        {
+          "host": "127.0.0.1",
+          "published": "9090",
+          "target": 9090
+        }
+      ],
+      "triton": [
+        {
+          "host": "127.0.0.1",
+          "published": "8000",
+          "target": 8000
+        },
+        {
+          "host": "127.0.0.1",
+          "published": "8001",
+          "target": 8001
+        },
+        {
+          "host": "127.0.0.1",
+          "published": "8002",
+          "target": 8002
+        }
+      ]
+    },
+    "prometheus_scrape": {
+      "jobs": [
+        {
+          "job_name": "prometheus",
+          "metrics_path": "/metrics",
+          "static_configs": [
+            {
+              "targets": [
+                "prometheus:9090"
+              ]
+            }
+          ]
+        },
+        {
+          "job_name": "triton",
+          "metrics_path": "/metrics",
+          "static_configs": [
+            {
+              "targets": [
+                "triton:8002"
+              ]
+            }
+          ]
+        },
+        {
+          "job_name": "dcgm-exporter",
+          "metrics_path": "/metrics",
+          "static_configs": [
+            {
+              "targets": [
+                "dcgm-exporter:9400"
+              ]
+            }
+          ]
+        }
+      ],
+      "scrape_interval": "15s"
+    },
+    "schema_version": 1,
+    "triton_runtime": {
+      "build": {
+        "args": {
+          "TRITON_IMAGE": "${TRITON_IMAGE:?TRITON_IMAGE is required}"
+        },
+        "context": ".",
+        "dockerfile": "deployment/docker/Dockerfile"
+      },
+      "command": {
+        "--allow-grpc": "true",
+        "--allow-http": "true",
+        "--allow-metrics": "true",
+        "--grpc-port": "8001",
+        "--http-port": "8000",
+        "--metrics-port": "8002",
+        "--model-control-mode": "explicit",
+        "--model-repository": "/models"
+      },
+      "gpu_reservation": {
+        "resources": {
+          "reservations": {
+            "devices": [
+              {
+                "capabilities": [
+                  "gpu"
+                ],
+                "count": "all",
+                "driver": "nvidia"
+              }
+            ]
+          }
+        }
+      },
+      "model_repository_mount": [
+        {
+          "read_only": true,
+          "source": "${MODEL_REPOSITORY_PATH:?MODEL_REPOSITORY_PATH is required}",
+          "target": "/models",
+          "type": "bind"
+        }
+      ],
+      "source_image": "nvcr.io/nvidia/tritonserver:26.07-py3"
+    }
+  },
+  "runtime_compatibility_projection_sha256": "df588720cd1eea0bcbd4690b6f0978421fbaf2b4f1651933a35b99d642aaaa4a",
+  "runtime_evidence_hashes": {
+    "compose-ps.txt": "a142a981f077ab0b6d7d2455d103f9372c23493e89e2446a0693362f13a63203",
+    "environment.txt": "6e3130c8c9c43fc3efcce3246ccc89c07992fd21f3728c7e7adc984b41637531",
+    "smoke.json": "a35ecf44af944ecd445ace7268a53864a21042d7ab08280400feaa8f9eecc624"
+  },
+  "runtime_source_fingerprint_sha256": "1829acf0227771faaf4e96be64048bc655ed739e31f09b10ff26e34d64acbade",
+  "runtime_source_hashes": {
+    ".env.example": "ecc71f54ec0bc0ee8c76a6fb8627256fec4616aad2e6fb8422428060b0e60985",
+    "deployment/docker/Dockerfile": "e4688d681ed4b958fa581bbab19de1e62b08b3eca0dbdb11ce0153d2e328447f",
+    "deployment/scripts/capture_runtime_evidence.py": "7345573562764d8cd4f42f372dc5b2e04766d31e005a1c81d0fd8d328c495c8b",
+    "deployment/scripts/smoke_environment.py": "c545892c0e928b3c298b047a084c80b4ea074dab11592b48e23cea651b763714",
+    "docker-compose.yml": "dbcf418ec833a974b4442f5ec48afe5e6bd0d1064e0cb29c60b8b31b2387b5b2",
+    "monitoring/grafana/provisioning/datasources/prometheus.yml": "82575740a6dae5edd1f277a42ed702672f2a6205039d10a89ba069e37e5088c3",
+    "monitoring/prometheus/prometheus.yml": "ffd738c25480b086b5a49dd9722725d507d9438a85cda8bb1072a3e96ff6238c",
+    "scripts/validate_deployment.py": "183c26e316c83b4d421d44c49b98d3f86804cf57a9a018da390906a009b35406",
+    "scripts/validate_runtime_evidence.py": "4ecb33bfd842f294daae8d6476e96decfbce6e0fda9d4c0d85ed162d42faf3aa"
+  },
+  "runtime_source_manifest_sha256": "5f5c7e4f7f1773719d723456d3afb84ea2aea581551f84c4daecc45c436ce829",
+  "runtime_source_revision": "de079e1af1653236cb6cae6dd38708f0bfde494d",
+  "schema_version": 1
+}
