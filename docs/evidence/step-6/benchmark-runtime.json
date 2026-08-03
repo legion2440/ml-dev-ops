@@ -379,12 +379,43 @@
     "triton_version": "2.71.0"
   },
   "runtime_compatibility_projection": {
-    "aggregation": {
-      "directional_count": "strict_improvement_per_pair",
-      "latency_paired_improvement_pct": "(baseline_mean_client_latency_ms-optimized_mean_client_latency_ms)/baseline_mean_client_latency_ms*100",
-      "primary_summary": "median_of_four_paired_improvements",
-      "strength_threshold_is_descriptive": true,
-      "throughput_paired_improvement_pct": "(optimized_infer_per_sec-baseline_infer_per_sec)/baseline_infer_per_sec*100"
+    "aggregation_semantic_probe": {
+      "latency": {
+        "directional_improvement": [
+          true,
+          true,
+          false,
+          true
+        ],
+        "gate_passed": true,
+        "improved_pair_count": 3,
+        "median_paired_improvement_pct": 15.0,
+        "paired_improvement_pct": [
+          20.0,
+          10.0,
+          -10.0,
+          30.0
+        ],
+        "strength": "strong_measurable_improvement"
+      },
+      "throughput": {
+        "directional_improvement": [
+          true,
+          false,
+          true,
+          false
+        ],
+        "gate_passed": false,
+        "improved_pair_count": 2,
+        "median_paired_improvement_pct": 10.0,
+        "paired_improvement_pct": [
+          20.0,
+          -10.0,
+          30.0,
+          0.0
+        ],
+        "strength": "strong_measurable_improvement"
+      }
     },
     "deployment": {
       "backend_network": {
@@ -474,16 +505,85 @@
         ]
       }
     },
-    "environment_guard_rules": {
-      "classification": [
-        "forbidden_process_activity",
-        "new_gpu_process_activity",
-        "baseline_idle_process_became_active"
-      ],
-      "performance_never_triggers_replacement": true,
-      "replacement": "consecutive_same_slot_only_after_CONTAMINATED",
-      "system_pid_4_is_conservative_external_host_classification": true,
-      "telemetry_gap_or_collection_failure": "ERROR"
+    "guard_semantic_probe": {
+      "attribution": {
+        "baseline_idle_process_became_active": {
+          "classification": "CONTAMINATED",
+          "reasons": [
+            {
+              "engine_type": "Copy",
+              "first_sequence": 6,
+              "pid": 4,
+              "process_name": "System",
+              "reason": "baseline_idle_process_became_active"
+            }
+          ]
+        },
+        "clean_owned_activity": {
+          "classification": "CLEAN",
+          "reasons": []
+        },
+        "forbidden_process_activity": {
+          "classification": "CONTAMINATED",
+          "reasons": [
+            {
+              "engine_type": "3D",
+              "first_sequence": 6,
+              "pid": 20,
+              "process_name": "chrome.exe",
+              "reason": "forbidden_process_activity"
+            }
+          ]
+        },
+        "new_gpu_process_activity": {
+          "classification": "CONTAMINATED",
+          "reasons": [
+            {
+              "engine_type": "3D",
+              "first_sequence": 6,
+              "pid": 30,
+              "process_name": "new-helper.exe",
+              "reason": "new_gpu_process_activity"
+            }
+          ]
+        },
+        "telemetry_sequence_gap": {
+          "classification": "ERROR",
+          "reasons": [
+            "telemetry_sequence_gap"
+          ]
+        }
+      },
+      "replacement": {
+        "contaminated_limit": {
+          "action": "abort_environment",
+          "attempt": 3,
+          "slot_id": "canonical-slot"
+        },
+        "contaminated_retry": {
+          "action": "retry_same_slot",
+          "next_attempt": 2,
+          "slot_id": "canonical-slot"
+        },
+        "error": {
+          "action": "abort_error",
+          "attempt": 1,
+          "slot_id": "canonical-slot"
+        },
+        "valid": {
+          "accepted_attempt": 1,
+          "action": "accept",
+          "slot_id": "canonical-slot"
+        }
+      },
+      "trial_classification": {
+        "contaminated": "CONTAMINATED",
+        "guard_error": "ERROR",
+        "invalid_measurement": "ERROR",
+        "non_formal_scenario": "ERROR",
+        "runtime_error": "ERROR",
+        "valid": "VALID"
+      }
     },
     "methodology": {
       "acceptance": {
@@ -673,20 +773,203 @@
       "schema_version": 1,
       "weights_sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca"
     },
-    "perf_analyzer_command_semantics": {
-      "binary_input_and_output": true,
-      "collect_metrics": true,
-      "explicit_model_version": true,
-      "measurement_mode": "count_windows",
-      "minimum_final_client_request_count": 1500,
-      "pa_stability_text_is_non_gating": true,
-      "request_count_per_window": 500,
-      "verbose_csv": true,
-      "window_count": 3
-    },
-    "schema_version": 1
+    "perf_analyzer_command_probes": [
+      {
+        "command": [
+          "perf_analyzer",
+          "-v",
+          "--service-kind",
+          "triton",
+          "-m",
+          "resnet50_onnx",
+          "-x",
+          "1",
+          "-u",
+          "triton:8000",
+          "-i",
+          "http",
+          "-b",
+          "1",
+          "--concurrency-range",
+          "1",
+          "--measurement-mode",
+          "count_windows",
+          "--measurement-request-count",
+          "500",
+          "--warmup-request-count",
+          "100",
+          "--stability-percentage",
+          "999",
+          "--percentile",
+          "95",
+          "--max-trials",
+          "3",
+          "--input-data",
+          "<input>",
+          "--input-tensor-format",
+          "binary",
+          "--output-tensor-format",
+          "binary",
+          "--collect-metrics",
+          "--verbose-csv",
+          "--metrics-url",
+          "triton:8002/metrics",
+          "--metrics-interval",
+          "100",
+          "-f",
+          "<csv>"
+        ],
+        "role": "baseline",
+        "scenario": "latency"
+      },
+      {
+        "command": [
+          "perf_analyzer",
+          "-v",
+          "--service-kind",
+          "triton",
+          "-m",
+          "resnet50_tensorrt",
+          "-x",
+          "1",
+          "-u",
+          "triton:8000",
+          "-i",
+          "http",
+          "-b",
+          "1",
+          "--concurrency-range",
+          "1",
+          "--measurement-mode",
+          "count_windows",
+          "--measurement-request-count",
+          "500",
+          "--warmup-request-count",
+          "100",
+          "--stability-percentage",
+          "999",
+          "--percentile",
+          "95",
+          "--max-trials",
+          "3",
+          "--input-data",
+          "<input>",
+          "--input-tensor-format",
+          "binary",
+          "--output-tensor-format",
+          "binary",
+          "--collect-metrics",
+          "--verbose-csv",
+          "--metrics-url",
+          "triton:8002/metrics",
+          "--metrics-interval",
+          "100",
+          "-f",
+          "<csv>"
+        ],
+        "role": "optimized",
+        "scenario": "latency"
+      },
+      {
+        "command": [
+          "perf_analyzer",
+          "-v",
+          "--service-kind",
+          "triton",
+          "-m",
+          "resnet50_onnx",
+          "-x",
+          "1",
+          "-u",
+          "triton:8000",
+          "-i",
+          "http",
+          "-b",
+          "8",
+          "--concurrency-range",
+          "4",
+          "--measurement-mode",
+          "count_windows",
+          "--measurement-request-count",
+          "500",
+          "--warmup-request-count",
+          "100",
+          "--stability-percentage",
+          "999",
+          "--percentile",
+          "95",
+          "--max-trials",
+          "3",
+          "--input-data",
+          "<input>",
+          "--input-tensor-format",
+          "binary",
+          "--output-tensor-format",
+          "binary",
+          "--collect-metrics",
+          "--verbose-csv",
+          "--metrics-url",
+          "triton:8002/metrics",
+          "--metrics-interval",
+          "100",
+          "-f",
+          "<csv>"
+        ],
+        "role": "baseline",
+        "scenario": "throughput"
+      },
+      {
+        "command": [
+          "perf_analyzer",
+          "-v",
+          "--service-kind",
+          "triton",
+          "-m",
+          "resnet50_tensorrt",
+          "-x",
+          "1",
+          "-u",
+          "triton:8000",
+          "-i",
+          "http",
+          "-b",
+          "8",
+          "--concurrency-range",
+          "4",
+          "--measurement-mode",
+          "count_windows",
+          "--measurement-request-count",
+          "500",
+          "--warmup-request-count",
+          "100",
+          "--stability-percentage",
+          "999",
+          "--percentile",
+          "95",
+          "--max-trials",
+          "3",
+          "--input-data",
+          "<input>",
+          "--input-tensor-format",
+          "binary",
+          "--output-tensor-format",
+          "binary",
+          "--collect-metrics",
+          "--verbose-csv",
+          "--metrics-url",
+          "triton:8002/metrics",
+          "--metrics-interval",
+          "100",
+          "-f",
+          "<csv>"
+        ],
+        "role": "optimized",
+        "scenario": "throughput"
+      }
+    ],
+    "schema_version": 2
   },
-  "runtime_compatibility_projection_sha256": "6c04d3c585bdba97af623b99154727572795f6e5ce89539de97d618e410e22c3",
+  "runtime_compatibility_projection_sha256": "917a3679f24e862ddd7245cb35ec23903e22d0d6b89c994ca2a1dcde8b466f1e",
   "runtime_source_fingerprint_sha256": "82e10584916355dfd2332055dc785a093b95d5265d37b62c9b7388fc274f4f62",
   "runtime_source_hashes": {
     ".env.example": "ee6dfc94c2d5878d4153e4ae465b2e9af4f4140244dc9b5be378b5daaa93c90b",

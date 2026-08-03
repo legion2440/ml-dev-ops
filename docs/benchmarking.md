@@ -146,8 +146,12 @@ the exact runtime source fingerprint `82e10584916355dfd2332055dc785a093b95d5265d
 plus the runtime per-file hashes. Current compatibility compares only the captured
 methodology, scenario and acceptance contract, model pair, aggregation and Perf
 Analyzer semantics, environment-guard rules, and the benchmark-relevant Compose
-projection. Monitoring mounts, report wording, validator implementation, and check
-control flow are source drift but do not change the meaning of the measurement.
+projection. The critical code semantics are derived from deterministic behavioral
+probes: four commands from the real Perf Analyzer command builder, synthetic paired
+summaries from the production aggregation function, and clean/contaminated/error plus
+same-slot replacement cases through the real guard and runner control flow.
+Monitoring mounts, report wording, validator implementation, and check control flow
+remain source drift but do not change the meaning of the measurement.
 
 The two contaminated replacements are retained for auditability but are not required
 to establish the optimization conclusion; their measured performance was

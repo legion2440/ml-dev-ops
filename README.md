@@ -329,7 +329,9 @@ benchmark`; validate it without a daemon with `make validate-benchmark-evidence`
 Failed runs remain only in ignored cache and do not modify the last passing bundle.
 The stored `runtime_source_fingerprint_sha256` and per-file source manifest describe
 the source state used by the run. The separately hashed semantic projection is the
-only current-compatibility gate; unrelated repository evolution is reported as
+only current-compatibility gate. Its PA command, aggregation, guard classification,
+and replacement fields are outputs of deterministic probes against the production
+code, not parallel declarations. Unrelated repository evolution is reported as
 non-gating provenance drift. Use `--historical-only` to audit the run without the
 current compatibility check.
 

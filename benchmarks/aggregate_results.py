@@ -185,6 +185,80 @@ def _improvement(baseline: float, optimized: float, *, lower_is_better: bool) ->
     return float(difference / baseline_decimal * Decimal("100"))
 
 
+def summarize_paired_measurements(
+    primary_metric: str,
+    execution_order: list[list[str]],
+    baseline_metrics: list[dict[str, float]],
+    optimized_metrics: list[dict[str, float]],
+    acceptance: dict[str, Any],
+) -> dict[str, Any]:
+    """Apply the production paired formulas and acceptance rules to metric rows."""
+    if not (
+        len(execution_order) == len(baseline_metrics) == len(optimized_metrics)
+    ):
+        raise AggregationError("paired metric inputs have different lengths")
+    pairs: list[dict[str, Any]] = []
+    for repetition, (order, baseline, optimized) in enumerate(
+        zip(
+            execution_order,
+            baseline_metrics,
+            optimized_metrics,
+            strict=True,
+        ),
+        1,
+    ):
+        if primary_metric == "mean_client_latency_ms":
+            baseline_value = baseline["avg_latency_ms"]
+            optimized_value = optimized["avg_latency_ms"]
+            improvement = _improvement(
+                baseline_value, optimized_value, lower_is_better=True
+            )
+        elif primary_metric == "infer_per_sec":
+            baseline_value = baseline["infer_per_sec"]
+            optimized_value = optimized["infer_per_sec"]
+            improvement = _improvement(
+                baseline_value, optimized_value, lower_is_better=False
+            )
+        else:
+            raise AggregationError(f"unknown primary metric: {primary_metric}")
+        pairs.append(
+            {
+                "repetition": repetition,
+                "execution_order": " -> ".join(order),
+                "baseline_value": baseline_value,
+                "optimized_value": optimized_value,
+                "paired_improvement_pct": improvement,
+                "directional_improvement": improvement > 0,
+                "baseline_metrics": baseline,
+                "optimized_metrics": optimized,
+            }
+        )
+    median_improvement = _median(
+        [pair["paired_improvement_pct"] for pair in pairs]
+    )
+    improved_pair_count = sum(pair["directional_improvement"] for pair in pairs)
+    gate_passed = (
+        median_improvement
+        > float(acceptance["minimum_median_paired_improvement_pct_exclusive"])
+        and improved_pair_count >= int(acceptance["minimum_directional_pairs"])
+    )
+    strong_threshold = float(acceptance["strong_improvement_threshold_pct"])
+    if median_improvement > strong_threshold:
+        strength = "strong_measurable_improvement"
+    elif median_improvement > 0:
+        strength = "measurable_but_modest_improvement"
+    else:
+        strength = "no_demonstrated_improvement"
+    return {
+        "primary_metric": primary_metric,
+        "pairs": pairs,
+        "median_paired_improvement_pct": median_improvement,
+        "improved_pair_count": improved_pair_count,
+        "strength": strength,
+        "gate_passed": gate_passed,
+    }
+
+
 def _metric_values(parsed: dict[str, float]) -> dict[str, float]:
     return {
         "infer_per_sec": parsed["infer_per_sec"],
@@ -297,72 +371,26 @@ def aggregate(
             role_rows,
         )
 
-    thresholds = config["acceptance"]
-    minimum_pairs = int(thresholds["minimum_directional_pairs"])
-    minimum_median = float(
-        thresholds["minimum_median_paired_improvement_pct_exclusive"]
-    )
-    strong_threshold = float(thresholds["strong_improvement_threshold_pct"])
     comparison_rows: list[dict[str, str]] = []
     comparisons: dict[str, dict[str, Any]] = {}
     for scenario in config["scenarios"]:
         scenario_id = scenario["id"]
         metric = scenario["primary_metric"]
-        pairs: list[dict[str, Any]] = []
-        for repetition, order in enumerate(config["execution_order"], 1):
-            baseline = values[(scenario_id, repetition, "baseline")]
-            optimized = values[(scenario_id, repetition, "optimized")]
-            if metric == "mean_client_latency_ms":
-                baseline_value = baseline["avg_latency_ms"]
-                optimized_value = optimized["avg_latency_ms"]
-                improvement = _improvement(
-                    baseline_value, optimized_value, lower_is_better=True
-                )
-            elif metric == "infer_per_sec":
-                baseline_value = baseline["infer_per_sec"]
-                optimized_value = optimized["infer_per_sec"]
-                improvement = _improvement(
-                    baseline_value, optimized_value, lower_is_better=False
-                )
-            else:
-                raise AggregationError(f"unknown primary metric: {metric}")
-            pairs.append(
-                {
-                    "repetition": repetition,
-                    "execution_order": " -> ".join(order),
-                    "baseline_value": baseline_value,
-                    "optimized_value": optimized_value,
-                    "paired_improvement_pct": improvement,
-                    "directional_improvement": improvement > 0,
-                    "baseline_metrics": baseline,
-                    "optimized_metrics": optimized,
-                }
-            )
-        median_improvement = _median(
-            [pair["paired_improvement_pct"] for pair in pairs]
+        comparison = summarize_paired_measurements(
+            metric,
+            config["execution_order"],
+            [
+                values[(scenario_id, repetition, "baseline")]
+                for repetition in range(1, repetitions + 1)
+            ],
+            [
+                values[(scenario_id, repetition, "optimized")]
+                for repetition in range(1, repetitions + 1)
+            ],
+            config["acceptance"],
         )
-        improved_pair_count = sum(
-            pair["directional_improvement"] for pair in pairs
-        )
-        gate_passed = (
-            median_improvement > minimum_median
-            and improved_pair_count >= minimum_pairs
-        )
-        if median_improvement > strong_threshold:
-            strength = "strong_measurable_improvement"
-        elif median_improvement > 0:
-            strength = "measurable_but_modest_improvement"
-        else:
-            strength = "no_demonstrated_improvement"
-        comparisons[scenario_id] = {
-            "primary_metric": metric,
-            "pairs": pairs,
-            "median_paired_improvement_pct": median_improvement,
-            "improved_pair_count": improved_pair_count,
-            "strength": strength,
-            "gate_passed": gate_passed,
-        }
-        for pair in pairs:
+        comparisons[scenario_id] = comparison
+        for pair in comparison["pairs"]:
             comparison_rows.append(
                 {
                     "scenario": scenario_id,
@@ -377,9 +405,11 @@ def aggregate(
                     "directional_improvement": str(
                         pair["directional_improvement"]
                     ).lower(),
-                    "median_paired_improvement_pct": _format(median_improvement),
-                    "improved_pair_count": str(improved_pair_count),
-                    "gate_passed": str(gate_passed).lower(),
+                    "median_paired_improvement_pct": _format(
+                        comparison["median_paired_improvement_pct"]
+                    ),
+                    "improved_pair_count": str(comparison["improved_pair_count"]),
+                    "gate_passed": str(comparison["gate_passed"]).lower(),
                 }
             )
     _write_csv(

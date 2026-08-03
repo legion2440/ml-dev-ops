@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from benchmarks import run_benchmark
 from benchmarks.run_benchmark import (
     REPOSITORY_ROOT,
     benchmark_compatibility_projection,
@@ -111,6 +114,60 @@ class BenchmarkEvidenceTamperTests(unittest.TestCase):
         self.assertEqual(validate(historical_only=True), [])
         after = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
         self.assertEqual(after, before)
+
+    def _assert_behavioral_probe_change_is_incompatible(
+        self, target: str, replacement: object
+    ) -> None:
+        evidence = json.loads(self.evidence.read_text(encoding="utf-8"))
+        with patch(target, replacement):
+            errors = validate_current_compatibility(evidence)
+        self.assertTrue(any("incompatible" in error for error in errors))
+
+    def test_pa_command_behavior_change_is_incompatible(self) -> None:
+        original = run_benchmark.build_perf_analyzer_command
+
+        def changed(*args: object, **kwargs: object) -> list[str]:
+            return [*original(*args, **kwargs), "--changed-pa-semantics"]
+
+        self._assert_behavioral_probe_change_is_incompatible(
+            "benchmarks.run_benchmark.build_perf_analyzer_command", changed
+        )
+
+    def test_aggregation_behavior_change_is_incompatible(self) -> None:
+        original = run_benchmark.summarize_paired_measurements
+
+        def changed(*args: object, **kwargs: object) -> dict[str, object]:
+            result = copy.deepcopy(original(*args, **kwargs))
+            result["median_paired_improvement_pct"] = -999.0
+            return result
+
+        self._assert_behavioral_probe_change_is_incompatible(
+            "benchmarks.run_benchmark.summarize_paired_measurements", changed
+        )
+
+    def test_guard_classification_behavior_change_is_incompatible(self) -> None:
+        original = run_benchmark.recompute_guard
+
+        def changed(*args: object, **kwargs: object) -> dict[str, object]:
+            result = copy.deepcopy(original(*args, **kwargs))
+            result["classification"] = "ERROR"
+            return result
+
+        self._assert_behavioral_probe_change_is_incompatible(
+            "benchmarks.run_benchmark.recompute_guard", changed
+        )
+
+    def test_replacement_behavior_change_is_incompatible(self) -> None:
+        original = run_benchmark.replacement_decision
+
+        def changed(*args: object, **kwargs: object) -> dict[str, object]:
+            result = copy.deepcopy(original(*args, **kwargs))
+            result["action"] = "changed-replacement-semantics"
+            return result
+
+        self._assert_behavioral_probe_change_is_incompatible(
+            "benchmarks.run_benchmark.replacement_decision", changed
+        )
 
 
 if __name__ == "__main__":

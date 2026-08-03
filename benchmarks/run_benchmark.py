@@ -32,6 +32,7 @@ from benchmarks.aggregate_results import (  # noqa: E402
     aggregate,
     parse_raw_csv,
     render_report,
+    summarize_paired_measurements,
 )
 from benchmarks.environment_guard import (  # noqa: E402
     BoundaryClient,
@@ -156,6 +157,261 @@ def _load_env_values(path: Path) -> dict[str, str]:
     return values
 
 
+def replacement_decision(
+    classification: str,
+    slot_id: str,
+    slot_attempt: int,
+    maximum_attempts: int,
+) -> dict[str, Any]:
+    """Return the production control-flow decision for one formal slot attempt."""
+    if classification == "VALID":
+        return {
+            "action": "accept",
+            "slot_id": slot_id,
+            "accepted_attempt": slot_attempt,
+        }
+    if classification == "CONTAMINATED":
+        if slot_attempt >= maximum_attempts:
+            return {
+                "action": "abort_environment",
+                "slot_id": slot_id,
+                "attempt": slot_attempt,
+            }
+        return {
+            "action": "retry_same_slot",
+            "slot_id": slot_id,
+            "next_attempt": slot_attempt + 1,
+        }
+    return {
+        "action": "abort_error",
+        "slot_id": slot_id,
+        "attempt": slot_attempt,
+    }
+
+
+def _perf_analyzer_semantic_probe(
+    config: dict[str, Any], pair: dict[str, Any]
+) -> list[dict[str, Any]]:
+    input_path = Path("__compat_input__")
+    csv_path = Path("__compat_output__.csv")
+    probes: list[dict[str, Any]] = []
+    for scenario in config["scenarios"]:
+        for role in ("baseline", "optimized"):
+            command = build_perf_analyzer_command(
+                config, pair, role, scenario, input_path, csv_path
+            )
+            probes.append(
+                {
+                    "scenario": scenario["id"],
+                    "role": role,
+                    "command": [
+                        "<input>"
+                        if item.replace("\\", "/") == input_path.as_posix()
+                        else (
+                            "<csv>"
+                            if item.replace("\\", "/") == csv_path.as_posix()
+                            else item.replace("\\", "/")
+                        )
+                        for item in command
+                    ],
+                }
+            )
+    return probes
+
+
+def _aggregation_semantic_probe(config: dict[str, Any]) -> dict[str, Any]:
+    def metrics(*, latency: float, throughput: float) -> dict[str, float]:
+        return {"avg_latency_ms": latency, "infer_per_sec": throughput}
+
+    inputs = {
+        "latency": {
+            "primary_metric": "mean_client_latency_ms",
+            "baseline": [metrics(latency=100.0, throughput=100.0)] * 4,
+            "optimized": [
+                metrics(latency=value, throughput=100.0)
+                for value in (80.0, 90.0, 110.0, 70.0)
+            ],
+        },
+        "throughput": {
+            "primary_metric": "infer_per_sec",
+            "baseline": [metrics(latency=100.0, throughput=100.0)] * 4,
+            "optimized": [
+                metrics(latency=100.0, throughput=value)
+                for value in (120.0, 90.0, 130.0, 100.0)
+            ],
+        },
+    }
+    output: dict[str, Any] = {}
+    for probe_id, probe in inputs.items():
+        summary = summarize_paired_measurements(
+            probe["primary_metric"],
+            config["execution_order"],
+            probe["baseline"],
+            probe["optimized"],
+            config["acceptance"],
+        )
+        output[probe_id] = {
+            "paired_improvement_pct": [
+                item["paired_improvement_pct"] for item in summary["pairs"]
+            ],
+            "directional_improvement": [
+                item["directional_improvement"] for item in summary["pairs"]
+            ],
+            "median_paired_improvement_pct": summary[
+                "median_paired_improvement_pct"
+            ],
+            "improved_pair_count": summary["improved_pair_count"],
+            "strength": summary["strength"],
+            "gate_passed": summary["gate_passed"],
+        }
+    return output
+
+
+def _guard_semantic_probe(config: dict[str, Any]) -> dict[str, Any]:
+    guard = config["environment_guard"]
+    boundary = {
+        "baseline_start_seq": 1,
+        "baseline_end_seq": 5,
+        "guard_start_seq": 5,
+        "guard_end_seq": 7,
+    }
+
+    def engine(
+        pid: int,
+        name: str,
+        utilization: float,
+        engine_type: str = "3D",
+    ) -> dict[str, Any]:
+        return {
+            "pid": pid,
+            "process_name": name,
+            "engine_type": engine_type,
+            "utilization_percent": utilization,
+        }
+
+    def sample(sequence: int, engines: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "sequence": sequence,
+            "host_monotonic_ns": sequence * 1_000_000_000,
+            "collection_ok": True,
+            "gpu_engine_inventory": [
+                {
+                    "pid": item["pid"],
+                    "process_name": item["process_name"],
+                    "engine_types": [item["engine_type"]],
+                }
+                for item in engines
+            ],
+            "gpu_engines": engines,
+        }
+
+    owned = engine(10, "vmmemWSL.exe", 10.0)
+    cases: dict[str, list[dict[str, Any]]] = {
+        "clean_owned_activity": [sample(index, [owned]) for index in range(1, 8)],
+        "forbidden_process_activity": [
+            *[
+                sample(index, [owned, engine(20, "chrome.exe", 0.0)])
+                for index in range(1, 6)
+            ],
+            sample(6, [owned, engine(20, "chrome.exe", 1.0)]),
+            sample(7, [owned, engine(20, "chrome.exe", 0.0)]),
+        ],
+        "new_gpu_process_activity": [
+            *[sample(index, [owned]) for index in range(1, 6)],
+            sample(6, [owned, engine(30, "new-helper.exe", 1.0)]),
+            sample(7, [owned]),
+        ],
+        "baseline_idle_process_became_active": [
+            *[
+                sample(index, [owned, engine(4, "System", 0.0, "Copy")])
+                for index in range(1, 6)
+            ],
+            sample(6, [owned, engine(4, "System", 1.0, "Copy")]),
+            sample(7, [owned, engine(4, "System", 0.0, "Copy")]),
+        ],
+    }
+    gap = [sample(index, [owned]) for index in (1, 2, 3, 5, 6, 7)]
+    cases["telemetry_sequence_gap"] = gap
+    attribution: dict[str, Any] = {}
+    for case_id, telemetry in cases.items():
+        result = recompute_guard(telemetry, boundary, guard)
+        reasons = result.get("reasons", [])
+        attribution[case_id] = {
+            "classification": result["classification"],
+            "reasons": [
+                {
+                    key: item[key]
+                    for key in (
+                        "pid",
+                        "process_name",
+                        "engine_type",
+                        "reason",
+                        "first_sequence",
+                    )
+                }
+                if isinstance(item, dict)
+                else item
+                for item in reasons
+            ],
+        }
+    trial_classification = {
+        case_id: classify_trial(**arguments)
+        for case_id, arguments in {
+            "valid": {
+                "scenario_status": "formal",
+                "runtime_error": False,
+                "guard_classification": "CLEAN",
+                "measurement_valid": True,
+            },
+            "contaminated": {
+                "scenario_status": "formal",
+                "runtime_error": False,
+                "guard_classification": "CONTAMINATED",
+                "measurement_valid": True,
+            },
+            "runtime_error": {
+                "scenario_status": "formal",
+                "runtime_error": True,
+                "guard_classification": "CLEAN",
+                "measurement_valid": True,
+            },
+            "guard_error": {
+                "scenario_status": "formal",
+                "runtime_error": False,
+                "guard_classification": "ERROR",
+                "measurement_valid": True,
+            },
+            "non_formal_scenario": {
+                "scenario_status": "diagnostic",
+                "runtime_error": False,
+                "guard_classification": "CLEAN",
+                "measurement_valid": True,
+            },
+            "invalid_measurement": {
+                "scenario_status": "formal",
+                "runtime_error": False,
+                "guard_classification": "CLEAN",
+                "measurement_valid": False,
+            },
+        }.items()
+    }
+    maximum = int(guard["max_contaminated_attempts_per_slot"])
+    replacement = {
+        case_id: replacement_decision(classification, "canonical-slot", attempt, maximum)
+        for case_id, classification, attempt in (
+            ("valid", "VALID", 1),
+            ("contaminated_retry", "CONTAMINATED", 1),
+            ("contaminated_limit", "CONTAMINATED", maximum),
+            ("error", "ERROR", 1),
+        )
+    }
+    return {
+        "attribution": attribution,
+        "trial_classification": trial_classification,
+        "replacement": replacement,
+    }
+
+
 def benchmark_compatibility_projection(
     root: Path = REPOSITORY_ROOT,
 ) -> dict[str, Any]:
@@ -226,49 +482,12 @@ def benchmark_compatibility_projection(
         )
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "methodology": config,
         "model_pair": pair_projection,
-        "aggregation": {
-            "latency_paired_improvement_pct": (
-                "(baseline_mean_client_latency_ms-optimized_mean_client_latency_ms)"
-                "/baseline_mean_client_latency_ms*100"
-            ),
-            "throughput_paired_improvement_pct": (
-                "(optimized_infer_per_sec-baseline_infer_per_sec)"
-                "/baseline_infer_per_sec*100"
-            ),
-            "primary_summary": "median_of_four_paired_improvements",
-            "directional_count": "strict_improvement_per_pair",
-            "strength_threshold_is_descriptive": True,
-        },
-        "perf_analyzer_command_semantics": {
-            "explicit_model_version": True,
-            "binary_input_and_output": True,
-            "verbose_csv": True,
-            "collect_metrics": True,
-            "measurement_mode": config["measurement"]["mode"],
-            "request_count_per_window": config["measurement"][
-                "request_count_per_window"
-            ],
-            "window_count": config["measurement"]["max_measurement_windows"],
-            "minimum_final_client_request_count": (
-                config["measurement"]["request_count_per_window"]
-                * config["measurement"]["max_measurement_windows"]
-            ),
-            "pa_stability_text_is_non_gating": True,
-        },
-        "environment_guard_rules": {
-            "classification": [
-                "forbidden_process_activity",
-                "new_gpu_process_activity",
-                "baseline_idle_process_became_active",
-            ],
-            "system_pid_4_is_conservative_external_host_classification": True,
-            "telemetry_gap_or_collection_failure": "ERROR",
-            "replacement": "consecutive_same_slot_only_after_CONTAMINATED",
-            "performance_never_triggers_replacement": True,
-        },
+        "aggregation_semantic_probe": _aggregation_semantic_probe(config),
+        "perf_analyzer_command_probes": _perf_analyzer_semantic_probe(config, pair),
+        "guard_semantic_probe": _guard_semantic_probe(config),
         "deployment": {
             "images": {
                 "triton": env.get("TRITON_IMAGE"),
@@ -1338,21 +1557,27 @@ def measure() -> None:
                             controller.unload(pair[role]["model"])
                             _wait_ready_set(controller, set(), timeout_seconds)
                         classification = run["classification"]
-                        if classification == "VALID":
+                        decision = replacement_decision(
+                            classification,
+                            slot_id,
+                            slot_attempt,
+                            int(
+                                config["environment_guard"][
+                                    "max_contaminated_attempts_per_slot"
+                                ]
+                            ),
+                        )
+                        if decision["action"] == "accept":
                             runs.append(run)
                             break
                         if classification == "CONTAMINATED":
                             contaminated_runs.append(run)
-                            if slot_attempt >= int(
-                                config["environment_guard"][
-                                    "max_contaminated_attempts_per_slot"
-                                ]
-                            ):
+                            if decision["action"] == "abort_environment":
                                 raise BenchmarkError(
                                     "ENVIRONMENT_NOT_SUITABLE: maximum contaminated "
                                     f"attempts reached for {slot_id}"
                                 )
-                            slot_attempt += 1
+                            slot_attempt = int(decision["next_attempt"])
                             time.sleep(
                                 float(config["measurement"]["cooldown_seconds"])
                             )
