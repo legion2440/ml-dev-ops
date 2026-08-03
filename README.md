@@ -634,7 +634,6 @@ ml-dev-ops/
 - The reference runtime evidence was produced on an NVIDIA GeForce RTX 4080 Laptop GPU with compute capability `8.9`.
 - Runtime evidence proves the recorded reference runs; it does not claim every future host will reproduce identical performance numbers.
 - Perf Analyzer's internal stability text is diagnostic and is not the benchmark acceptance criterion.
-- A `5%` improvement is documented as a strong result, not as a mandatory assignment threshold.
 - GPU utilization may legitimately be `0%`; monitoring validity requires a numeric series with the correct GPU identity, not a forced non-zero value.
 - Grafana and Prometheus persistent data live in Docker volumes and are not committed.
 - `.env`, local cache directories, model binaries, operational logs, and runtime junk are ignored by Git.

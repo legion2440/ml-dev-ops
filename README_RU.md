@@ -634,7 +634,6 @@ ml-dev-ops/
 - Reference runtime evidence получен на NVIDIA GeForce RTX 4080 Laptop GPU с compute capability `8.9`.
 - Runtime evidence доказывает конкретные reference runs, а не гарантирует идентичные performance numbers на любом будущем host.
 - Внутренний текст Perf Analyzer о stability — diagnostic, а не benchmark acceptance criterion.
-- `5%` improvement обозначает сильный результат, но не является обязательным порогом задания.
 - GPU utilization может корректно быть `0%`; monitoring validity требует числовую серию с правильной GPU identity, а не искусственно ненулевое значение.
 - Persistent data Grafana и Prometheus хранится в Docker volumes и не коммитится.
 - `.env`, local cache, model binaries, operational logs и runtime junk игнорируются Git.
