@@ -234,13 +234,10 @@ def validate_spec_semantics(spec: dict[str, Any]) -> list[str]:
         ):
             errors.append("ResNet smoke batches fall outside the TensorRT profile")
 
-    capability = str(build.get("target", {}).get("compute_capability", ""))
-    if re.fullmatch(r"[0-9]+\.[0-9]+", capability):
-        expected_plan = f"model_cc{capability.replace('.', '')}.plan"
-        for version in tensorrt_serving.get("versions", {}).values():
-            actual_plan = PurePosixPath(str(version.get("artifact_path", ""))).name
-            if actual_plan != expected_plan:
-                errors.append("TensorRT artifact filename is inconsistent with target capability")
+    for version in tensorrt_serving.get("versions", {}).values():
+        actual_plan = PurePosixPath(str(version.get("artifact_path", ""))).name
+        if actual_plan != "model.plan":
+            errors.append("TensorRT artifact filename must be portable model.plan")
 
     yolo = models["yolo11n"]
     yolo_input = yolo.get("input", {}).get("shape", [])
@@ -362,14 +359,6 @@ def _validate_layout(spec: dict[str, Any], errors: list[str]) -> None:
         content = config_path.read_text(encoding="utf-8")
         if content != preparation.render_config(spec, model_name):
             errors.append(f"stale Triton config: models/{model_name}/config.pbtxt")
-    tensorrt_artifact = PurePosixPath(
-        preparation.serving_version_path(
-            spec["models"]["resnet50"]["serving"]["tensorrt"], "1"
-        )
-    )
-    fallback_path = REPOSITORY_ROOT / tensorrt_artifact.parent.as_posix() / "model.plan"
-    if fallback_path.exists():
-        errors.append("TensorRT fallback model.plan must not exist")
 
 
 def _validate_git_tracking(spec: dict[str, Any], errors: list[str]) -> None:

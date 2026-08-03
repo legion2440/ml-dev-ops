@@ -232,7 +232,7 @@ Triton работает в explicit model control mode: lifecycle моделей
 | `resnet50_tensorrt` | TensorRT     | `1`      | FP16 compute, FP32 I/O | ImageNet-1K classification |
 | `yolo11n_onnx`      | ONNX Runtime | `1`      | FP32                   | COCO object detection      |
 
-ResNet50 ONNX и TensorRT построены из одних source weights. TensorRT engine собирается под заявленную compute capability GPU и не считается переносимым бинарником для произвольных GPU.
+ResNet50 ONNX и TensorRT построены из одних source weights. Preparation выбирает одну GPU, собирает и валидирует canonical `model.plan` на ней, а host provenance хранит отдельно от portable model semantics.
 
 В Git хранятся model specifications, Triton configs, labels, source hashes, licenses, generated manifests и runtime evidence. Крупные model binaries остаются локальными.
 
@@ -276,10 +276,11 @@ python client/inference_client.py metadata \
 
 Если модель недоступна, client может загрузить её через Triton repository-control API перед inference.
 
-Committed serving evidence:
+Immutable Step 4 serving evidence и current GPU-portability proof хранятся раздельно:
 
 ```text
 docs/evidence/step-4/
+docs/evidence/portability/
 ```
 
 ## 📈 Benchmark
@@ -476,6 +477,7 @@ README сам по себе не считается runtime proof. Для осн
 | 5    | `docs/evidence/step-5/` | real-image client, predictions, JSONL/CSV logging, READY restoration                 |
 | 6    | `docs/evidence/step-6/` + `benchmarks/results/` | ONNX vs TensorRT benchmark и raw measurement evidence        |
 | 7    | `docs/evidence/step-7/` | Prometheus/Grafana/DCGM data path и загруженные alert rules                          |
+| GPU portability | `docs/evidence/portability/` | provenance выбранной GPU/TensorRT сборки, parity-gated manifest и current serving proof |
 
 Step 2 и Step 6 разделяют:
 
@@ -630,7 +632,7 @@ ml-dev-ops/
 ## ⚠️ Примечания
 
 - Model binaries намеренно игнорируются Git и должны быть подготовлены локально.
-- TensorRT engines hardware-specific; committed contracts фиксируют GPU target reference build.
+- TensorRT engines hardware-specific; portable workflow пересобирает `model.plan` на выбранной GPU, а build record и manifest фиксируют host provenance.
 - Reference runtime evidence получен на NVIDIA GeForce RTX 4080 Laptop GPU с compute capability `8.9`.
 - Runtime evidence доказывает конкретные reference runs, а не гарантирует идентичные performance numbers на любом будущем host.
 - Внутренний текст Perf Analyzer о stability — diagnostic, а не benchmark acceptance criterion.

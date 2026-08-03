@@ -14,6 +14,7 @@ from benchmarks.run_benchmark import (
     REPOSITORY_ROOT,
     benchmark_compatibility_projection,
     canonical_sha256,
+    normalized_benchmark_compatibility_projection,
 )
 from scripts.validate_benchmark_evidence import (
     validate,
@@ -71,9 +72,13 @@ class BenchmarkEvidenceTamperTests(unittest.TestCase):
             "82e10584916355dfd2332055dc785a093b95d5265d37b62c9b7388fc274f4f62",
         )
         current = benchmark_compatibility_projection()
-        self.assertEqual(current, evidence["runtime_compatibility_projection"])
+        stored = evidence["runtime_compatibility_projection"]
         self.assertEqual(
-            canonical_sha256(current),
+            normalized_benchmark_compatibility_projection(current),
+            normalized_benchmark_compatibility_projection(stored),
+        )
+        self.assertEqual(
+            canonical_sha256(stored),
             evidence["runtime_compatibility_projection_sha256"],
         )
 

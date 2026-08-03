@@ -1,0 +1,21 @@
+{
+  "builder_image": "nvcr.io/nvidia/tensorrt:26.07-py3@sha256:715352ed6840166888d79b135dd2a8d3f23ffe3169b8cacb6ca4df270388a8df",
+  "built_at_utc": "2026-08-03T07:34:10.141741Z",
+  "engine": {
+    "path": "models/resnet50_tensorrt/1/model.plan",
+    "sha256": "d1ed4ce1689c024aa4fc07213fa604b532821c07d5b0598ae9a716c16c731082",
+    "size_bytes": 51663084
+  },
+  "gpu": {
+    "compute_capability": "8.9",
+    "driver_version": "610.88",
+    "name": "NVIDIA GeForce RTX 4080 Laptop GPU",
+    "uuid": "GPU-8b397d66-cb44-ff85-0381-290e9b034fe0"
+  },
+  "gpu_selector": "0",
+  "schema_version": 1,
+  "toolchain": {
+    "cuda_version": "13.3.1.008",
+    "tensorrt_version": "11.1.0.106"
+  }
+}

@@ -160,10 +160,11 @@ python scripts/model_preparation/prepare_models.py build-tensorrt
 
 ## TensorRT plan is rejected on another GPU
 
-The capability-qualified plan is intentionally bound to the compute capability
-and TensorRT version recorded in the spec and generated manifest. Rebuild it on
-the target host. Do not rename it to `model.plan` or represent it as a portable
-engine.
+The generated `model.plan` remains bound to the GPU and TensorRT toolchain recorded
+in its build record. Rebuild it on the target host instead of copying or renaming an
+engine from another machine. On a multi-GPU host, pass one index or UUID through
+`--gpu-device`; preparation exposes only that device to query, build, and parity
+validation containers.
 
 ## Triton model load fails
 

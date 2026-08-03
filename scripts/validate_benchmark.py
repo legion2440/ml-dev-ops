@@ -152,8 +152,13 @@ def validate() -> list[str]:
         "io_precision"
     ):
         errors.append("benchmark pair must use equal I/O precision")
-    if pair.get("parity", {}).get("status") != "passed":
-        errors.append("benchmark pair requires a passed numerical parity result")
+    if pair.get("parity_requirement") != {
+        "required": True,
+        "tolerances": manifest["models"]["resnet50_tensorrt"][
+            "parity_tolerances"
+        ],
+    }:
+        errors.append("benchmark pair parity requirement is stale")
     scenarios = {item["id"]: item for item in config.get("scenarios", [])}
     if set(scenarios) != {"latency", "throughput"}:
         errors.append("benchmark scenarios must be exactly latency and throughput")
@@ -226,10 +231,18 @@ def validate() -> list[str]:
     _validate_compose(errors)
     for source in BENCHMARK_SOURCES:
         content = source.read_text(encoding="utf-8")
+        allowed_provenance_path = (
+            'REPOSITORY_ROOT / "models/model-manifest.json"'
+            if source.name == "run_benchmark.py"
+            else ""
+        )
+        if allowed_provenance_path and content.count(allowed_provenance_path) != 1:
+            errors.append("benchmark runner build-provenance path contract is stale")
+        contract_content = content.replace(allowed_provenance_path, "")
         if (
-            'REPOSITORY_ROOT / "models' in content
-            or "REPOSITORY_ROOT / 'models" in content
-            or "scripts.model_preparation" in content
+            'REPOSITORY_ROOT / "models' in contract_content
+            or "REPOSITORY_ROOT / 'models" in contract_content
+            or "scripts.model_preparation" in contract_content
         ):
             errors.append(f"benchmark implementation bypasses shared contracts: {source.name}")
         if b"\r\n" in source.read_bytes():

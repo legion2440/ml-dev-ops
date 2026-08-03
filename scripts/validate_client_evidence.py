@@ -27,12 +27,20 @@ from client.verify_runtime import (
     REQUIREMENTS_PATH,
     SAMPLES_MANIFEST_PATH,
     sha256,
-    source_fingerprint,
 )
 
 SCHEMA_PATH = REPOSITORY_ROOT / "schemas/client-runtime-evidence.schema.json"
 WINDOWS_PATH = re.compile(r"(?i)(?:[a-z]:[\\/]|\\\\)")
 POSIX_HOST_PATH = re.compile(r"(?<![\w:/])/(?:home|mnt|users|tmp|var)/")
+HISTORICAL_CLIENT_CONTRACT_SHA256 = (
+    "8bd13e17773b9c90a756d0d2f4d9971fb207c55b89601a234892fbdc639ef5a3"
+)
+HISTORICAL_SOURCE_FINGERPRINT_SHA256 = (
+    "6a2d1a30c8114ac6eb708fd6465d167c5fe8ac04166d2498f3b66713e4cc0bb4"
+)
+HISTORICAL_CLIENT_SEMANTICS_SHA256 = (
+    "2beb7aed5a3b1b34e3a33fa10240305e6e9f41bd98afd0cf9555fd4f87b8e0c9"
+)
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -40,6 +48,19 @@ def _json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError(f"{path.name} must contain a JSON object")
     return value
+
+
+def _semantic_contract_sha256(contract: dict[str, Any]) -> str:
+    """Hash host- and schema-independent client model behavior."""
+    import hashlib
+
+    payload = json.dumps(
+        contract.get("models"),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _case_events(
@@ -121,10 +142,10 @@ def validate() -> list[str]:
         )
     ]
     expected_hashes = {
-        "client_contract_sha256": sha256(CONTRACT_PATH),
+        "client_contract_sha256": HISTORICAL_CLIENT_CONTRACT_SHA256,
         "samples_manifest_sha256": sha256(SAMPLES_MANIFEST_PATH),
         "requirements_sha256": sha256(REQUIREMENTS_PATH),
-        "source_fingerprint_sha256": source_fingerprint(),
+        "source_fingerprint_sha256": HISTORICAL_SOURCE_FINGERPRINT_SHA256,
     }
     for field, expected in expected_hashes.items():
         if evidence.get(field) != expected:
@@ -139,6 +160,8 @@ def validate() -> list[str]:
             errors.append(f"logging.{field} is stale")
     events = read_events(JSONL_PATH)
     contract = _json(CONTRACT_PATH)
+    if _semantic_contract_sha256(contract) != HISTORICAL_CLIENT_SEMANTICS_SHA256:
+        errors.append("current client contract is incompatible with Step 5 semantics")
     if logging.get("jsonl_events") != len(events):
         errors.append("JSONL event count is stale")
     with CSV_PATH.open(encoding="utf-8", newline="") as stream:

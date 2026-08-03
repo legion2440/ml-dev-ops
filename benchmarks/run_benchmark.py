@@ -24,6 +24,7 @@ import numpy as np
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+MODEL_BUILD_PROVENANCE_PATH = REPOSITORY_ROOT / "models/model-manifest.json"
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
@@ -144,6 +145,40 @@ def canonical_sha256(value: Any) -> str:
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def normalized_model_pair_semantics(pair: dict[str, Any]) -> dict[str, Any]:
+    """Normalize historical v1 and portable v2 pair contracts for comparison."""
+    parity_requirement = pair.get("parity_requirement")
+    if not isinstance(parity_requirement, dict):
+        parity = pair.get("parity", {})
+        parity_requirement = {
+            "required": True,
+            "tolerances": parity.get("tolerances"),
+        }
+    return {
+        "pair_id": pair["pair_id"],
+        "logical_model_id": pair["logical_model_id"],
+        "weights_sha256": pair["weights_sha256"],
+        "common_contract": pair["common_contract"],
+        "common_contract_sha256": pair["common_contract_sha256"],
+        "parity_requirement": parity_requirement,
+        "baseline": pair["baseline"],
+        "optimized": pair["optimized"],
+    }
+
+
+def normalized_benchmark_compatibility_projection(
+    projection: dict[str, Any],
+) -> dict[str, Any]:
+    """Drop projection-version and host provenance while retaining semantics."""
+    normalized = {
+        key: value for key, value in projection.items() if key != "schema_version"
+    }
+    normalized["model_pair"] = normalized_model_pair_semantics(
+        projection["model_pair"]
+    )
+    return normalized
 
 
 def _load_env_values(path: Path) -> dict[str, str]:
@@ -466,25 +501,10 @@ def benchmark_compatibility_projection(
             "networks",
         )
     }
-    pair_projection = {
-        field: pair[field]
-        for field in (
-            "schema_version",
-            "pair_id",
-            "logical_model_id",
-            "baseline",
-            "optimized",
-            "common_contract",
-            "common_contract_sha256",
-            "weights_sha256",
-            "parity",
-            "declared_build_target",
-        )
-    }
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "methodology": config,
-        "model_pair": pair_projection,
+        "model_pair": normalized_model_pair_semantics(pair),
         "aggregation_semantic_probe": _aggregation_semantic_probe(config),
         "perf_analyzer_command_probes": _perf_analyzer_semantic_probe(config, pair),
         "guard_semantic_probe": _guard_semantic_probe(config),
@@ -498,6 +518,21 @@ def benchmark_compatibility_projection(
             "backend_network": compose.get("networks", {}).get("backend"),
         },
     }
+
+
+def _declared_build_target() -> dict[str, str]:
+    path = MODEL_BUILD_PROVENANCE_PATH
+    if not path.is_file():
+        raise BenchmarkError("benchmark build provenance manifest is missing")
+    gpu = _json(path).get("build", {}).get("gpu", {})
+    try:
+        return {
+            "gpu_name": str(gpu["name"]),
+            "compute_capability": str(gpu["compute_capability"]),
+            "build_driver_version": str(gpu["driver_version"]),
+        }
+    except (KeyError, TypeError) as error:
+        raise BenchmarkError("benchmark build provenance GPU is incomplete") from error
 
 
 def _http_json(url: str) -> dict[str, Any]:
@@ -1398,7 +1433,7 @@ def _create_evidence(
             "common_contract_sha256": pair["common_contract_sha256"],
         },
         "runtime": runtime,
-        "declared_build_target": pair["declared_build_target"],
+        "declared_build_target": _declared_build_target(),
         "measurement": {
             "scenario_count": len(config["scenarios"]),
             "repetitions": config["measurement"]["repetitions"],

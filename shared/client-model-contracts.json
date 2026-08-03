@@ -2232,6 +2232,6 @@
       ]
     }
   },
-  "schema_version": 1,
-  "source_manifest_sha256": "68572198a245c36b40fae82029a5c7d673dbcb753bd3bbfd27f9e319db14d705"
+  "schema_version": 2,
+  "semantic_source_sha256": "57845908ec7eb9e0b4a2170e6555f22ae75beccb2806d8a33c4b7f39caf6c889"
 }

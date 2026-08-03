@@ -9,8 +9,10 @@ host-side smoke test succeeds.
 
 Step 2 evidence was captured while the repository was empty. Triton still starts
 with no models loaded because explicit model control is enabled. Historical
-single-version claims remain in immutable `docs/evidence/step-3`; current HTTP/gRPC,
-batching, and version-control claims are in `docs/evidence/step-4`.
+single-version claims remain in immutable `docs/evidence/step-3`; the original
+HTTP/gRPC, batching, and version-control run remains immutable in
+`docs/evidence/step-4`. The current selected-GPU build and serving proof is isolated
+under `docs/evidence/portability`.
 
 ## Version matrix
 

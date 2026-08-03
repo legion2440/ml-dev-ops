@@ -54,6 +54,15 @@
             "scripts/model_preparation/requirements.lock"
           ]
         },
+        {
+          "path": "docs/evidence/portability/build-record.json",
+          "status": "generated",
+          "generator": "scripts/model_preparation/prepare_models.py",
+          "sources": [
+            "models/model-spec.yaml",
+            "scripts/model_preparation/prepare_models.py"
+          ]
+        },
                 {
                     "path": "docs/evidence/step-3/preparation.json",
           "status": "generated",
@@ -214,25 +223,25 @@
         }
       ],
       "generated_artifacts": [
-                {
-                    "path": "docs/evidence/step-4/serving-runtime.json",
-                    "status": "generated",
-                    "generator": "deployment/triton/verify_serving.py",
-                    "sources": [
-                        ".env.example",
-                        "models/model-spec.yaml",
-                        "models/model-manifest.json",
-                        "deployment/triton/verify_serving.py"
-                    ]
-                },
-                {
-                    "path": "docs/evidence/step-4/repository-versions.txt",
-                    "status": "generated",
-                    "generator": "deployment/triton/verify_serving.py",
-                    "sources": [
-                        "models/model-manifest.json",
-                        "deployment/triton/verify_serving.py"
-                    ]
+        {
+          "path": "docs/evidence/portability/serving-runtime.json",
+          "status": "generated",
+          "generator": "deployment/triton/verify_serving.py",
+          "sources": [
+            ".env.example",
+            "models/model-spec.yaml",
+            "models/model-manifest.json",
+            "deployment/triton/verify_serving.py"
+          ]
+        },
+        {
+          "path": "docs/evidence/portability/repository-versions.txt",
+          "status": "generated",
+          "generator": "deployment/triton/verify_serving.py",
+          "sources": [
+            "models/model-manifest.json",
+            "deployment/triton/verify_serving.py"
+          ]
         }
       ],
       "owned_configuration": []
@@ -842,6 +851,10 @@
       "status": "implemented"
     },
     {
+      "path": "schemas/portability-build-record.schema.json",
+      "status": "implemented"
+    },
+    {
       "path": "schemas/runtime-integrity.schema.json",
       "status": "implemented"
     },
@@ -875,6 +888,26 @@
         },
         {
             "path": "docs/evidence/step-3/model-repository.txt",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-4/serving-runtime.json",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-4/repository-versions.txt",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-4/runtime-model-manifest.json",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-4/runtime-model-spec.yaml",
+            "status": "implemented"
+        },
+        {
+            "path": "docs/evidence/step-4/runtime-integrity.json",
             "status": "implemented"
     },
     {

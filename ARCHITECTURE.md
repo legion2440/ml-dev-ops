@@ -228,14 +228,16 @@ flowchart LR
     Weights --> Export["Export ONNX"]
     Export --> Validate["ONNX Checker and Runtime"]
     Validate --> Cast["Strongly typed FP16 intermediate"]
-    Cast --> Optimize["Build capability-qualified TensorRT plan"]
+    Cast --> Optimize["Select one GPU and build model.plan"]
     Validate --> Repository["Populate versioned repository"]
     Optimize --> Repository
     Repository --> Verify["Explicit load, inference, parity, unload"]
 ```
 
-TensorRT plans are target-dependent build artifacts and are not assumed to be
-portable across arbitrary GPU and runtime combinations.
+The tracked model semantics are host-independent. TensorRT plans remain
+target-dependent build artifacts: one selected GPU is used for query, build, and
+validation, while its host/toolchain provenance is stored in the build record and
+generated manifest.
 
 ## Client contract flow
 

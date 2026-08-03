@@ -66,11 +66,10 @@ def validate_structure() -> list[str]:
     trt_config = manifest.get("models", {}).get("resnet50_tensorrt", {}).get(
         "model_config", {}
     )
-    if "default_model_filename" in trt_config or "cc_model_filenames" not in trt_config:
-        errors.append("TensorRT capability mapping has a fallback")
-    fallback = REPOSITORY_ROOT / "models/resnet50_tensorrt/1/model.plan"
-    if fallback.exists():
-        errors.append("models/resnet50_tensorrt/1/model.plan must not exist")
+    if trt_config.get("default_model_filename") != "model.plan":
+        errors.append("TensorRT serving config must explicitly select model.plan")
+    if "cc_model_filenames" in trt_config:
+        errors.append("single-plan TensorRT serving config must not map compute capability")
     service = compose.get("services", {}).get("triton-verifier", {})
     if service.get("profiles") != ["verification"]:
         errors.append("triton-verifier must belong only to the verification profile")
@@ -82,6 +81,23 @@ def validate_structure() -> list[str]:
         errors.append("triton-verifier must not reserve a GPU")
     if service.get("image") != "${TRITON_SDK_IMAGE:?TRITON_SDK_IMAGE is required}":
         errors.append("triton-verifier must consume the SDK image pin")
+    command = service.get("command", [])
+    expected_suffix = ["--evidence-directory", "docs/evidence/portability"]
+    if not isinstance(command, list) or command[-2:] != expected_suffix:
+        errors.append("triton-verifier must write only portability evidence")
+    writable_mounts = [
+        volume
+        for volume in service.get("volumes", [])
+        if isinstance(volume, dict) and volume.get("read_only") is not True
+    ]
+    if writable_mounts != [
+        {
+            "type": "bind",
+            "source": "./docs/evidence/portability",
+            "target": "/workspace/docs/evidence/portability",
+        }
+    ]:
+        errors.append("triton-verifier writable mount must be limited to portability evidence")
     sdk = env.get("TRITON_SDK_IMAGE", "")
     server = env.get("TRITON_IMAGE", "")
     if sdk.replace("-sdk", "") != server:

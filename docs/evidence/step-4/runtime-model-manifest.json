@@ -111,7 +111,7 @@
     },
     "tensorrt": {
       "engine_deserialization": "passed",
-      "engine_sha256": "d1ed4ce1689c024aa4fc07213fa604b532821c07d5b0598ae9a716c16c731082",
+      "engine_sha256": "73918c7d2379f130f6b712e392c8f604ef11b3ada49e18b26e9c5e131c6d5183",
       "input": {
         "dtype": "FP32",
         "name": "images",
@@ -132,9 +132,9 @@
         ]
       },
       "parity": {
-        "cosine_similarity": 0.9996534773932935,
-        "max_abs_error": 0.15476226806640625,
-        "mean_abs_error": 0.017063675448298454,
+        "cosine_similarity": 0.9996493709698281,
+        "max_abs_error": 0.16452789306640625,
+        "mean_abs_error": 0.01703711971640587,
         "status": "passed",
         "tolerances": {
           "max_abs_error": 0.5,
@@ -161,13 +161,10 @@
     "gpu": {
       "compute_capability": "8.9",
       "driver_version": "610.88",
-      "name": "NVIDIA GeForce RTX 4080 Laptop GPU",
-      "uuid": "GPU-8b397d66-cb44-ff85-0381-290e9b034fe0"
+      "name": "NVIDIA GeForce RTX 4080 Laptop GPU"
     },
-    "gpu_selector": "0",
     "onnx_opset": 17,
     "simplify": false,
-    "tensorrt_build_record_sha256": "f483168403f1585c97fc6b2f3de7638a1b0829553c7bc97b6ccc169ffb956004",
     "tensorrt_builder_image": "nvcr.io/nvidia/tensorrt:26.07-py3@sha256:715352ed6840166888d79b135dd2a8d3f23ffe3169b8cacb6ca4df270388a8df",
     "tensorrt_environment": {
       "cuda_version": "13.3.1.008",
@@ -183,7 +180,7 @@
       "source_sha256": "7a91a4d645e5eca6608573c7a0bb0d82e0f8c65db48e891380efc2c470f8f016"
     }
   },
-  "generated_at_utc": "2026-08-03T07:34:24.722545Z",
+  "generated_at_utc": "2026-08-01T08:22:13.931344Z",
   "models": {
     "resnet50_onnx": {
       "input": {
@@ -413,7 +410,9 @@
       "logical_model_id": "resnet50",
       "max_batch_size": 8,
       "model_config": {
-        "default_model_filename": "model.plan",
+        "cc_model_filenames": {
+          "8.9": "model_cc89.plan"
+        },
         "dynamic_batching": {
           "max_queue_delay_microseconds": 5000,
           "preferred_batch_size": [
@@ -538,9 +537,9 @@
       "versions": {
         "1": {
           "artifact": {
-            "path": "models/resnet50_tensorrt/1/model.plan",
-            "sha256": "d1ed4ce1689c024aa4fc07213fa604b532821c07d5b0598ae9a716c16c731082",
-            "size_bytes": 51663084
+            "path": "models/resnet50_tensorrt/1/model_cc89.plan",
+            "sha256": "73918c7d2379f130f6b712e392c8f604ef11b3ada49e18b26e9c5e131c6d5183",
+            "size_bytes": 51657828
           },
           "revision": "fp16-engine"
         }
@@ -697,5 +696,5 @@
   "requirements_sha256": "d5d40dbfa1e905f6c5acf92a797ee3872053bcb28c142806190d499f9bb30955",
   "schema_version": 2,
   "spec_path": "models/model-spec.yaml",
-  "spec_sha256": "f4b1c7f788e3d87a71eb47bb97fc663c8938966df4a01d859e99a6b2190c4879"
+  "spec_sha256": "58585849b85b312cd1dcfd3613ec337d213f9e9d777a296c8ef30eb823a5bd2d"
 }

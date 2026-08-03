@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/portability-build-record.schema.json",
+  "title": "Selected-GPU TensorRT portability build record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "built_at_utc",
+    "gpu_selector",
+    "gpu",
+    "builder_image",
+    "toolchain",
+    "engine"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "built_at_utc": {"type": "string", "format": "date-time"},
+    "gpu_selector": {"type": "string", "minLength": 1},
+    "gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uuid", "name", "driver_version", "compute_capability"],
+      "properties": {
+        "uuid": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "driver_version": {"type": "string", "minLength": 1},
+        "compute_capability": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "builder_image": {"type": "string", "minLength": 1},
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cuda_version", "tensorrt_version"],
+      "properties": {
+        "cuda_version": {"type": "string", "minLength": 1},
+        "tensorrt_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"const": "models/resnet50_tensorrt/1/model.plan"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

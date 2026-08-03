@@ -6,20 +6,19 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
-    "source_manifest_sha256",
+    "semantic_source_sha256",
     "pair_id",
     "logical_model_id",
     "weights_sha256",
     "common_contract",
     "common_contract_sha256",
-    "parity",
+    "parity_requirement",
     "baseline",
-    "optimized",
-    "declared_build_target"
+    "optimized"
   ],
   "properties": {
-    "schema_version": {"const": 1},
-    "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "schema_version": {"const": 2},
+    "semantic_source_sha256": {"$ref": "#/$defs/sha256"},
     "pair_id": {"const": "resnet50-onnx-vs-tensorrt"},
     "logical_model_id": {"const": "resnet50"},
     "weights_sha256": {"$ref": "#/$defs/sha256"},
@@ -37,31 +36,17 @@
       }
     },
     "common_contract_sha256": {"$ref": "#/$defs/sha256"},
-    "parity": {
+    "parity_requirement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "max_abs_error", "mean_abs_error", "cosine_similarity", "top1_agreement", "tolerances"],
+      "required": ["required", "tolerances"],
       "properties": {
-        "status": {"const": "passed"},
-        "max_abs_error": {"type": "number", "minimum": 0},
-        "mean_abs_error": {"type": "number", "minimum": 0},
-        "cosine_similarity": {"type": "number", "minimum": -1, "maximum": 1},
-        "top1_agreement": {"type": "number", "minimum": 0, "maximum": 1},
+        "required": {"const": true},
         "tolerances": {"type": "object", "minProperties": 1}
       }
     },
     "baseline": {"$ref": "#/$defs/model"},
-    "optimized": {"$ref": "#/$defs/model"},
-    "declared_build_target": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["gpu_name", "compute_capability", "build_driver_version"],
-      "properties": {
-        "gpu_name": {"type": "string", "minLength": 1},
-        "compute_capability": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
-        "build_driver_version": {"type": "string", "minLength": 1}
-      }
-    }
+    "optimized": {"$ref": "#/$defs/model"}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

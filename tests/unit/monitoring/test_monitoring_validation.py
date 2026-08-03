@@ -106,6 +106,17 @@ class MonitoringRuntimeContractTests(unittest.TestCase):
 
         self.assertTrue(verify_runtime._required_query_data_available(values))
 
+    def test_unrelated_compose_drift_is_not_monitoring_incompatibility(self) -> None:
+        self.assertIn("docker-compose.yml", validate_monitoring.HASHED_ARTIFACTS)
+        self.assertNotIn(
+            "docker-compose.yml",
+            validate_monitoring.CURRENT_COMPATIBILITY_HASHED_ARTIFACTS,
+        )
+        self.assertIn(
+            "monitoring/prometheus/alerts.yml",
+            validate_monitoring.CURRENT_COMPATIBILITY_HASHED_ARTIFACTS,
+        )
+
     def test_target_model_rates_must_be_positive(self) -> None:
         values = {
             "inference_throughput": [self._sample(0.0, model=True)],

@@ -7,9 +7,15 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from scripts.validate_client_evidence import (
+    HISTORICAL_CLIENT_SEMANTICS_SHA256,
+    _semantic_contract_sha256,
+)
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = REPOSITORY_ROOT / "schemas/client-runtime-evidence.schema.json"
 EVIDENCE_PATH = REPOSITORY_ROOT / "docs/evidence/step-5/client-runtime.json"
+CONTRACT_PATH = REPOSITORY_ROOT / "shared/client-model-contracts.json"
 
 
 class ClientEvidenceTests(unittest.TestCase):
@@ -29,6 +35,19 @@ class ClientEvidenceTests(unittest.TestCase):
         )
 
         self.assertTrue(list(self.validator.iter_errors(changed)))
+
+    def test_schema_migration_preserves_historical_client_semantics(self) -> None:
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(
+            _semantic_contract_sha256(contract),
+            HISTORICAL_CLIENT_SEMANTICS_SHA256,
+        )
+        changed = copy.deepcopy(contract)
+        changed["models"]["resnet50_onnx"]["input"]["shape"][-1] += 1
+        self.assertNotEqual(
+            _semantic_contract_sha256(changed),
+            HISTORICAL_CLIENT_SEMANTICS_SHA256,
+        )
 
 
 if __name__ == "__main__":

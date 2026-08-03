@@ -39,6 +39,10 @@ PREPARATION_EVIDENCE_PATH = (
 CACHE_DIRECTORY = REPOSITORY_ROOT / ".cache/model-preparation"
 SOURCE_DIRECTORY = CACHE_DIRECTORY / "sources"
 INSPECTION_PATH = CACHE_DIRECTORY / "onnx-inspection.json"
+BUILD_RECORD_PATH = CACHE_DIRECTORY / "tensorrt-build.json"
+PORTABILITY_BUILD_RECORD_PATH = (
+    REPOSITORY_ROOT / "docs/evidence/portability/build-record.json"
+)
 EXPORTER_DOCKERFILE = (
     REPOSITORY_ROOT / "scripts/model_preparation/Dockerfile.exporter"
 )
@@ -130,12 +134,13 @@ def render_client_contract(manifest: dict[str, Any]) -> dict[str, Any]:
             "labels": labels,
             "output_semantics": output_semantics,
         }
+    semantic_source = {"models": models}
     return {
-        "schema_version": 1,
-        "source_manifest_sha256": hashlib.sha256(
-            canonical_json(manifest).encode("utf-8")
+        "schema_version": 2,
+        "semantic_source_sha256": hashlib.sha256(
+            canonical_json(semantic_source).encode("utf-8")
         ).hexdigest(),
-        "models": models,
+        **semantic_source,
     }
 
 
@@ -167,8 +172,8 @@ def render_benchmark_pair_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     optimized_instance_group = optimized["model_config"].get("instance_group", [])
     if baseline_instance_group != optimized_instance_group:
         raise PreparationError("Benchmark pair differs in instance_group")
-    parity = manifest["artifact_validation"]["tensorrt"]["parity"]
-    if parity.get("status") != "passed":
+    measured_parity = manifest["artifact_validation"]["tensorrt"]["parity"]
+    if measured_parity.get("status") != "passed":
         raise PreparationError("Benchmark pair requires passed TensorRT parity")
     common_contract = {
         "input": baseline["input"],
@@ -181,18 +186,16 @@ def render_benchmark_pair_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     common_contract_sha256 = hashlib.sha256(
         canonical_json(common_contract).encode("utf-8")
     ).hexdigest()
-    build_gpu = manifest["build"]["gpu"]
-    return {
-        "schema_version": 1,
-        "source_manifest_sha256": hashlib.sha256(
-            canonical_json(manifest).encode("utf-8")
-        ).hexdigest(),
+    semantic_source = {
         "pair_id": "resnet50-onnx-vs-tensorrt",
         "logical_model_id": baseline["logical_model_id"],
         "weights_sha256": baseline["source"]["sha256"],
         "common_contract": common_contract,
         "common_contract_sha256": common_contract_sha256,
-        "parity": parity,
+        "parity_requirement": {
+            "required": True,
+            "tolerances": measured_parity["tolerances"],
+        },
         "baseline": {
             "model": "resnet50_onnx",
             "version": "1",
@@ -209,11 +212,13 @@ def render_benchmark_pair_contract(manifest: dict[str, Any]) -> dict[str, Any]:
             "compute_precision": optimized["compute_precision"],
             "io_precision": optimized["io_precision"],
         },
-        "declared_build_target": {
-            "gpu_name": build_gpu["name"],
-            "compute_capability": build_gpu["compute_capability"],
-            "build_driver_version": build_gpu["driver_version"],
-        },
+    }
+    return {
+        "schema_version": 2,
+        "semantic_source_sha256": hashlib.sha256(
+            canonical_json(semantic_source).encode("utf-8")
+        ).hexdigest(),
+        **semantic_source,
     }
 
 
@@ -357,14 +362,7 @@ def serving_model_config(spec: dict[str, Any], serving_name: str) -> dict[str, A
         raise PreparationError(f"Unknown serving model: {serving_name}") from error
     model = spec["models"][logical_key]
     serving = model["serving"][serving_kind]
-    capability = (
-        str(spec["build"]["target"]["compute_capability"])
-        if serving_kind == "tensorrt"
-        else None
-    )
-    return build_model_config(
-        model, serving, platform=platform, compute_capability=capability
-    )
+    return build_model_config(model, serving, platform=platform)
 
 
 def render_config(spec: dict[str, Any], serving_name: str) -> str:
@@ -614,7 +612,6 @@ def _internal_inspect_onnx(spec: dict[str, Any]) -> None:
         "output_name": resnet["output"]["name"],
         "input_shape": list(parity_input.shape),
         "output_shape": list(parity_output.shape),
-        "compute_capability": spec["build"]["target"]["compute_capability"],
         "onnx_source_sha256": sha256_file(
             REPOSITORY_ROOT / serving_version_path(resnet["serving"]["onnx"], "1")
         ),
@@ -717,6 +714,18 @@ def _internal_validate_tensorrt() -> None:
     if not contract_path.is_file():
         raise PreparationError("ONNX parity contract is missing; inspect ONNX artifacts first")
     contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    if not BUILD_RECORD_PATH.is_file():
+        raise PreparationError("TensorRT build record is missing")
+    build_record = json.loads(BUILD_RECORD_PATH.read_text(encoding="utf-8"))
+    visible_gpu = _visible_gpu_query()
+    recorded_gpu = build_record.get("gpu", {})
+    for field in ("uuid", "name", "driver_version", "compute_capability"):
+        if visible_gpu.get(field) != recorded_gpu.get(field):
+            raise PreparationError(
+                f"TensorRT validation GPU {field} differs from the selected build GPU"
+            )
+    if contract.get("build_gpu") != recorded_gpu:
+        raise PreparationError("TensorRT parity contract does not identify the build GPU")
     input_array = np.load(CACHE_DIRECTORY / "resnet-parity-input.npy")
     reference = np.load(CACHE_DIRECTORY / "resnet-parity-onnx.npy")
     engine_path = REPOSITORY_ROOT / contract["engine_path"]
@@ -840,16 +849,170 @@ def _internal_validate_tensorrt() -> None:
     print("[OK] TensorRT engine inspection and exporter-level ResNet parity passed.")
 
 
+def _normalize_gpu_selector(gpu_device: str) -> str:
+    selector = gpu_device.strip()
+    if not selector or any(character in selector for character in "\r\n,= "):
+        raise PreparationError("--gpu-device must be one Docker GPU index or UUID")
+    return selector
+
+
+def _docker_gpu_arguments(gpu_device: str) -> list[str]:
+    return ["--gpus", f"device={_normalize_gpu_selector(gpu_device)}"]
+
+
+def _parse_gpu_row(line: str) -> dict[str, str]:
+    parts = [part.strip() for part in line.split(",")]
+    if (
+        len(parts) != 4
+        or not all(parts)
+        or not parts[0].startswith("GPU-")
+        or not re.fullmatch(r"[0-9]+\.[0-9]+", parts[3])
+    ):
+        raise PreparationError(f"Unexpected nvidia-smi output: {line}")
+    return {
+        "uuid": parts[0],
+        "name": parts[1],
+        "driver_version": parts[2],
+        "compute_capability": parts[3],
+    }
+
+
+def _gpu_rows(output: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for line in output.splitlines():
+        try:
+            rows.append(_parse_gpu_row(line))
+        except PreparationError:
+            continue
+    return rows
+
+
+def _visible_gpu_query() -> dict[str, str]:
+    process = _run(
+        [
+            "nvidia-smi",
+            "--query-gpu=uuid,name,driver_version,compute_cap",
+            "--format=csv,noheader,nounits",
+        ],
+        capture_output=True,
+    )
+    rows = _gpu_rows(process.stdout)
+    if len(rows) != 1:
+        raise PreparationError(
+            f"Expected exactly one visible selected GPU, found {len(rows)}"
+        )
+    return rows[0]
+
+
+def _gpu_query(spec: dict[str, Any], gpu_device: str) -> dict[str, str]:
+    image = str(spec["build"]["tensorrt_builder_image"])
+    process = _run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            *_docker_gpu_arguments(gpu_device),
+            image,
+            "nvidia-smi",
+            "--query-gpu=uuid,name,driver_version,compute_cap",
+            "--format=csv,noheader,nounits",
+        ],
+        capture_output=True,
+    )
+    rows = _gpu_rows(process.stdout)
+    if len(rows) != 1:
+        raise PreparationError(
+            f"GPU selector {gpu_device!r} exposed {len(rows)} devices instead of one"
+        )
+    return rows[0]
+
+
+def _tensorrt_environment(
+    spec: dict[str, Any], gpu_device: str
+) -> dict[str, str]:
+    image = str(spec["build"]["tensorrt_builder_image"])
+    process = _run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            *_docker_gpu_arguments(gpu_device),
+            image,
+            "python",
+            "-c",
+            (
+                "import json, os, tensorrt as trt; "
+                "print(json.dumps({'tensorrt_version': trt.__version__, "
+                "'cuda_version': os.environ.get('CUDA_VERSION', 'unknown')}))"
+            ),
+        ],
+        capture_output=True,
+    )
+    json_line = next(
+        (line for line in reversed(process.stdout.splitlines()) if line.startswith("{")),
+        "",
+    )
+    if not json_line:
+        raise PreparationError("Could not inspect TensorRT container versions")
+    value = json.loads(json_line)
+    return {str(key): str(item) for key, item in value.items()}
+
+
+def _load_build_record(spec: dict[str, Any]) -> dict[str, Any]:
+    if not BUILD_RECORD_PATH.is_file():
+        raise PreparationError("TensorRT build record is missing; run build-tensorrt")
+    value = json.loads(BUILD_RECORD_PATH.read_text(encoding="utf-8"))
+    if value.get("schema_version") != 1:
+        raise PreparationError("TensorRT build record schema is invalid")
+    if value.get("builder_image") != spec["build"]["tensorrt_builder_image"]:
+        raise PreparationError("TensorRT build record uses a stale builder image")
+    selector = value.get("gpu_selector")
+    if not isinstance(selector, str) or selector != _normalize_gpu_selector(selector):
+        raise PreparationError("TensorRT build record GPU selector is invalid")
+    gpu = value.get("gpu")
+    if not isinstance(gpu, dict) or any(
+        not isinstance(gpu.get(field), str) or not gpu[field]
+        for field in ("uuid", "name", "driver_version", "compute_capability")
+    ):
+        raise PreparationError("TensorRT build record GPU identity is invalid")
+    engine = value.get("engine", {})
+    expected_path = serving_version_path(
+        spec["models"]["resnet50"]["serving"]["tensorrt"], "1"
+    )
+    if engine.get("path") != expected_path:
+        raise PreparationError("TensorRT build record engine path is stale")
+    engine_path = (REPOSITORY_ROOT / expected_path).resolve()
+    if REPOSITORY_ROOT.resolve() not in engine_path.parents:
+        raise PreparationError("TensorRT build record engine path escapes the repository")
+    if (
+        not engine_path.is_file()
+        or sha256_file(engine_path) != engine.get("sha256")
+        or engine_path.stat().st_size != engine.get("size_bytes")
+    ):
+        raise PreparationError("TensorRT build record does not match model.plan")
+    return value
+
+
+def _bind_parity_contract(gpu: dict[str, str]) -> None:
+    path = CACHE_DIRECTORY / "resnet-parity-contract.json"
+    if not path.is_file():
+        raise PreparationError("ONNX parity contract is missing; inspect ONNX artifacts first")
+    contract = json.loads(path.read_text(encoding="utf-8"))
+    contract["build_gpu"] = gpu
+    _write_text(path, canonical_json(contract))
+
+
 def validate_artifacts(spec: dict[str, Any]) -> None:
+    build_record = _load_build_record(spec)
     build_exporter_image(spec)
     _run_exporter(spec, "_inspect-onnx")
+    _bind_parity_contract(build_record["gpu"])
     _run(
         [
             "docker",
             "run",
             "--rm",
-            "--gpus",
-            "all",
+            *_docker_gpu_arguments(str(build_record["gpu_selector"])),
             "--volume",
             _docker_mount(),
             "--workdir",
@@ -873,42 +1036,23 @@ def _trtexec_path() -> str:
     return "/usr/src/tensorrt/bin/trtexec"
 
 
-def _gpu_query(spec: dict[str, Any]) -> dict[str, str]:
+def build_tensorrt(spec: dict[str, Any], gpu_device: str = "0") -> None:
+    gpu_device = _normalize_gpu_selector(gpu_device)
     image = str(spec["build"]["tensorrt_builder_image"])
-    process = _run(
+    gpu = _gpu_query(spec, gpu_device)
+    build_exporter_image(spec)
+    _run_exporter(spec, "_prepare-tensorrt-onnx")
+    _bind_parity_contract(gpu)
+    version_check = _run(
         [
             "docker",
             "run",
             "--rm",
-            "--gpus",
-            "all",
+            *_docker_gpu_arguments(gpu_device),
             image,
-            "nvidia-smi",
-            "--query-gpu=name,driver_version,compute_cap",
-            "--format=csv,noheader,nounits",
+            _trtexec_path(),
+            "--version",
         ],
-        capture_output=True,
-    )
-    first_line = process.stdout.strip().splitlines()[-1]
-    parts = [part.strip() for part in first_line.split(",")]
-    if len(parts) != 3:
-        raise PreparationError(f"Unexpected nvidia-smi output: {first_line}")
-    return {"name": parts[0], "driver_version": parts[1], "compute_capability": parts[2]}
-
-
-def build_tensorrt(spec: dict[str, Any]) -> None:
-    image = str(spec["build"]["tensorrt_builder_image"])
-    gpu = _gpu_query(spec)
-    expected_cc = str(spec["build"]["target"]["compute_capability"])
-    if gpu["compute_capability"] != expected_cc:
-        raise PreparationError(
-            f"TensorRT target requires compute capability {expected_cc}, found "
-            f"{gpu['compute_capability']}"
-        )
-    build_exporter_image(spec)
-    _run_exporter(spec, "_prepare-tensorrt-onnx")
-    version_check = _run(
-        ["docker", "run", "--rm", "--gpus", "all", image, _trtexec_path(), "--version"],
         capture_output=True,
         check=False,
     )
@@ -930,8 +1074,7 @@ def build_tensorrt(spec: dict[str, Any]) -> None:
             "docker",
             "run",
             "--rm",
-            "--gpus",
-            "all",
+            *_docker_gpu_arguments(gpu_device),
             "--volume",
             _docker_mount(),
             "--workdir",
@@ -950,7 +1093,24 @@ def build_tensorrt(spec: dict[str, Any]) -> None:
     if not engine_path.is_file():
         relative_path = engine_path.relative_to(REPOSITORY_ROOT).as_posix()
         raise PreparationError(f"TensorRT build did not create {relative_path}")
-    print(f"[OK] Built FP16 TensorRT plan for compute capability {expected_cc}.")
+    build_record = {
+        "schema_version": 1,
+        "built_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "gpu_selector": gpu_device,
+        "gpu": gpu,
+        "builder_image": image,
+        "toolchain": _tensorrt_environment(spec, gpu_device),
+        "engine": {
+            "path": engine_relative_path,
+            "sha256": sha256_file(engine_path),
+            "size_bytes": engine_path.stat().st_size,
+        },
+    }
+    _write_text(BUILD_RECORD_PATH, canonical_json(build_record))
+    print(
+        "[OK] Built FP16 TensorRT model.plan on "
+        f"{gpu['name']} (compute capability {gpu['compute_capability']})."
+    )
 
 
 def _package_versions() -> dict[str, str]:
@@ -964,41 +1124,12 @@ def _package_versions() -> dict[str, str]:
     return dict(sorted(versions.items(), key=lambda item: item[0].lower()))
 
 
-def _tensorrt_environment(spec: dict[str, Any]) -> dict[str, str]:
-    image = str(spec["build"]["tensorrt_builder_image"])
-    process = _run(
-        [
-            "docker",
-            "run",
-            "--rm",
-            "--gpus",
-            "all",
-            image,
-            "python",
-            "-c",
-            (
-                "import json, os, tensorrt as trt; "
-                "print(json.dumps({'tensorrt_version': trt.__version__, "
-                "'cuda_version': os.environ.get('CUDA_VERSION', 'unknown')}))"
-            ),
-        ],
-        capture_output=True,
-    )
-    json_line = next(
-        (line for line in reversed(process.stdout.splitlines()) if line.startswith("{")),
-        "",
-    )
-    if not json_line:
-        raise PreparationError("Could not inspect TensorRT container versions")
-    value = json.loads(json_line)
-    return {str(key): str(item) for key, item in value.items()}
-
-
 def _manifest_model_entry(
     spec: dict[str, Any],
     logical_key: str,
     serving_kind: str,
     inspection: dict[str, Any],
+    build_gpu: dict[str, str],
 ) -> dict[str, Any]:
     model = spec["models"][logical_key]
     serving = model["serving"][serving_kind]
@@ -1043,7 +1174,7 @@ def _manifest_model_entry(
         entry["compute_precision"] = serving["compute_precision"]
         entry["io_precision"] = serving["io_precision"]
         entry["profile"] = serving["profile"]
-        entry["compute_capability"] = spec["build"]["target"]["compute_capability"]
+        entry["compute_capability"] = build_gpu["compute_capability"]
     return entry
 
 
@@ -1056,6 +1187,7 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
     missing = [path for path in artifact_paths if not (REPOSITORY_ROOT / path).is_file()]
     if missing:
         raise PreparationError("Cannot create manifest; missing artifacts: " + ", ".join(missing))
+    build_record = _load_build_record(spec)
     validation_path = CACHE_DIRECTORY / "tensorrt-validation.json"
     resnet = spec["models"]["resnet50"]
     engine_path = REPOSITORY_ROOT / serving_version_path(
@@ -1088,8 +1220,12 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
             "onnx_opset": spec["build"]["onnx_opset"],
             "simplify": spec["build"]["simplify"],
             "exporter_packages": _package_versions(),
-            "tensorrt_environment": _tensorrt_environment(spec),
-            "gpu": _gpu_query(spec),
+            "gpu_selector": build_record["gpu_selector"],
+            "gpu": build_record["gpu"],
+            "tensorrt_environment": build_record["toolchain"],
+            "tensorrt_build_record_sha256": hashlib.sha256(
+                canonical_json(build_record).encode("utf-8")
+            ).hexdigest(),
             "tensorrt_input": mixed_precision_metadata,
         },
         "artifact_validation": {
@@ -1097,14 +1233,23 @@ def create_manifest(spec: dict[str, Any]) -> dict[str, Any]:
             "tensorrt": validation,
         },
         "models": {
-            "resnet50_onnx": _manifest_model_entry(spec, "resnet50", "onnx", inspection),
-            "resnet50_tensorrt": _manifest_model_entry(
-                spec, "resnet50", "tensorrt", inspection
+            "resnet50_onnx": _manifest_model_entry(
+                spec, "resnet50", "onnx", inspection, build_record["gpu"]
             ),
-            "yolo11n_onnx": _manifest_model_entry(spec, "yolo11n", "onnx", inspection),
+            "resnet50_tensorrt": _manifest_model_entry(
+                spec,
+                "resnet50",
+                "tensorrt",
+                inspection,
+                build_record["gpu"],
+            ),
+            "yolo11n_onnx": _manifest_model_entry(
+                spec, "yolo11n", "onnx", inspection, build_record["gpu"]
+            ),
         },
     }
     _write_text(MANIFEST_PATH, canonical_json(manifest))
+    _write_text(PORTABILITY_BUILD_RECORD_PATH, canonical_json(build_record))
     generate_client_contract()
     generate_benchmark_pair_contract()
     create_preparation_evidence()
@@ -1197,7 +1342,9 @@ def manifest_staleness(spec: dict[str, Any], manifest: dict[str, Any]) -> list[s
         if serving_kind == "tensorrt":
             if entry.get("profile") != serving["profile"]:
                 errors.append("manifest TensorRT profile is stale")
-            expected_capability = spec["build"]["target"]["compute_capability"]
+            expected_capability = manifest.get("build", {}).get("gpu", {}).get(
+                "compute_capability"
+            )
             if entry.get("compute_capability") != expected_capability:
                 errors.append("manifest TensorRT compute capability is stale")
     validation = manifest.get("artifact_validation", {})
@@ -1330,12 +1477,12 @@ def _validate_repository(structure_only: bool) -> None:
     _run(arguments)
 
 
-def prepare(spec: dict[str, Any]) -> None:
+def prepare(spec: dict[str, Any], gpu_device: str = "0") -> None:
     _run(["docker", "version"], capture_output=True)
     download_sources(spec)
     generate_repository_text(spec)
     export_models(spec)
-    build_tensorrt(spec)
+    build_tensorrt(spec, gpu_device)
     create_manifest(spec)
     _validate_repository(structure_only=False)
     print("[OK] Model preparation reached artifact-complete state.")
@@ -1367,6 +1514,11 @@ def _validate_images(spec: dict[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="check tracked generated files")
+    parser.add_argument(
+        "--gpu-device",
+        default="0",
+        help="host NVIDIA GPU index or UUID exposed exclusively to build and validation",
+    )
     parser.add_argument(
         "command",
         nargs="?",
@@ -1410,13 +1562,13 @@ def main() -> int:
         if not arguments.command:
             parser.error("a command is required unless --check is used")
         commands = {
-            "prepare": lambda: prepare(spec),
+            "prepare": lambda: prepare(spec, arguments.gpu_device),
             "prepare-versions": lambda: prepare_versions(spec),
             "discover": lambda: discover_sources(spec),
             "download": lambda: download_sources(spec),
             "generate": lambda: (download_sources(spec), generate_repository_text(spec)),
             "export": lambda: export_models(spec),
-            "build-tensorrt": lambda: build_tensorrt(spec),
+            "build-tensorrt": lambda: build_tensorrt(spec, arguments.gpu_device),
             "validate": lambda: _validate_repository(structure_only=False),
             "clean": lambda: clean_models(spec),
             "manifest": lambda: create_manifest(spec),

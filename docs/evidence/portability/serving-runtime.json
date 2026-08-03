@@ -1,0 +1,203 @@
+{
+  "captured_at_utc": "2026-08-03T07:38:38.217548Z",
+  "dynamic_batching": {
+    "resnet50_onnx": {
+      "attempt": 1,
+      "attempts": [
+        {
+          "attempt": 1,
+          "concurrency": 16,
+          "execution_count_delta": 7,
+          "finite_outputs": true,
+          "inference_count_delta": 32,
+          "observed_batch_sizes": [
+            2,
+            5,
+            6,
+            8
+          ],
+          "passed": true,
+          "requests": 32,
+          "success_count_delta": 32
+        }
+      ],
+      "attempts_used": 1,
+      "concurrency": 16,
+      "execution_count_delta": 7,
+      "finite_outputs": true,
+      "inference_count_delta": 32,
+      "model_version": "2",
+      "observed_batch_sizes": [
+        2,
+        5,
+        6,
+        8
+      ],
+      "passed": true,
+      "requests": 32,
+      "success_count_delta": 32
+    },
+    "resnet50_tensorrt": {
+      "attempt": 1,
+      "attempts": [
+        {
+          "attempt": 1,
+          "concurrency": 16,
+          "execution_count_delta": 20,
+          "finite_outputs": true,
+          "inference_count_delta": 32,
+          "observed_batch_sizes": [
+            4
+          ],
+          "passed": true,
+          "requests": 32,
+          "success_count_delta": 32
+        }
+      ],
+      "attempts_used": 1,
+      "concurrency": 16,
+      "execution_count_delta": 20,
+      "finite_outputs": true,
+      "inference_count_delta": 32,
+      "model_version": "1",
+      "observed_batch_sizes": [
+        4
+      ],
+      "passed": true,
+      "requests": 32,
+      "success_count_delta": 32
+    },
+    "yolo11n_onnx": {
+      "attempt": 1,
+      "attempts": [
+        {
+          "attempt": 1,
+          "concurrency": 4,
+          "execution_count_delta": 5,
+          "finite_outputs": true,
+          "inference_count_delta": 8,
+          "observed_batch_sizes": [
+            2
+          ],
+          "passed": true,
+          "requests": 8,
+          "success_count_delta": 8
+        }
+      ],
+      "attempts_used": 1,
+      "concurrency": 4,
+      "execution_count_delta": 5,
+      "finite_outputs": true,
+      "inference_count_delta": 8,
+      "model_version": "1",
+      "observed_batch_sizes": [
+        2
+      ],
+      "passed": true,
+      "requests": 8,
+      "success_count_delta": 8
+    }
+  },
+  "extensions": [
+    "model_configuration",
+    "model_repository",
+    "statistics"
+  ],
+  "final_repository_ready_models": [],
+  "images": {
+    "sdk": "nvcr.io/nvidia/tritonserver:26.07-py3-sdk",
+    "server": "nvcr.io/nvidia/tritonserver:26.07-py3"
+  },
+  "manifest_path": "models/model-manifest.json",
+  "manifest_sha256": "6a938fa6ec13de45140086dc63518c281e7285bc6a5e25553eb22bc810a3b451",
+  "model_readiness_after_cleanup": {
+    "resnet50_onnx": {
+      "model_ready": false,
+      "versions": {
+        "1": false,
+        "2": false
+      }
+    },
+    "resnet50_tensorrt": {
+      "model_ready": false,
+      "versions": {
+        "1": false
+      }
+    },
+    "yolo11n_onnx": {
+      "model_ready": false,
+      "versions": {
+        "1": false
+      }
+    }
+  },
+  "models": {
+    "resnet50_onnx:1": {
+      "grpc": "passed",
+      "http": "passed",
+      "max_abs_protocol_error": 0.0,
+      "output_dtype": "FLOAT32",
+      "output_shape": [
+        1,
+        1000
+      ],
+      "response_version": "1"
+    },
+    "resnet50_onnx:2": {
+      "grpc": "passed",
+      "http": "passed",
+      "max_abs_protocol_error": 0.0,
+      "output_dtype": "FLOAT32",
+      "output_shape": [
+        1,
+        1000
+      ],
+      "response_version": "2"
+    },
+    "resnet50_tensorrt:1": {
+      "grpc": "passed",
+      "http": "passed",
+      "max_abs_protocol_error": 0.0,
+      "output_dtype": "FLOAT32",
+      "output_shape": [
+        1,
+        1000
+      ],
+      "response_version": "1"
+    },
+    "yolo11n_onnx:1": {
+      "grpc": "passed",
+      "http": "passed",
+      "max_abs_protocol_error": 0.0,
+      "output_dtype": "FLOAT32",
+      "output_shape": [
+        1,
+        84,
+        8400
+      ],
+      "response_version": "1"
+    }
+  },
+  "protocols": {
+    "grpc": "passed",
+    "http": "passed"
+  },
+  "schema_version": 1,
+  "server_after_cleanup": {
+    "live": true,
+    "ready": true
+  },
+  "spec_path": "models/model-spec.yaml",
+  "spec_sha256": "f4b1c7f788e3d87a71eb47bb97fc663c8938966df4a01d859e99a6b2190c4879",
+  "version_switching": {
+    "default_with_tracked_policy": "2",
+    "passed": true,
+    "reload_without_unload": "passed",
+    "sequence": [
+      "1",
+      "2",
+      "1+2"
+    ],
+    "version_parity": "passed"
+  }
+}

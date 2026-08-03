@@ -24,6 +24,7 @@ Model control is HTTP-only in the verifier. HTTP and gRPC are both used for meta
 and binary inference. Cleanup unloads all models and confirms Triton remains live and
 ready with an empty READY set.
 
-TensorRT remains strictly capability-qualified through `cc_model_filenames`. Its
-config has no `default_model_filename`, and `model.plan` is absent, so another GPU
-capability cannot fall back to the CC 8.9 engine.
+TensorRT uses one explicit `default_model_filename: "model.plan"`. Preparation builds
+that plan on the GPU selected by `--gpu-device` and validates parity on the same
+exclusively visible device. GPU and toolchain provenance belong to the build record
+and generated manifest, not to the host-independent version or pair contract.

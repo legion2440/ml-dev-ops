@@ -17,7 +17,6 @@ def build_model_config(
     serving: Mapping[str, Any],
     *,
     platform: str,
-    compute_capability: str | None = None,
 ) -> dict[str, Any]:
     """Return one complete neutral ModelConfig used by every renderer."""
     versions = serving["versions"]
@@ -57,13 +56,8 @@ def build_model_config(
             }
         ],
         "output": [output],
+        "default_model_filename": filename,
     }
-    if platform == "tensorrt_plan":
-        if not compute_capability:
-            raise ValueError("TensorRT config requires compute_capability")
-        config["cc_model_filenames"] = {compute_capability: filename}
-    else:
-        config["default_model_filename"] = filename
     return config
 
 
@@ -97,11 +91,10 @@ def validate_contract_relationships(config: Mapping[str, Any]) -> list[str]:
     ):
         errors.append("specific version policy must contain sorted positive versions")
     if config.get("platform") == "tensorrt_plan":
-        if "default_model_filename" in config:
-            errors.append("TensorRT config must not define default_model_filename")
-        mappings = config.get("cc_model_filenames")
-        if not isinstance(mappings, dict) or len(mappings) != 1:
-            errors.append("TensorRT config must define one capability-qualified plan")
+        if config.get("default_model_filename") != "model.plan":
+            errors.append("TensorRT config must explicitly use model.plan")
+        if "cc_model_filenames" in config:
+            errors.append("single-plan TensorRT config must not define cc_model_filenames")
     return errors
 
 

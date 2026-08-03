@@ -153,14 +153,16 @@ services:
       - triton:8000
       - --grpc-url
       - triton:8001
+      - --evidence-directory
+      - docs/evidence/portability
     volumes:
       - type: bind
         source: .
         target: /workspace
         read_only: true
       - type: bind
-        source: ./docs/evidence/step-4
-        target: /workspace/docs/evidence/step-4
+        source: ./docs/evidence/portability
+        target: /workspace/docs/evidence/portability
     restart: "no"
     networks:
       - backend

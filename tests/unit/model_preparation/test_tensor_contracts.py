@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import unittest
-from pathlib import PurePosixPath
 
 from scripts.model_preparation import prepare_models
 from scripts.validate_model_repository import validate_spec_semantics
@@ -32,16 +31,17 @@ class TensorContractTests(unittest.TestCase):
                 self.assertEqual(shape[0], -1)
                 self.assertTrue(all(value > 0 for value in shape[1:]))
 
-    def test_tensorrt_config_has_no_cross_capability_fallback(self) -> None:
+    def test_tensorrt_config_uses_portable_default_plan(self) -> None:
         serving = self.spec["models"]["resnet50"]["serving"]["tensorrt"]
         config_path = prepare_models.REPOSITORY_ROOT / serving["config_path"]
         config = config_path.read_text(encoding="utf-8")
-        self.assertIn("cc_model_filenames {", config)
-        self.assertNotIn("default_model_filename", config)
-
-        artifact = PurePosixPath(serving["versions"]["1"]["artifact_path"])
-        fallback = prepare_models.REPOSITORY_ROOT / artifact.parent.as_posix() / "model.plan"
-        self.assertFalse(fallback.exists())
+        self.assertIn('default_model_filename: "model.plan"', config)
+        self.assertNotIn("cc_model_filenames", config)
+        self.assertEqual(
+            serving["versions"]["1"]["artifact_path"],
+            "models/resnet50_tensorrt/1/model.plan",
+        )
+        self.assertNotIn("target", self.spec["build"])
 
     def test_embedded_yolo_nms_is_rejected(self) -> None:
         changed = copy.deepcopy(self.spec)

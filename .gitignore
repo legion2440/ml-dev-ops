@@ -10,6 +10,6 @@ __pycache__/
 htmlcov/
 .cache/
 models/**/model.onnx
-models/**/model_cc89.plan
+models/**/*.plan
 logs/*.jsonl
 logs/*.csv

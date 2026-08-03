@@ -7,7 +7,7 @@ Model preparation produces four serving artifacts for three Triton models:
 | Triton model | Artifact | Contract source |
 |---|---|---|
 | `resnet50_onnx` | ONNX FP32 versions 1 and 2 | ResNet tensor, preprocessing, versions, and parity sections in the model spec |
-| `resnet50_tensorrt` | TensorRT FP16 compute, FP32 I/O | Same ResNet contract plus the spec profile and target capability |
+| `resnet50_tensorrt` | TensorRT FP16 compute, FP32 I/O | Same ResNet contract plus the spec profile and parity requirements |
 | `yolo11n_onnx` | ONNX FP32, no NMS | YOLO tensor and preprocessing sections in the model spec |
 
 Only the batch dimension is dynamic. Version 2 is a deterministic terminal-Identity
@@ -34,7 +34,7 @@ Artifact preparation refuses an unresolved or mismatched source hash.
 
 The exporter runs in the pinned Ultralytics CPU image declared as `tag@sha256` in the spec. It exports ResNet50 and YOLO11n with the spec opset, derives ResNet v2, runs ONNX Checker, checks graph metadata, performs ONNX Runtime synthetic inference for spec-owned batches, and enforces strict v1/v2 parity. The YOLO adapter copies the fixed output dimensions from the spec into ONNX metadata; only batch remains symbolic.
 
-The selected TensorRT toolchain uses strongly typed networks and does not accept the historical `trtexec --fp16` flag. The workflow therefore creates an ignored intermediate ResNet ONNX with FP16 internal weights and tensors plus FP32 boundary casts, then builds the engine in the pinned container. Its `model_cc<capability>.plan` name and `cc_model_filenames` mapping are derived from the spec. The TensorRT config deliberately omits `default_model_filename`, and no generic `model.plan` is produced, so another capability cannot fall back to this engine.
+The selected TensorRT toolchain uses strongly typed networks and does not accept the historical `trtexec --fp16` flag. The workflow therefore creates an ignored intermediate ResNet ONNX with FP16 internal weights and tensors plus FP32 boundary casts, then builds `model.plan` in the pinned container. `--gpu-device` selects one host GPU by index or UUID; every query, build, and parity-validation container sees only that device. The generated build record captures its UUID, name, compute capability, driver, CUDA/TensorRT versions, and engine hash. The tracked spec and shared contracts contain only host-independent semantics.
 
 Run the complete artifact workflow:
 
@@ -46,6 +46,12 @@ Direct equivalent:
 
 ```text
 python scripts/model_preparation/prepare_models.py prepare
+```
+
+Select another host GPU explicitly when required:
+
+```text
+python scripts/model_preparation/prepare_models.py --gpu-device GPU-UUID prepare
 ```
 
 Preparation ends at artifact-complete. It does not call Triton.
@@ -87,7 +93,7 @@ Source weights and intermediates live under `.cache/model-preparation`. Serving 
 
 - `models/resnet50_onnx/1/model.onnx`;
 - `models/resnet50_onnx/2/model.onnx`;
-- the capability-qualified TensorRT plan declared in the model spec;
+- `models/resnet50_tensorrt/1/model.plan`, built for the selected GPU;
 - `models/yolo11n_onnx/1/model.onnx`.
 
 They are ignored by Git. A clean checkout retains the spec, configs, labels, manifest, and evidence, while the four binaries must be reproduced locally for full validation or serving. Allow roughly 1 GB for model sources and generated artifacts, plus local Docker storage for the exporter, TensorRT, Triton, and SDK images. The container images dominate disk use and can require several tens of gigabytes.
@@ -107,4 +113,4 @@ The repository is AGPL-3.0-only because the selected Ultralytics YOLO11 open-sou
 
 TorchVision code is BSD-3-Clause, but the ResNet pretrained weights are ImageNet-derived and require independent review of upstream dataset and weight terms. See `THIRD_PARTY_NOTICES.md`.
 
-The generated manifest records the exact GPU, compute capability, TensorRT version, and driver/runtime used for the plan. It is not represented as portable to another compute capability or TensorRT runtime. Rebuild it on the target environment.
+The generated manifest and portability build record capture the exact selected GPU, compute capability, TensorRT version, and driver/runtime used for the plan. The workflow is portable across supported NVIDIA hosts because it rebuilds one canonical `model.plan` locally; the resulting plan binary is still host/toolchain-specific and must be rebuilt on a different target environment.

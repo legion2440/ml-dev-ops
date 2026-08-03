@@ -23,9 +23,7 @@ from shared.triton_model_config import render_load_config_json, validate_contrac
 MANIFEST_PATH = REPOSITORY_ROOT / "models/model-manifest.json"
 SPEC_PATH = REPOSITORY_ROOT / "models/model-spec.yaml"
 ENV_PATH = REPOSITORY_ROOT / ".env.example"
-EVIDENCE_DIRECTORY = REPOSITORY_ROOT / "docs/evidence/step-4"
-EVIDENCE_PATH = EVIDENCE_DIRECTORY / "serving-runtime.json"
-REPOSITORY_EVIDENCE_PATH = EVIDENCE_DIRECTORY / "repository-versions.txt"
+DEFAULT_EVIDENCE_DIRECTORY = REPOSITORY_ROOT / "docs/evidence/portability"
 REQUIRED_EXTENSIONS = {"model_repository", "statistics", "model_configuration"}
 MODEL_NAMES = ("resnet50_onnx", "resnet50_tensorrt", "yolo11n_onnx")
 BURSTS = {
@@ -40,6 +38,20 @@ PROTOCOL_RTOL = 1e-5
 
 class VerificationError(RuntimeError):
     pass
+
+
+def verification_semantic_contract() -> dict[str, Any]:
+    """Return host-independent behavior promised by the serving verifier."""
+    return {
+        "models": list(MODEL_NAMES),
+        "protocols": ["grpc", "http"],
+        "required_extensions": sorted(REQUIRED_EXTENSIONS),
+        "dynamic_batching_models": list(MODEL_NAMES),
+        "version_switching_sequence": ["1", "2", "1+2"],
+        "reload_without_unload": True,
+        "final_ready_models": [],
+        "server_healthy_after_cleanup": True,
+    }
 
 
 def _sha256(path: Path) -> str:
@@ -263,7 +275,7 @@ def _snapshot(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _run(http_url: str, grpc_url: str) -> None:
+def _run(http_url: str, grpc_url: str, evidence_directory: Path) -> None:
     import numpy as np
     import tritonclient.grpc as grpcclient
     import tritonclient.http as httpclient
@@ -343,7 +355,7 @@ def _run(http_url: str, grpc_url: str) -> None:
     ready_resnet = {row.get("version") for row in repository_rows if row.get("name") == name}
     if ready_resnet != {"1", "2"}:
         raise VerificationError(f"Tracked policy did not load both ResNet versions: {ready_resnet}")
-    _write(REPOSITORY_EVIDENCE_PATH, _snapshot(repository_rows))
+    _write(evidence_directory / "repository-versions.txt", _snapshot(repository_rows))
     data = _synthetic(entry, 1, np)
     output_one, _ = _http_infer(http, httpclient, name, "1", entry, data)
     output_two, _ = _http_infer(http, httpclient, name, "2", entry, data)
@@ -402,7 +414,10 @@ def _run(http_url: str, grpc_url: str) -> None:
         "model_readiness_after_cleanup": cleanup_readiness,
         "server_after_cleanup": {"live": True, "ready": True},
     }
-    _write(EVIDENCE_PATH, json.dumps(evidence, indent=2, sort_keys=True) + "\n")
+    _write(
+        evidence_directory / "serving-runtime.json",
+        json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+    )
     print("[OK] HTTP/gRPC, dynamic batching, version switching, reload, and cleanup passed.")
 
 
@@ -421,13 +436,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--http-url", default="triton:8000")
     parser.add_argument("--grpc-url", default="triton:8001")
+    parser.add_argument(
+        "--evidence-directory",
+        type=Path,
+        default=DEFAULT_EVIDENCE_DIRECTORY,
+        help="output directory for the current serving proof",
+    )
     parser.add_argument("--check", action="store_true")
     arguments = parser.parse_args()
     try:
         if arguments.check:
             _check()
         else:
-            _run(arguments.http_url, arguments.grpc_url)
+            evidence_directory = arguments.evidence_directory
+            if not evidence_directory.is_absolute():
+                evidence_directory = REPOSITORY_ROOT / evidence_directory
+            _run(arguments.http_url, arguments.grpc_url, evidence_directory)
         return 0
     except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError, VerificationError) as error:
         if not arguments.check:

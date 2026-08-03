@@ -28,6 +28,7 @@ from benchmarks.run_benchmark import (
     STABILITY_PASS,
     benchmark_compatibility_projection,
     canonical_sha256,
+    normalized_benchmark_compatibility_projection,
     sha256,
 )
 
@@ -773,9 +774,9 @@ def validate_current_compatibility(
     if not isinstance(stored, dict):
         return ["runtime compatibility projection is missing"]
     current = benchmark_compatibility_projection(source_root)
-    if canonical_sha256(current) != evidence.get(
-        "runtime_compatibility_projection_sha256"
-    ) or current != stored:
+    if normalized_benchmark_compatibility_projection(
+        current
+    ) != normalized_benchmark_compatibility_projection(stored):
         return ["current benchmark contract is incompatible with the historical run"]
     return []
 

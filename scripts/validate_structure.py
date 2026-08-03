@@ -39,6 +39,8 @@ REQUIRED_DIRECTORIES = (
     "docs/evidence",
     "docs/evidence/step-2",
     "docs/evidence/step-3",
+    "docs/evidence/step-4",
+    "docs/evidence/portability",
     "docs/generated",
     "schemas",
     "shared",
@@ -96,6 +98,12 @@ REQUIRED_FILES = (
     "docs/evidence/step-3/preparation.json",
     "docs/evidence/step-3/triton-model-smoke.json",
     "docs/evidence/step-3/model-repository.txt",
+    "docs/evidence/step-4/runtime-integrity.json",
+    "docs/evidence/step-4/runtime-model-manifest.json",
+    "docs/evidence/step-4/runtime-model-spec.yaml",
+    "docs/evidence/portability/build-record.json",
+    "docs/evidence/portability/serving-runtime.json",
+    "docs/evidence/portability/repository-versions.txt",
     "models/model-spec.yaml",
     "models/model-manifest.json",
     "models/resnet50_onnx/config.pbtxt",
@@ -106,6 +114,7 @@ REQUIRED_FILES = (
     "models/yolo11n_onnx/coco80.txt",
     "schemas/model-spec.schema.json",
     "schemas/model-manifest.schema.json",
+    "schemas/portability-build-record.schema.json",
     "docs/generated/dependency-graph.md",
 )
 
@@ -174,6 +183,11 @@ def _check_json_files(errors: list[str]) -> None:
         "schemas/dependency-graph.schema.json",
         "schemas/model-spec.schema.json",
         "schemas/model-manifest.schema.json",
+        "schemas/portability-build-record.schema.json",
+        "docs/evidence/step-4/runtime-integrity.json",
+        "docs/evidence/step-4/runtime-model-manifest.json",
+        "docs/evidence/portability/build-record.json",
+        "docs/evidence/portability/serving-runtime.json",
     )
     for relative_path in json_paths:
         path = REPOSITORY_ROOT / relative_path

@@ -60,11 +60,6 @@
     }
   },
   "common_contract_sha256": "cd7ea19161fad7e89962a0035f43f8caa9b46a2cc69734742ae840874de9caf8",
-  "declared_build_target": {
-    "build_driver_version": "610.88",
-    "compute_capability": "8.9",
-    "gpu_name": "NVIDIA GeForce RTX 4080 Laptop GPU"
-  },
   "logical_model_id": "resnet50",
   "optimized": {
     "available_versions": [
@@ -77,20 +72,16 @@
     "version": "1"
   },
   "pair_id": "resnet50-onnx-vs-tensorrt",
-  "parity": {
-    "cosine_similarity": 0.9996493709698281,
-    "max_abs_error": 0.16452789306640625,
-    "mean_abs_error": 0.01703711971640587,
-    "status": "passed",
+  "parity_requirement": {
+    "required": true,
     "tolerances": {
       "max_abs_error": 0.5,
       "mean_abs_error": 0.05,
       "minimum_cosine_similarity": 0.999,
       "minimum_top1_agreement": 1.0
-    },
-    "top1_agreement": 1.0
+    }
   },
-  "schema_version": 1,
-  "source_manifest_sha256": "68572198a245c36b40fae82029a5c7d673dbcb753bd3bbfd27f9e319db14d705",
+  "schema_version": 2,
+  "semantic_source_sha256": "9db846b8e8fc9f55f07488fae392841a33b2e04b27f664668bf70355d832cc3d",
   "weights_sha256": "11ad3fa62ca79e40addfd354a8ec4b7c75143b3038b8d2a807fbc68deab379ca"
 }

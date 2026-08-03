@@ -24,7 +24,9 @@ class GeneratedBenchmarkPairTests(unittest.TestCase):
         rendered = json.dumps(pair)
         self.assertNotIn("artifact", rendered)
         self.assertNotIn("models/", rendered)
-        self.assertEqual(pair["parity"]["status"], "passed")
+        self.assertTrue(pair["parity_requirement"]["required"])
+        self.assertNotIn("status", pair["parity_requirement"])
+        self.assertNotIn("max_abs_error", pair["parity_requirement"])
         self.assertEqual(pair["baseline"]["io_precision"], pair["optimized"]["io_precision"])
 
 

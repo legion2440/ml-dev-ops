@@ -1,21 +1,64 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import unittest
 
-from scripts.model_preparation import prepare_models
-from scripts.validate_serving_evidence import EVIDENCE_PATH, validate_evidence
+from scripts.validate_serving_evidence import (
+    EVIDENCE_PATH,
+    HISTORICAL_MANIFEST_PATH,
+    HISTORICAL_SPEC_PATH,
+    INTEGRITY_PATH,
+    REPOSITORY_PATH,
+    serving_semantic_projection,
+    validate_evidence,
+    validate_historical,
+)
 
 
 class ServingEvidenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.manifest = json.loads(prepare_models.MANIFEST_PATH.read_text(encoding="utf-8"))
+        cls.manifest = json.loads(HISTORICAL_MANIFEST_PATH.read_text(encoding="utf-8"))
         cls.evidence = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
 
-    def test_current_evidence_is_semantically_valid(self) -> None:
+    def test_historical_evidence_is_semantically_valid(self) -> None:
         self.assertEqual(validate_evidence(self.evidence, self.manifest), [])
+
+    def test_historical_bundle_is_self_contained_and_read_only(self) -> None:
+        paths = (
+            EVIDENCE_PATH,
+            REPOSITORY_PATH,
+            HISTORICAL_MANIFEST_PATH,
+            HISTORICAL_SPEC_PATH,
+            INTEGRITY_PATH,
+        )
+        before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+        self.assertEqual(validate_historical(), [])
+        after = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+        self.assertEqual(after, before)
+
+    def test_host_provenance_is_not_serving_semantics(self) -> None:
+        changed = copy.deepcopy(self.manifest)
+        changed["generated_at_utc"] = "2099-01-01T00:00:00Z"
+        changed["build"]["gpu"]["compute_capability"] = "8.6"
+        changed["models"]["resnet50_tensorrt"]["compute_capability"] = "8.6"
+        changed["models"]["resnet50_tensorrt"]["versions"]["1"]["artifact"][
+            "sha256"
+        ] = "0" * 64
+        self.assertEqual(
+            serving_semantic_projection(changed),
+            serving_semantic_projection(self.manifest),
+        )
+
+    def test_io_change_is_serving_incompatible(self) -> None:
+        changed = copy.deepcopy(self.manifest)
+        changed["models"]["resnet50_tensorrt"]["input"]["shape"][-1] += 1
+        self.assertNotEqual(
+            serving_semantic_projection(changed),
+            serving_semantic_projection(self.manifest),
+        )
 
     def test_missing_protocol_is_rejected(self) -> None:
         changed = copy.deepcopy(self.evidence)

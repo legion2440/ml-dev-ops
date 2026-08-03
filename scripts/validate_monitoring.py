@@ -122,6 +122,13 @@ HASHED_ARTIFACTS = (
     "monitoring/verify_runtime.py",
     "scripts/validate_monitoring.py",
 )
+CURRENT_COMPATIBILITY_HASHED_ARTIFACTS = (
+    "monitoring/prometheus/prometheus.yml",
+    "monitoring/prometheus/alerts.yml",
+    "monitoring/grafana/provisioning/datasources/prometheus.yml",
+    "monitoring/grafana/provisioning/dashboards/provider.yml",
+    "monitoring/grafana/dashboards/ml-dev-ops.json",
+)
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -424,7 +431,12 @@ def validate_evidence() -> list[str]:
         errors.append("Step 7 runtime query evidence reference is stale")
 
     artifact_hashes = runtime.get("artifact_sha256", {})
-    for relative in HASHED_ARTIFACTS:
+    if set(artifact_hashes) != set(HASHED_ARTIFACTS) or any(
+        not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+        for value in artifact_hashes.values()
+    ):
+        errors.append("Step 7 historical artifact index is invalid")
+    for relative in CURRENT_COMPATIBILITY_HASHED_ARTIFACTS:
         path = REPOSITORY_ROOT / relative
         if artifact_hashes.get(relative) != _sha256(path):
             errors.append(f"Step 7 artifact hash is stale: {relative}")

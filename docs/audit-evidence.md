@@ -20,7 +20,7 @@ This matrix maps the completed audit scope to concrete implementation and eviden
 | Step 2 evidence integrity | Historical source manifest from `de079e1`, artifact hashes, and semantic deployment projection | `docs/evidence/step-2/runtime-integrity.json`; `python scripts/validate_runtime_evidence.py --check` | Historical integrity and current four-service compatibility pass independently; source drift is non-gating |
 | Model source provenance | Accepted URLs, SHA-256, licenses, package lock, and image digests | `models/model-spec.yaml` | Step 3 evidence references its immutable manifest v1 snapshot |
 | Two CV workloads | ResNet50 classification and YOLO11n detection | `models/model-manifest.json` | Two ONNX graphs pass checker and synthetic ONNX Runtime inference |
-| TensorRT optimization | Strongly typed FP16 ResNet with FP32 I/O; spec-derived capability mapping with no default plan fallback | `models/resnet50_tensorrt/config.pbtxt` and unit regression | Engine deserialization, exporter-level parity, and live explicit load passed |
+| TensorRT optimization | Strongly typed FP16 ResNet with FP32 I/O; one explicit `model.plan` built and validated on the selected GPU | `models/resnet50_tensorrt/config.pbtxt`, portability build record, and unit regression | Engine deserialization, exporter-level parity, selected-device provenance, and live explicit load passed |
 | Triton model repository | Three generated configs, model-local labels, normalized versions, and explicit policies | `python scripts/validate_model_repository.py --structure-only` | Manifest v2 and generated text are current; binaries are not tracked |
 | Runtime model serving | Explicit load, metadata/config, batch inference, parity, and unload | `docs/evidence/step-3/triton-model-smoke.json` | All three models runtime-verified on 2026-07-31 |
 | Runtime repository state | Three version-1 models ready during verification | `docs/evidence/step-3/model-repository.txt` | Sanitized repository index captured before explicit unload |
@@ -34,6 +34,8 @@ This matrix maps the completed audit scope to concrete implementation and eviden
 | HTTP and gRPC serving | SDK protocol matrix for every model/version | `docs/evidence/step-4/serving-runtime.json` | Metadata, binary inference, finite outputs, and numerical protocol parity passed |
 | Dynamic batching | Spec-owned schedulers, bounded attempt history, and per-version statistics deltas | `docs/evidence/step-4/serving-runtime.json` | `attempts_used` matches 1–3 recorded attempts; inference deltas exceed execution deltas and batch sizes above one are observed |
 | Model version management | ResNet ONNX v1/v2, load overrides, tracked policy, and in-place reload | `docs/evidence/step-4/repository-versions.txt` | Versions 1 and 2 READY together; default selects v2; cleanup repository empty and every model/version readiness endpoint false |
+| Step 4 historical integrity | Immutable runtime spec/manifest snapshots and artifact hashes | `docs/evidence/step-4/runtime-integrity.json`; `python scripts/validate_serving_evidence.py --historical-only` | Original serving measurement remains self-contained and byte-stable after portability changes |
+| GPU-portable TensorRT preparation | Host-independent spec/pair semantics, explicit GPU selector, canonical plan name, and host-specific build record | `docs/evidence/portability`; `python scripts/validate_serving_evidence.py` | Current build provenance, parity-gated manifest, and serving runtime proof agree without rewriting Step 4 |
 | Final repository hygiene | Tracked-file audit for caches, model binaries, runtime junk, host paths, and secret-like evidence | `python scripts/validate_repository_hygiene.py` | Static hygiene gate passes and is included in `make validate` |
 | Deterministic/read-only generation | Repeatable contracts, configs, report rendering, dependency docs, and immutable check modes | `python -m unittest discover -s tests/unit -t . -p "test_*.py"` | Regression suite covers deterministic rendering, tamper/staleness, and read-only evidence checks |
 
@@ -42,8 +44,10 @@ README statements alone are not accepted as runtime evidence.
 The recorded runtime evidence was produced on Windows 11 with Docker Desktop/WSL2,
 NVIDIA driver 610.88, and compute capability 8.9. Steps 2–4 were captured on
 2026-07-31, step 5 on 2026-08-01, step 6 on 2026-08-02, and step 7 on
-2026-08-03 local time. These files prove the reference runs, not a substitute for
-rerunning verification after environment changes.
+2026-08-03 local time. The selected-GPU portability build and serving proof were
+also captured on 2026-08-03 without rewriting Steps 2–7. These files prove the
+reference runs, not a substitute for rerunning verification after environment
+changes.
 Validate the committed evidence with:
 
 ```text

@@ -8,6 +8,9 @@ build:
   tensorrt_builder_image: nvcr.io/nvidia/tensorrt:26.07-py3@sha256:715352ed6840166888d79b135dd2a8d3f23ffe3169b8cacb6ca4df270388a8df
   onnx_opset: 17
   simplify: false
+  target:
+    gpu_name: NVIDIA GeForce RTX 4080 Laptop GPU
+    compute_capability: "8.9"
 
 models:
   resnet50:
@@ -75,7 +78,7 @@ models:
         max_batch_size: 8
         versions:
           "1":
-            artifact_path: models/resnet50_tensorrt/1/model.plan
+            artifact_path: models/resnet50_tensorrt/1/model_cc89.plan
             revision: fp16-engine
         version_policy:
           specific: [1]

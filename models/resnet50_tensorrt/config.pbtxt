@@ -1,10 +1,7 @@
 name: "resnet50_tensorrt"
 platform: "tensorrt_plan"
 max_batch_size: 8
-cc_model_filenames {
-  key: "8.9"
-  value: "model_cc89.plan"
-}
+default_model_filename: "model.plan"
 version_policy {
   specific {
     versions: 1
