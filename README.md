@@ -1,266 +1,536 @@
 # ML DevOps with NVIDIA Triton
 
-This project will demonstrate production-style serving of pretrained
-computer-vision models with NVIDIA Triton Inference Server. The target includes
-classification and object detection, ONNX and TensorRT optimization, reproducible
-containers, structured inference history, benchmarking, Prometheus metrics, Grafana
-dashboards, GPU monitoring, alerting, and model version management.
+Production-style computer-vision inference with NVIDIA Triton Inference Server, ONNX and TensorRT models, reproducible Docker deployment, benchmarking, Prometheus metrics, Grafana dashboards, GPU monitoring, persistent inference logs, and explicit model version management.
 
-## Current status
+The repository serves ResNet50 classification and YOLO11n object detection, compares an ONNX baseline with an FP16 TensorRT optimization, exposes inference over HTTP and gRPC, and keeps committed runtime evidence for the main assignment requirements.
 
-**Step 7 runtime-verified: Prometheus, Grafana dashboard, GPU monitoring, and alert rules passed.**
+· [Русская версия](README_RU.md)
 
-The repository defines pinned Triton, Prometheus, Grafana, and DCGM Exporter
-services; GPU reservations; loopback-only ports; persistent metrics volumes;
-read-only configuration mounts; lifecycle commands; and infrastructure smoke
-checks.
+## 📋 TOC
 
-The reference Windows 11, Docker Desktop/WSL2, and NVIDIA GPU host verifies the
-three serving models through both HTTP and gRPC. The production client accepts real
-JPG/PNG files or directories, performs contract-driven ResNet and YOLO preprocessing,
-decodes predictions, auto-loads an unavailable model, appends one JSONL event per
-Triton request, and exports the history to CSV. The formal benchmark now compares
-the ResNet50 ONNX and TensorRT implementations through the pinned SDK Perf Analyzer;
-the provisioned Grafana dashboard visualizes live Triton and DCGM data, and
-Prometheus loads the two project alert rules. Client timing remains operational
-diagnostics, not benchmark evidence.
+- [🚀 Quick start](#-quick-start)
+- [📝 About](#-about)
+- [✨ Features](#-features)
+- [🔄 Architecture](#-architecture)
+- [🧠 Models](#-models)
+- [⚡ Triton serving](#-triton-serving)
+- [📈 Benchmark](#-benchmark)
+- [📊 Monitoring](#-monitoring)
+- [🖼️ Python client and samples](#️-python-client-and-samples)
+- [🧾 Logging and CSV export](#-logging-and-csv-export)
+- [🔎 Runtime evidence](#-runtime-evidence)
+- [🧰 Technology stack](#-technology-stack)
+- [🧪 Tests and checks](#-tests-and-checks)
+- [📁 Project structure](#-project-structure)
+- [⚠️ Notes](#️-notes)
+- [🧑‍💻 Author](#-author)
 
-Cleanup evidence covers both the repository READY set and every model-level and
-version-specific readiness endpoint. Batching evidence records `attempts_used` and
-permits no more than three attempts.
+## 🚀 Quick start
 
-Step 5 runtime evidence covers all ten tracked sample images, ONNX versions 1 and 2,
-TensorRT, HTTP and gRPC, 11 logged requests, and exact restoration of the READY set.
+### Prerequisites
 
-Step 6 measures 16 clean Perf Analyzer runs: four paired AB/BA repetitions for
-latency and throughput. PASS requires a positive median paired improvement and at
-least three of four pairs improving for each primary metric. Five percent labels a
-strong result but is not a gate. Windows-host process telemetry permits a same-slot
-replacement only for objectively attributed foreign GPU activity. PA stability,
-thermal/power drift, and clocks do not exclude a valid measurement. The earlier
-5%-stability/5%-improvement contract is superseded. Superseded diagnostic runs are
-intentionally excluded from committed Step 6 evidence and may exist only in the
-local ignored benchmark cache. The published formal bundle is self-contained.
+- Python `3.10+`
+- Docker Engine with Docker Compose v2
+- NVIDIA GPU with a compatible driver
+- NVIDIA Container Toolkit
+- Bash; Git Bash is supported on Windows
+- Docker Desktop with the WSL2 backend when running GPU containers on Windows
 
-The published reference run passed 4/4 pairs in both scenarios, with median paired
-improvements of 19.32% for mean client latency and 114.11% for throughput. Two
-objectively attributed contaminated attempts remain in the evidence beside their
-same-slot replacements. Those attempts were classified conservatively from Windows
-host activity and were directionally consistent with the published TensorRT gain;
-they were not required to establish the optimization conclusion.
+Model export and NVIDIA runtime images are large. Keep several tens of gigabytes of free Docker storage available.
 
-Step 7 verifies the complete Triton -> Prometheus -> Grafana chain through Grafana's
-provisioned datasource proxy. A 35-second classification workload crossed two scrape
-intervals, all five dashboard queries returned numeric data, both alert definitions
-were loaded, GPU identity matched `nvidia-smi`, and the initial empty READY set was
-restored. GPU utilization may validly be zero; a positive `max_over_time` observation
-is retained only as supporting evidence, not an acceptance gate.
+### Clone and install
 
-Model binaries are reproducible local artifacts and are ignored by Git. The model
-specification, configs, labels, manifest, and sanitized runtime evidence are tracked.
+```bash
+git clone https://github.com/legion2440/ml-dev-ops.git
+cd ml-dev-ops
 
-## Planned architecture
-
-An image is preprocessed by a Python client and sent to Triton over REST or gRPC.
-Triton loads versioned ONNX or TensorRT models from its model repository. Triton and
-GPU metrics flow to Prometheus and Grafana. The client records JSONL history that can
-be exported to CSV.
-
-See `ARCHITECTURE.md` for component contracts and
-`docs/generated/dependency-graph.md` for the generated dependency graph.
-
-## Repository layout
-
-```text
-ml-dev-ops/
-├── models/                 Triton model repository
-├── deployment/             Container and service lifecycle
-├── monitoring/             Prometheus, Grafana, GPU metrics, and alerts
-├── client/                 Inference client, samples, and logging
-├── benchmarks/             Load profiles, raw data, results, and reports
-├── scripts/                Architecture checks and model preparation
-├── shared/                 Cross-module schemas and DTOs only
-├── tests/                  Unit, integration, and fixture data
-├── schemas/                JSON Schema for architecture metadata
-├── docs/                   Design, operations, and audit documentation
-├── module-map.json         Module navigation metadata
-└── dependency-graph.json   Allowed and forbidden dependencies
+python -m pip install -r requirements.txt
 ```
 
-## Deployment requirements
+`.env.example` is the canonical configuration. A local `.env` is optional and ignored by Git.
 
-- Python 3.10 or newer
-- packages from `requirements.txt`
-- Docker Engine with Docker Compose v2
-- an NVIDIA GPU with a compatible driver
-- NVIDIA Container Toolkit
-- Linux `amd64` containers
-- Bash for lifecycle scripts; Git Bash is supported on Windows
-- Docker Desktop with the WSL2 backend for GPU containers on Windows
+Check the clean configuration:
 
-The exporter and TensorRT images require additional local Docker storage. Together
-with Triton they can consume several tens of gigabytes.
-
-The pinned image and runtime matrix is documented in `docs/deployment.md`.
-
-## Environment configuration
-
-`.env.example` is the canonical configuration. A local `.env` may override it and
-is ignored by Git. Lifecycle scripts select `.env` when present and otherwise use
-`.env.example`; neither file is executed as shell code.
-
-Validate the clean-checkout configuration:
-
-```text
+```bash
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
 
-## Start and inspect the infrastructure
+### Prepare models
 
-With Make:
-
-```text
-make up
-make status
-make smoke
-make down
+```bash
+python scripts/model_preparation/prepare_models.py prepare
 ```
 
-Direct equivalents:
+This creates the local model artifacts used by Triton. Model binaries are reproducible build artifacts and are intentionally not committed.
 
-```text
+### Start the stack
+
+```bash
 bash deployment/scripts/run_environment.sh
+```
+
+Check the environment:
+
+```bash
 bash deployment/scripts/check_environment.sh
 python deployment/scripts/smoke_environment.py
-bash deployment/scripts/stop_environment.sh
 ```
 
-Run only Triton:
+### Run inference
 
-```text
-bash deployment/scripts/run_triton.sh
-```
+Health:
 
-## Prepare and verify models
-
-Build all three local artifacts and reach artifact-complete state:
-
-```text
-make prepare-models
-```
-
-With Triton running, reach runtime-verified state:
-
-```text
-make verify-serving
-```
-
-Structure-only validation works on a clean checkout without Docker or model binaries:
-
-```text
-make validate-model-structure
-```
-
-Full artifact validation requires Docker and the target GPU declared in the model spec:
-
-```text
-make validate-models
-```
-
-See `docs/model-preparation.md` for source hashes, exact contracts, cleanup,
-portability limits, and direct Python equivalents.
-
-## Run the production client
-
-Install the single host dependency set and start Triton with prepared models:
-
-```text
-python -m pip install -r requirements.txt
+```bash
 python client/inference_client.py health
 ```
 
-Run classification, detection, metadata, and CSV export:
+ResNet50 classification:
 
-```text
+```bash
 python client/inference_client.py classify client/samples/01_dog.jpg
-python client/inference_client.py classify client/samples/ --model resnet50_tensorrt --protocol grpc --batch-size 4
-python client/inference_client.py detect client/samples/ --protocol http --batch-size 2
-python client/inference_client.py metadata --model resnet50_onnx --version 2
-python client/inference_client.py export-logs --input-log logs/inference.jsonl --output-csv logs/inference.csv
 ```
 
-Models are loaded through Triton's HTTP repository API when needed and remain READY
-after a normal client request. Operational `logs/*.jsonl` and `logs/*.csv` files are
-ignored by Git. See `docs/client.md` for the CLI and event contracts.
+TensorRT classification over gRPC:
 
-## Run the formal benchmark
+```bash
+python client/inference_client.py classify client/samples/ \
+    --model resnet50_tensorrt \
+    --protocol grpc \
+    --batch-size 4
+```
 
-With prepared artifacts and healthy Triton:
+YOLO detection:
+
+```bash
+python client/inference_client.py detect client/samples/ \
+    --protocol http \
+    --batch-size 2
+```
+
+Stop the stack:
+
+```bash
+bash deployment/scripts/stop_environment.sh
+```
+
+If GNU Make is available, the same workflows are exposed through targets such as `make prepare-models`, `make up`, `make verify-serving`, `make verify-monitoring`, `make benchmark`, and `make validate`.
+
+## 📝 About
+
+The project implements a complete ML inference delivery path around NVIDIA Triton rather than a standalone model script.
+
+The model repository contains versioned ResNet50 and YOLO11n serving contracts. A reusable Python client performs preprocessing, sends requests over Triton HTTP or gRPC, decodes predictions, and records one structured event per request. Triton and GPU metrics are scraped by Prometheus and visualized in a provisioned Grafana dashboard.
+
+A formal benchmark compares the same ResNet50 workload in ONNX Runtime and TensorRT. Historical runtime evidence is committed separately from current semantic compatibility checks, so later documentation or monitoring changes do not rewrite the original benchmark run.
+
+The repository is designed so that code, configuration, generated contracts, runtime evidence, and audit documentation can be checked independently.
+
+## ✨ Features
+
+### Model serving
+
+- NVIDIA Triton Inference Server in Docker;
+- explicit model control;
+- read-only Triton model repository mount;
+- ResNet50 classification;
+- YOLO11n object detection;
+- ONNX Runtime and TensorRT backends;
+- HTTP and gRPC inference;
+- explicit model version selection;
+- load, unload, reload, and default-version behavior;
+- dynamic batching with runtime evidence.
+
+### Model optimization
+
+- ResNet50 ONNX FP32 baseline;
+- TensorRT FP16 compute with FP32 public I/O;
+- shared source weights between baseline and optimized variants;
+- parity checks before benchmark publication;
+- deterministic benchmark input;
+- committed baseline, optimized, comparison, raw, and report artifacts.
+
+### Observability
+
+- Triton Prometheus metrics;
+- DCGM GPU metrics;
+- provisioned Grafana datasource;
+- provisioned `ML DevOps Inference` dashboard;
+- inference throughput;
+- request rate;
+- average request latency;
+- GPU utilization;
+- failed request count;
+- Prometheus rules for high latency and inference failures.
+
+### Client and evidence
+
+- reusable Python inference client;
+- contract-driven preprocessing and postprocessing;
+- ten tracked real sample images with provenance;
+- JSONL inference history;
+- deterministic CSV export;
+- sanitized committed runtime evidence;
+- tamper and staleness validation;
+- repository hygiene checks.
+
+## 🔄 Architecture
 
 ```text
-make benchmark
+                         +----------------------+
+                         |  JPG / PNG samples   |
+                         +----------+-----------+
+                                    |
+                                    v
+                         +----------------------+
+                         |    Python client     |
+                         | preprocess / decode  |
+                         +----+------------+----+
+                              |            |
+                         HTTP |            | gRPC
+                              v            v
+                    +-----------------------------+
+                    | NVIDIA Triton Inference     |
+                    | Server                      |
+                    |                             |
+                    | ResNet50 ONNX v1 / v2       |
+                    | ResNet50 TensorRT v1        |
+                    | YOLO11n ONNX v1             |
+                    +------+----------------------+
+                           |
+              +------------+-------------+
+              |                          |
+              v                          v
+    +-------------------+       +-------------------+
+    | Triton /metrics   |       | JSONL request log |
+    +---------+---------+       +---------+---------+
+              |                           |
+              v                           v
+    +-------------------+       +-------------------+
+    | Prometheus        |       | CSV export        |
+    +---------+---------+       +-------------------+
+              |
+        +-----+--------------------+
+        |                          |
+        v                          v
++---------------+          +---------------+
+| Grafana       |          | Alert rules   |
+| dashboard     |          | latency/error |
++---------------+          +---------------+
+
+DCGM Exporter --------------------> Prometheus --------------------> Grafana
 ```
 
-The Windows host records process-attributed GPU telemetry while the SDK container
-writes only to ignored `.cache/benchmarking` during measurement. The host publishes
-tracked results only after both gates and the independent raw-data validator pass.
-Each PA pass records an acknowledged WDDM sequence range and explicit-version
-Triton request/queue/compute deltas for diagnosis; those fields never alter formal
-classification. See `docs/benchmarking.md` for scenarios, boundary handshakes,
-isolation, metrics, and direct commands.
+Triton uses explicit model control, so model lifecycle is observable and testable rather than hidden behind automatic repository scanning.
 
-Remove only the Prometheus and Grafana named volumes:
+See `ARCHITECTURE.md` and `docs/generated/dependency-graph.md` for module ownership and dependency boundaries.
+
+## 🧠 Models
+
+| Model               | Backend      | Versions | Precision | Task                                    |
+| ------------------- | ------------ | -------: | --------- | --------------------------------------- |
+| `resnet50_onnx`     | ONNX Runtime | `1`, `2` | FP32      | ImageNet-1K classification              |
+| `resnet50_tensorrt` | TensorRT     | `1`      | FP16 compute, FP32 I/O | ImageNet-1K classification |
+| `yolo11n_onnx`      | ONNX Runtime | `1`      | FP32      | COCO object detection                   |
+
+ResNet50 ONNX and TensorRT use the same source weights. The TensorRT engine is built for the declared GPU compute capability and is not treated as a portable binary across arbitrary GPUs.
+
+The repository tracks model specifications, Triton configs, labels, source hashes, licenses, generated manifests, and runtime evidence. Large model binaries remain local.
+
+Prepare artifacts:
+
+```bash
+python scripts/model_preparation/prepare_models.py prepare
+```
+
+Structure-only validation does not require model binaries:
+
+```bash
+python scripts/validate_model_repository.py --structure-only
+```
+
+See `docs/model-preparation.md` and `docs/model-versioning.md`.
+
+## ⚡ Triton serving
+
+The serving layer verifies:
+
+- server liveness and readiness;
+- model metadata and configuration;
+- HTTP inference;
+- gRPC inference;
+- numerical protocol parity;
+- explicit model versions;
+- default version selection;
+- load and unload;
+- in-place reload;
+- dynamic batching;
+- final READY-state cleanup.
+
+Inspect metadata for ResNet50 ONNX v2:
+
+```bash
+python client/inference_client.py metadata \
+    --model resnet50_onnx \
+    --version 2
+```
+
+The client can load an unavailable model through Triton's repository-control API before inference.
+
+Committed serving evidence is stored under:
 
 ```text
-bash deployment/scripts/stop_environment.sh --purge
+docs/evidence/step-4/
 ```
 
-The purge command does not delete repository-owned host directories.
+## 📈 Benchmark
 
-## Local endpoints
+The formal benchmark compares:
 
-Default ports are bound to loopback:
+```text
+baseline:  resnet50_onnx:v1
+optimized: resnet50_tensorrt:v1
+```
 
-| Service | Address |
-| --- | --- |
-| Triton HTTP | `http://127.0.0.1:8000` |
-| Triton gRPC | `127.0.0.1:8001` |
+Both variants use the same ResNet50 weights and public FP32 tensor contract.
+
+### Formal scenarios
+
+| Scenario   | Batch | Concurrency | Primary metric      |
+| ---------- | ----: | ----------: | ------------------- |
+| Latency    | `1`   | `1`         | mean client latency |
+| Throughput | `8`   | `4`         | inferences / second |
+
+The published run uses four paired repetitions in balanced order:
+
+```text
+ONNX -> TensorRT
+TensorRT -> ONNX
+ONNX -> TensorRT
+TensorRT -> ONNX
+```
+
+### Published result
+
+| Metric                               | Result      |
+| ------------------------------------ | ----------: |
+| Median paired latency improvement    | **19.32%**  |
+| Latency pairs improving              | **4 / 4**   |
+| Median paired throughput improvement | **114.11%** |
+| Throughput pairs improving           | **4 / 4**   |
+| Valid formal slots                   | **16 / 16** |
+
+Two host-activity-contaminated attempts are retained in the raw evidence together with their same-slot replacements. They are excluded by the predeclared environment guard and are not needed to establish the TensorRT result.
+
+Run the benchmark:
+
+```bash
+python benchmarks/run_benchmark.py run --env-file .env.example
+```
+
+Validate committed evidence without rerunning inference:
+
+```bash
+python scripts/validate_benchmark_evidence.py --check
+```
+
+Validate only the immutable historical run:
+
+```bash
+python scripts/validate_benchmark_evidence.py --historical-only
+```
+
+The compatibility gate is semantic rather than full-tree byte equality. It derives Perf Analyzer command behavior, aggregation behavior, environment-guard classification, replacement behavior, the model pair, methodology, and the benchmark-relevant deployment projection from production code.
+
+See `docs/benchmarking.md` and `benchmarks/report.md`.
+
+## 📊 Monitoring
+
+The stack contains:
+
+- Prometheus;
+- Grafana;
+- NVIDIA DCGM Exporter;
+- Triton native metrics.
+
+Default local endpoints:
+
+| Service        | Address                         |
+| -------------- | ------------------------------- |
+| Triton HTTP    | `http://127.0.0.1:8000`         |
+| Triton gRPC    | `127.0.0.1:8001`                |
 | Triton metrics | `http://127.0.0.1:8002/metrics` |
-| Prometheus | `http://127.0.0.1:9090` |
-| Grafana | `http://127.0.0.1:3000` |
-| DCGM metrics | `http://127.0.0.1:9400/metrics` |
+| Prometheus     | `http://127.0.0.1:9090`         |
+| Grafana        | `http://127.0.0.1:3000`         |
+| DCGM metrics   | `http://127.0.0.1:9400/metrics` |
 
-Grafana's Prometheus datasource and the `ML DevOps Inference` dashboard are
-provisioned automatically. To generate a short controlled workload, verify the
-complete monitoring chain, and then inspect the dashboard:
+The provisioned Grafana dashboard UID is:
 
 ```text
-make up
-make verify-monitoring
+ml-dev-ops-inference
 ```
 
-Open `http://127.0.0.1:3000/d/ml-dev-ops-inference/ml-dev-ops-inference` and use the
-credentials selected by `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD`. The
-verifier writes only a temporary ignored log, waits at least two scrape intervals,
-and restores the exact initial READY set.
-
-## Validation
-
-Install the validation and production-client dependencies:
+Dashboard:
 
 ```text
+http://127.0.0.1:3000/d/ml-dev-ops-inference/ml-dev-ops-inference
+```
+
+Its five main panels are:
+
+1. inference throughput;
+2. request rate;
+3. average request latency;
+4. GPU utilization;
+5. failed requests.
+
+Prometheus also loads two rules:
+
+- `HighInferenceLatency`;
+- `InferenceRequestFailures`.
+
+Verify the complete Triton -> Prometheus -> Grafana path:
+
+```bash
+python monitoring/verify_runtime.py --env-file .env.example
+```
+
+The verifier generates a short controlled inference workload, waits across at least two Prometheus scrape intervals, queries the dashboard expressions through Grafana's Prometheus datasource proxy, checks GPU identity, verifies the alert definitions, and restores the original READY set.
+
+See `docs/monitoring.md`.
+
+## 🖼️ Python client and samples
+
+The client accepts individual images or directories.
+
+Classification:
+
+```bash
+python client/inference_client.py classify client/samples/
+```
+
+Explicit ONNX version:
+
+```bash
+python client/inference_client.py classify client/samples/01_dog.jpg \
+    --model resnet50_onnx \
+    --version 2
+```
+
+TensorRT over gRPC:
+
+```bash
+python client/inference_client.py classify client/samples/ \
+    --model resnet50_tensorrt \
+    --protocol grpc \
+    --batch-size 4
+```
+
+YOLO over HTTP:
+
+```bash
+python client/inference_client.py detect client/samples/ \
+    --protocol http \
+    --batch-size 2
+```
+
+The repository contains ten tracked JPG sample images under `client/samples/`. Their source, license/provenance, dimensions, and SHA-256 values are recorded in `client/samples/manifest.json`.
+
+The runtime client evidence covers all ten samples and both serving protocols.
+
+See `docs/client.md`.
+
+## 🧾 Logging and CSV export
+
+Each Triton request appends one structured JSONL event.
+
+Operational logs are written outside committed evidence and are ignored by Git.
+
+Export a JSONL history to CSV:
+
+```bash
+python client/inference_client.py export-logs \
+    --input-log logs/inference.jsonl \
+    --output-csv logs/inference.csv
+```
+
+Committed Step 5 evidence contains:
+
+```text
+docs/evidence/step-5/inference-log.jsonl
+docs/evidence/step-5/inference-log.csv
+docs/evidence/step-5/predictions.txt
+docs/evidence/step-5/client-runtime.json
+```
+
+The committed reference run records successful classification/detection requests without raw tensors, secrets, or host-specific paths.
+
+## 🔎 Runtime evidence
+
+README claims are not treated as runtime proof. The repository keeps machine-checkable evidence for the main live stages.
+
+| Step | Evidence                | What it proves                                                                       |
+| ---- | ----------------------- | ------------------------------------------------------------------------------------ |
+| 2    | `docs/evidence/step-2/` | Docker stack, GPU visibility, service health, Prometheus targets, Grafana datasource |
+| 3    | `docs/evidence/step-3/` | prepared model contracts and runtime model smoke                                     |
+| 4    | `docs/evidence/step-4/` | HTTP/gRPC serving, batching, versions, lifecycle, cleanup                            |
+| 5    | `docs/evidence/step-5/` | real-image client, predictions, JSONL/CSV logging, READY restoration                 |
+| 6    | `docs/evidence/step-6/` + `benchmarks/results/` | ONNX vs TensorRT benchmark and raw measurement evidence      |
+| 7    | `docs/evidence/step-7/` | Prometheus/Grafana/DCGM data path and loaded alert rules                             |
+
+Step 2 and Step 6 separate:
+
+```text
+historical integrity
+current semantic compatibility
+```
+
+A historical runtime snapshot is not rewritten merely because unrelated repository files change.
+
+The complete requirement-to-evidence matrix is in:
+
+```text
+docs/audit-evidence.md
+```
+
+## 🧰 Technology stack
+
+| Area                  | Technology                              |
+| --------------------- | --------------------------------------- |
+| Inference server      | NVIDIA Triton Inference Server `2.71.0` |
+| Container runtime     | Docker + Docker Compose                 |
+| Classification        | ResNet50                                |
+| Detection             | YOLO11n                                 |
+| Baseline runtime      | ONNX Runtime                            |
+| Optimized runtime     | TensorRT                                |
+| Client                | Python                                  |
+| Protocols             | Triton HTTP and gRPC                    |
+| Metrics               | Triton Prometheus metrics               |
+| GPU telemetry         | NVIDIA DCGM Exporter                    |
+| Metrics storage/query | Prometheus                              |
+| Dashboard             | Grafana                                 |
+| Benchmark tool        | Triton Perf Analyzer                    |
+| Contracts             | JSON / JSON Schema / YAML               |
+| Tests                 | Python `unittest`                       |
+
+Pinned container versions and model/export dependencies are stored in repository configuration rather than floating `latest` tags.
+
+## 🧪 Tests and checks
+
+Install dependencies:
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-Run all code-complete checks:
+With GNU Make:
 
-```text
+```bash
 make validate
 ```
 
-On systems without Make, run:
+Direct validation:
 
-```text
+```bash
 python scripts/validate_structure.py
 python scripts/validate_module_map.py
 python scripts/validate_deployment.py
@@ -280,84 +550,96 @@ python -m unittest discover -s tests/unit -t . -p "test_*.py"
 docker compose --project-directory . --file docker-compose.yml --env-file .env.example config --quiet
 ```
 
-Regenerate or check the derived dependency documentation:
+The validation layer covers:
+
+- repository structure;
+- module and dependency metadata;
+- Docker configuration;
+- runtime-evidence integrity;
+- model repository structure;
+- model and serving evidence;
+- client contracts and evidence;
+- benchmark arithmetic and raw-data recomputation;
+- behavioral compatibility probes;
+- monitoring configuration and evidence;
+- deterministic generation;
+- read-only check modes;
+- tracked-file hygiene;
+- host-path and secret-like evidence leakage.
+
+`promtool` is used when available. Its absence does not replace the repository's mandatory YAML and semantic validation.
+
+## 📁 Project structure
 
 ```text
-make architecture
-make check-architecture
+ml-dev-ops/
+├── benchmarks/
+│   ├── configs/
+│   ├── results/
+│   ├── aggregate_results.py
+│   ├── environment_guard.py
+│   ├── report.md
+│   └── run_benchmark.py
+├── client/
+│   ├── logging/
+│   ├── samples/
+│   ├── inference_client.py
+│   ├── preprocessing.py
+│   ├── postprocessing.py
+│   └── transport.py
+├── deployment/
+│   ├── docker/
+│   ├── scripts/
+│   ├── triton/
+│   └── runtime_evidence.py
+├── docs/
+│   ├── evidence/
+│   ├── generated/
+│   ├── audit-evidence.md
+│   ├── benchmarking.md
+│   ├── client.md
+│   ├── deployment.md
+│   ├── model-preparation.md
+│   ├── model-versioning.md
+│   └── monitoring.md
+├── models/
+│   ├── resnet50_onnx/
+│   ├── resnet50_tensorrt/
+│   ├── yolo11n_onnx/
+│   ├── model-manifest.json
+│   └── model-spec.yaml
+├── monitoring/
+│   ├── grafana/
+│   ├── prometheus/
+│   └── verify_runtime.py
+├── schemas/
+├── scripts/
+├── shared/
+├── tests/
+├── ARCHITECTURE.md
+├── dependency-graph.json
+├── docker-compose.yml
+├── Makefile
+├── module-map.json
+├── README.md
+└── README_RU.md
 ```
 
-Equivalent direct commands are:
+`module-map.json` documents module ownership. `dependency-graph.json` defines allowed and forbidden dependencies, and `docs/generated/dependency-graph.md` is generated from it.
 
-```text
-python scripts/generate_dependency_graph.py
-python scripts/generate_dependency_graph.py --check
-```
+## ⚠️ Notes
 
-`scripts/validate_deployment.py` reports `[SKIP]` when `promtool` is unavailable.
-The Compose and Python YAML checks remain mandatory. A successful GPU smoke test is
-required before the deployment is considered runtime-verified.
+- Model binaries are intentionally ignored by Git and must be prepared locally.
+- TensorRT engines are hardware-specific; the committed contracts record the declared GPU target used for the reference build.
+- The reference runtime evidence was produced on an NVIDIA GeForce RTX 4080 Laptop GPU with compute capability `8.9`.
+- Runtime evidence proves the recorded reference runs; it does not claim every future host will reproduce identical performance numbers.
+- Perf Analyzer's internal stability text is diagnostic and is not the benchmark acceptance criterion.
+- A `5%` improvement is documented as a strong result, not as a mandatory assignment threshold.
+- GPU utilization may legitimately be `0%`; monitoring validity requires a numeric series with the correct GPU identity, not a forced non-zero value.
+- Grafana and Prometheus persistent data live in Docker volumes and are not committed.
+- `.env`, local cache directories, model binaries, operational logs, and runtime junk are ignored by Git.
+- The repository is licensed under `AGPL-3.0-only` because the model-preparation workflow uses the open-source Ultralytics YOLO toolchain. Third-party components retain their own licenses; see `THIRD_PARTY_NOTICES.md`.
 
-The committed Step 2 snapshot is under `docs/evidence/step-2`. Its
-`runtime-integrity.json` separates the exact source manifest captured for the run
-from the current four-service compatibility projection. Refresh it only after a
-successful live run:
+## 🧑‍💻 Author
 
-```text
-python deployment/scripts/capture_runtime_evidence.py
-```
-
-`python scripts/validate_runtime_evidence.py --check` validates historical
-integrity plus current compatibility. `--historical-only` validates the immutable
-snapshot alone. Both modes are read-only.
-
-Step 3 runtime evidence under `docs/evidence/step-3` is immutable and bound to its
-manifest v1 snapshot. `make smoke-models` is retained only as a read-only historical
-evidence check; it never contacts Triton or rewrites evidence.
-
-Step 4 evidence is under `docs/evidence/step-4` and is refreshed only by a
-successful `make verify-serving` run. The verifier uses the official SDK image and
-mounts the repository read-only except for that evidence directory.
-
-Step 5 evidence is under `docs/evidence/step-5`. Refresh it only against live Triton
-with `make verify-client`; validate the tracked snapshot without a daemon with
-`make validate-client-evidence`. The verifier unloads only models it loaded and
-requires the final READY set to equal the initial set.
-
-Step 6 evidence is under `docs/evidence/step-6`. Refresh it only through `make
-benchmark`; validate it without a daemon with `make validate-benchmark-evidence`.
-Failed runs remain only in ignored cache and do not modify the last passing bundle.
-The stored `runtime_source_fingerprint_sha256` and per-file source manifest describe
-the source state used by the run. The separately hashed semantic projection is the
-only current-compatibility gate. Its PA command, aggregation, guard classification,
-and replacement fields are outputs of deterministic probes against the production
-code, not parallel declarations. Unrelated repository evolution is reported as
-non-gating provenance drift. Use `--historical-only` to audit the run without the
-current compatibility check.
-
-Step 7 evidence is under `docs/evidence/step-7`. Refresh both compact JSON files only
-against the live four-service stack with `make verify-monitoring`; validate the
-tracked snapshot without contacting any service with `make validate-monitoring`.
-
-## License
-
-This educational repository is licensed under AGPL-3.0-only because it uses the
-open-source Ultralytics YOLO11 workflow. Closed commercial use requires a different
-model/toolchain or an appropriate commercial license. Third-party software,
-pretrained weights, datasets, containers, and NVIDIA runtimes retain their own terms;
-see `LICENSE` and `THIRD_PARTY_NOTICES.md`.
-
-## Delivery roadmap
-
-1. Architecture, repository structure, and agent navigation
-2. Reproducible Docker infrastructure
-3. Model preparation and Triton model repository
-4. Triton serving, batching, and model versioning
-5. Python client, sample images, and inference logging
-6. Baseline and optimized benchmarks
-7. Prometheus, Grafana, GPU monitoring, and alerting
-8. Automated tests and quality gates
-9. Documentation and audit evidence
-
-Each implementation step includes its code, scoped tests, documentation, and
-architecture metadata updates.
+Nazar Yestayev (@nyestaye)
